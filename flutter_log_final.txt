@@ -1,0 +1,72 @@
+Launching lib/main.dart on sdk gphone64 arm64 in debug mode...
+Running Gradle task 'assembleDebug'...                          
+Warning: The plugin flutter_plugin_android_lifecycle requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin fluttertoast requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin google_maps_flutter_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin path_provider_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Warning: The plugin shared_preferences_android requires Android SDK version 36 or higher.
+For more information about build configuration, see https://flutter.dev/to/review-gradle-config.
+Your project is configured to compile against Android SDK 35, but the following plugin(s) require to be compiled against a higher Android SDK version:
+- flutter_plugin_android_lifecycle compiles against Android SDK 36
+- fluttertoast compiles against Android SDK 36
+- google_maps_flutter_android compiles against Android SDK 36
+- path_provider_android compiles against Android SDK 36
+- shared_preferences_android compiles against Android SDK 36
+Fix this issue by compiling against the highest Android SDK version (they are backward compatible).
+Add the following to /Users/adminmac/Desktop/flutter/employee_flutter/android/app/build.gradle.kts:
+
+    android {
+        compileSdk = 36
+        ...
+    }
+Invalid depfile: /Users/adminmac/Desktop/flutter/employee_flutter/.dart_tool/flutter_build/037ee219cb58fec26b7b4fc8620c7cab/kernel_snapshot_program.d
+Invalid depfile: /Users/adminmac/Desktop/flutter/employee_flutter/.dart_tool/flutter_build/037ee219cb58fec26b7b4fc8620c7cab/kernel_snapshot_program.d
+Error: Couldn't resolve the package 'url_launcher' in 'package:url_launcher/url_launcher.dart'.
+lib/screens/track_driver_screen.dart:4:8: Error: Not found: 'package:url_launcher/url_launcher.dart'
+import 'package:url_launcher/url_launcher.dart';
+       ^
+lib/screens/track_driver_screen.dart:165:21: Error: The method 'canLaunchUrl' isn't defined for the type '_TrackDriverScreenState'.
+ - '_TrackDriverScreenState' is from 'package:employee_flutter/screens/track_driver_screen.dart' ('lib/screens/track_driver_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'canLaunchUrl'.
+          if (await canLaunchUrl(uri)) {
+                    ^^^^^^^^^^^^
+lib/screens/track_driver_screen.dart:166:21: Error: The method 'launchUrl' isn't defined for the type '_TrackDriverScreenState'.
+ - '_TrackDriverScreenState' is from 'package:employee_flutter/screens/track_driver_screen.dart' ('lib/screens/track_driver_screen.dart').
+Try correcting the name to the name of an existing method, or defining a method named 'launchUrl'.
+              await launchUrl(uri);
+                    ^^^^^^^^^
+Unhandled exception:
+FileSystemException(uri=org-dartlang-untranslatable-uri:package%3Aurl_launcher%2Furl_launcher.dart; message=StandardFileSystem only supports file:* and data:* URIs)
+#0      StandardFileSystem.entityForUri (package:front_end/src/api_prototype/standard_file_system.dart:45)
+#1      asFileUri (package:vm/kernel_front_end.dart:1008)
+#2      writeDepfile (package:vm/kernel_front_end.dart:1171)
+<asynchronous suspension>
+#3      FrontendCompiler.compile (package:frontend_server/frontend_server.dart:738)
+<asynchronous suspension>
+#4      starter (package:frontend_server/starter.dart:102)
+<asynchronous suspension>
+#5      main (file:///Volumes/Work/s/w/ir/x/w/sdk/pkg/frontend_server/bin/frontend_server_starter.dart:13)
+<asynchronous suspension>
+
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildDebug'.
+> Process 'command '/opt/homebrew/share/flutter/bin/flutter'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 17s
+Running Gradle task 'assembleDebug'...                             18.1s
+Error: Gradle task assembleDebug failed with exit code 1
