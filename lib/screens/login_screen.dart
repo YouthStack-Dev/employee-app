@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../constants/app_colors.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../widgets/glass_container.dart' as glass_container;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -61,77 +63,146 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Log In',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+      backgroundColor: Colors.white, // Pure white background
+      body: Stack(
+        children: [
+          // Subtle background elements to make glass visible (Optional: minimal blobs)
+          Positioned(
+             top: -50, right: -50,
+             child: ImageFiltered(
+               imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+               child: Container(
+                  width: 200, height: 200,
+                  decoration: BoxDecoration(
+                     color: Colors.blue.withOpacity(0.05), // Extremely subtle tint
+                     shape: BoxShape.circle,
+                  ),
+               ),
+             )
+          ),
+          
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: glass_container.GlassContainer(
+                opacity: 0.05, // Lower opacity for white-on-white feel
+                blur: 20,
+                borderRadius: BorderRadius.circular(25),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App Logo Placeholder
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5))]
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.change_history, size: 50, color: Color(0xFF0D47A1)), // Blue logo placeholder
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    _buildTextField(_tenantController, 'Tenant ID'),
+                    const SizedBox(height: 16),
+                    _buildTextField(_usernameController, 'Username / ID'),
+                    const SizedBox(height: 16),
+                    _buildTextField(_passwordController, 'Password', isObscure: true),
+                    const SizedBox(height: 30),
+                    
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, child) {
+                        return auth.isLoading
+                            ? const CircularProgressIndicator(color: AppColors.primary)
+                            : Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: _handleLogin,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0D47A1), // Dark Blue
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                        ),
+                                        elevation: 5,
+                                        shadowColor: Colors.blue.withOpacity(0.3),
+                                      ),
+                                      child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phone Login not implemented yet')));
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF0D47A1), // Dark Blue Text
+                                        side: const BorderSide(color: Color(0xFF0D47A1)),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                        ),
+                                        backgroundColor: Colors.transparent,
+                                      ),
+                                      child: const Text('Login with Phone Number', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
+                              );
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 30),
-              _buildTextField(_tenantController, 'Tenant ID'),
-              const SizedBox(height: 15),
-              _buildTextField(_usernameController, 'Username'),
-              const SizedBox(height: 15),
-              _buildTextField(_passwordController, 'Password', isObscure: true),
-              const SizedBox(height: 20),
-              Consumer<AuthProvider>(
-                builder: (context, auth, child) {
-                  return auth.isLoading
-                      ? const CircularProgressIndicator()
-                      : SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _handleLogin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary, // Using primary color
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: const Text('Log In', style: TextStyle(fontSize: 16)),
-                          ),
-                        );
-                },
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildTextField(TextEditingController controller, String hint, {bool isObscure = false}) {
-    return TextField(
-      controller: controller,
-      obscureText: isObscure,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600)), // Grey text for white bg
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))], // Subtle shadow for depth
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: isObscure,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400),
+              filled: true,
+              fillColor: Colors.transparent, // Handle color in Container
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+               suffixIcon: isObscure 
+                  ? const Icon(Icons.visibility_off, color: Colors.grey)
+                  : null,
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-      ),
+      ],
     );
-  }
-}
+  }}

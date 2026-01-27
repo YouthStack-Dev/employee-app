@@ -63,10 +63,10 @@ class AuthProvider with ChangeNotifier {
     }
     return false;
   }
-  Future<Map<String, dynamic>> triggerGenericSOS() async {
+  Future<Map<String, dynamic>> triggerGenericSOS({int? bookingId}) async {
     final result = await _alertService.triggerSOSAlert(
-      bookingId: null, 
-      notes: "Emergency triggered from Login Screen"
+      bookingId: bookingId, 
+      notes: bookingId != null ? "Emergency triggered during booking #$bookingId" : "Emergency triggered from App"
     );
     return result;
   }
