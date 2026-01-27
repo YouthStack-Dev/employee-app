@@ -52,14 +52,19 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
     if (permission == LocationPermission.deniedForever) return;
 
-    final position = await Geolocator.getCurrentPosition();
-    setState(() {
-      _userLocation = LatLng(position.latitude, position.longitude);
-      _locationFound = true;
-    });
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      setState(() {
+        _userLocation = LatLng(position.latitude, position.longitude);
+        _locationFound = true;
+      });
 
-    final controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(_userLocation, 14));
+      final controller = await _mapController.future;
+      controller.animateCamera(CameraUpdate.newLatLngZoom(_userLocation, 14));
+    } catch (e) {
+      debugPrint('Error determining position: $e');
+    }
   }
 
   void _refreshBookings() {
@@ -67,8 +72,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     if (user?.employeeId != null) {
       // Fetch -1 day to +7 days
       final now = DateTime.now();
+      // Fetch -1 day to +7 days to be safe, or 0 if "today" logic is preferred. 
+      // User reported off-by-one. Ensuring overlapping coverage.
       final start = now.subtract(const Duration(days: 1));
-      final end = start.add(const Duration(days: 7));
+      final end = start.add(const Duration(days: 8)); // increased range slightly
       final dateFormat = DateFormat('yyyy-MM-dd');
       
       Provider.of<BookingProvider>(context, listen: false).fetchBookings(
@@ -329,8 +336,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                          children: [
                             const Text('Your Rides', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            if (yourRides.isNotEmpty)
-                              const Text('See All', style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
+                             if (yourRides.isNotEmpty)
+                               InkWell(
+                                 onTap: () {
+                                    // TODO: Implement full list view or similar
+                                 },
+                                 child: const Text('See All', style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
+                               ),
                          ],
                        ),
                        const SizedBox(height: 10),
@@ -374,7 +386,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
   Widget _buildActiveRideCard(Booking b) {
      final isLogin = b.logType == 'IN';
-     final time = b.shiftTime?.substring(0, 5) ?? '--:--';
+     String time = b.shiftTime ?? '--:--';
+     if (time.length > 5) time = time.substring(0, 5);
      
      // Color logic
      Color statusColor = Colors.green;
@@ -521,8 +534,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
      } else if (b.pickupTime != null && b.pickupTime!.length >= 5) {
        time = b.pickupTime!.substring(0, 5);
      } else {
-       time = b.shiftTime ?? b.pickupTime ?? '--:--';
-     }
+        time = b.shiftTime ?? b.pickupTime ?? '--:--';
+      }
+      if (time.length > 5) time = time.substring(0, 5);
 
      final isScheduled = b.status == 'Scheduled';
      Color statusColor = Colors.green;
@@ -649,11 +663,20 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           content: Text('Are you sure you want to cancel the ride for ${b.date ?? ''}?'),
           actions: [
              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
-             TextButton(
-               onPressed: () {
-                  Navigator.pop(ctx);
-                  Provider.of<BookingProvider>(context, listen: false).cancelBooking(b.id!);
-               }, 
+                TextButton(
+                onPressed: () async {
+                   Navigator.pop(ctx);
+                   if (b.id == null) return;
+                   final provider = Provider.of<BookingProvider>(context, listen: false);
+                   final result = await provider.cancelBooking(b.id!);
+                   if (context.mounted) {
+                     if (result['success']) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ride cancelled successfully')));
+                     } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['error'] ?? 'Cancellation failed'), backgroundColor: Colors.red));
+                     }
+                   }
+                }, 
                child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))
              ),
           ],
@@ -675,8 +698,15 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           child: Consumer<BookingProvider>(
             builder: (context, provider, child) {
               final history = provider.bookings.where((b) => ['Completed', 'No-Show'].contains(b.status)).toList();
-              // Sort desc
-              history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
+              // Sort desc by date then time
+              history.sort((a, b) {
+                 // Parse dates for accurate comparison
+                 final dateA = DateTime.tryParse(a.date ?? '') ?? DateTime(1900);
+                 final dateB = DateTime.tryParse(b.date ?? '') ?? DateTime(1900);
+                 int cmp = dateB.compareTo(dateA); // Descending date
+                 if (cmp != 0) return cmp;
+                 return (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''); // Descending time
+              });
 
               if (history.isEmpty) return const Center(child: Text('No history found'));
 
@@ -699,11 +729,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
        children: [
          const SizedBox(height: 60),
          Center(
-           child: CircleAvatar(
-             radius: 50,
-             backgroundColor: const Color(0xFF0D47A1),
-             child: Text(user?.name?[0] ?? 'U', style: const TextStyle(fontSize: 40, color: Colors.white)),
-           ),
+            child: CircleAvatar(
+              radius: 50,
+              backgroundColor: const Color(0xFF0D47A1),
+              child: Text((user?.name != null && user!.name!.isNotEmpty) ? user.name![0] : 'U', style: const TextStyle(fontSize: 40, color: Colors.white)),
+            ),
          ),
          const SizedBox(height: 20),
          Text(user?.name ?? 'User', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
@@ -777,9 +807,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         if (result['success']) {
            showDialog(
              context: context, 
-             builder: (_) => const AlertDialog(
-               title: Icon(Icons.check_circle, color: Colors.green, size: 50),
-               content: Text('SOS Alert Sent Successfully. Help is on the way.', textAlign: TextAlign.center),
+             builder: (_) => AlertDialog(
+               title: const Icon(Icons.check_circle, color: Colors.green, size: 50),
+               content: const Text('SOS Alert Sent Successfully. Help is on the way.', textAlign: TextAlign.center),
+               actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
              )
            );
         } else {

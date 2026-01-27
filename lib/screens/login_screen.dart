@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _tenantController = TextEditingController(text: 'SAM001');
   final _usernameController = TextEditingController(text: 'emp2@emp.com');
   final _passwordController = TextEditingController(text: 'Employee@123');
+  bool _isPasswordVisible = false;
 
   @override
   void initState() {
@@ -110,7 +111,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 16),
                     _buildTextField(_usernameController, 'Username / ID'),
                     const SizedBox(height: 16),
-                    _buildTextField(_passwordController, 'Password', isObscure: true),
+                    _buildTextField(
+                      _passwordController, 
+                      'Password', 
+                      isObscure: !_isPasswordVisible,
+                      suffixIcon: IconButton(
+                        icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                      ),
+                    ),
                     const SizedBox(height: 30),
                     
                     Consumer<AuthProvider>(
@@ -169,7 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, {bool isObscure = false}) {
+  Widget _buildTextField(TextEditingController controller, String hint, {bool isObscure = false, Widget? suffixIcon}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,9 +206,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-               suffixIcon: isObscure 
+               suffixIcon: suffixIcon ?? (isObscure 
                   ? const Icon(Icons.visibility_off, color: Colors.grey)
-                  : null,
+                  : null),
             ),
           ),
         ),

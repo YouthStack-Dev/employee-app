@@ -16,19 +16,26 @@ class BookingProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final result = await _bookingService.cancelBooking(bookingId);
+    try {
+      final result = await _bookingService.cancelBooking(bookingId);
 
-    if (result['success']) {
-      // Remove locally or refresh
-      _bookings.removeWhere((b) => b.id == bookingId);
-      _error = null;
-    } else {
-      _error = result['error'];
+      if (result['success']) {
+        // Remove locally or refresh
+        _bookings.removeWhere((b) => b.id == bookingId);
+        _error = null;
+      } else {
+        _error = result['error'];
+      }
+      
+      _isLoading = false;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Unexpected error: $e';
+      notifyListeners();
+      return {'success': false, 'error': _error};
     }
-    
-    _isLoading = false;
-    notifyListeners();
-    return result;
   }
   
   Future<void> fetchBookings(int employeeId, {String? startDate, String? endDate}) async {
