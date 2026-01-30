@@ -27,6 +27,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   LatLng _userLocation = const LatLng(12.9716, 77.5946); // Default Bangalore
   Set<Marker> _markers = {};
   bool _locationFound = false;
+  DateTime _selectedHistoryDate = DateTime.now();
 
   @override
   void initState() {
@@ -70,18 +71,29 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   void _refreshBookings() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user?.employeeId != null) {
-      // Fetch -1 day to +7 days
       final now = DateTime.now();
-      // Fetch -1 day to +7 days to be safe, or 0 if "today" logic is preferred. 
-      // User reported off-by-one. Ensuring overlapping coverage.
+      // Fetch -1 day to +8 days for Home Dashboard
       final start = now.subtract(const Duration(days: 1));
-      final end = start.add(const Duration(days: 8)); // increased range slightly
+      final end = start.add(const Duration(days: 8)); 
       final dateFormat = DateFormat('yyyy-MM-dd');
       
       Provider.of<BookingProvider>(context, listen: false).fetchBookings(
         user!.employeeId!,
         startDate: dateFormat.format(start),
         endDate: dateFormat.format(end),
+      );
+    }
+  }
+
+  void _fetchHistoryBookings(DateTime date) {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    if (user?.employeeId != null) {
+      final dateFormat = DateFormat('yyyy-MM-dd');
+      // Fetch specifically for the selected date
+      Provider.of<BookingProvider>(context, listen: false).fetchBookings(
+        user!.employeeId!,
+        startDate: dateFormat.format(date),
+        endDate: dateFormat.format(date),
       );
     }
   }
@@ -99,7 +111,18 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
+          onTap: (index) {
+             setState(() => _currentIndex = index);
+             if (index == 0) {
+                _refreshBookings(); // Restore Home data
+             } else if (index == 1) {
+                // Default to today for History when switching or keep selected?
+                // User asked for "present day and previous days". 
+                // We'll init history with today's data.
+                _selectedHistoryDate = DateTime.now();
+                _fetchHistoryBookings(_selectedHistoryDate);
+             }
+          },
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF0D47A1),
           unselectedItemColor: Colors.grey,
@@ -694,21 +717,80 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           elevation: 0,
           automaticallyImplyLeading: false,
         ),
+        
+        // Date Selection Section
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          color: Colors.white,
+          child: Row(
+            children: [
+               const Icon(Icons.calendar_today, color: Color(0xFF0D47A1), size: 20),
+               const SizedBox(width: 10),
+               Text(
+                 DateFormat('EEE, MMM d, yyyy').format(_selectedHistoryDate),
+                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+               ),
+               const Spacer(),
+               OutlinedButton.icon(
+                 onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedHistoryDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(), // Present and previous days only
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(primary: Color(0xFF0D47A1)),
+                          ),
+                          child: child!,
+                        );
+                      }
+                    );
+                    if (picked != null && picked != _selectedHistoryDate) {
+                       setState(() => _selectedHistoryDate = picked);
+                       _fetchHistoryBookings(picked);
+                    }
+                 },
+                 icon: const Icon(Icons.edit_calendar, size: 16),
+                 label: const Text('Select Date'),
+                 style: OutlinedButton.styleFrom(
+                   foregroundColor: const Color(0xFF0D47A1),
+                   side: const BorderSide(color: Color(0xFF0D47A1)),
+                 ),
+               )
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+
         Expanded(
           child: Consumer<BookingProvider>(
             builder: (context, provider, child) {
-              final history = provider.bookings.where((b) => ['Completed', 'No-Show'].contains(b.status)).toList();
-              // Sort desc by date then time
-              history.sort((a, b) {
-                 // Parse dates for accurate comparison
-                 final dateA = DateTime.tryParse(a.date ?? '') ?? DateTime(1900);
-                 final dateB = DateTime.tryParse(b.date ?? '') ?? DateTime(1900);
-                 int cmp = dateB.compareTo(dateA); // Descending date
-                 if (cmp != 0) return cmp;
-                 return (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''); // Descending time
-              });
+              if (provider.isLoading) {
+                 return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
+              }
 
-              if (history.isEmpty) return const Center(child: Text('No history found'));
+              // Show ALL rides for the selected date as requested
+              // Provider data is already filtered by API to only return this date's bookings
+              final history = provider.bookings;
+              
+              // Sort desc by time (since date is same)
+              // Note: provider.bookings might include active rides if date is today.
+              history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
+
+              if (history.isEmpty) {
+                 return Center(
+                   child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                     children: [
+                       Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
+                       const SizedBox(height: 10),
+                       Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
+                     ],
+                   ),
+                 );
+              }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(20),
