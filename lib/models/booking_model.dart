@@ -61,4 +61,45 @@ class Booking {
       shiftTime: json['shift_time']?.toString(),
     );
   }
+  Booking copyWith({
+    int? id,
+    String? status,
+    String? date,
+    String? pickupLocation,
+    String? dropLocation,
+    String? pickupTime,
+    String? logType,
+    int? shiftId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+    double? dropLatitude,
+    double? dropLongitude,
+    Map<String, dynamic>? routeDetails,
+    int? tenantId,
+    String? boardingOtp,
+    String? deboardingOtp,
+    String? escortOtp,
+    String? shiftTime,
+  }) {
+    return Booking(
+      id: id ?? this.id,
+      status: status ?? this.status,
+      date: date ?? this.date,
+      pickupLocation: pickupLocation ?? this.pickupLocation,
+      dropLocation: dropLocation ?? this.dropLocation,
+      pickupTime: pickupTime ?? this.pickupTime,
+      logType: logType ?? this.logType,
+      shiftId: shiftId ?? this.shiftId,
+      pickupLatitude: pickupLatitude ?? this.pickupLatitude,
+      pickupLongitude: pickupLongitude ?? this.pickupLongitude,
+      dropLatitude: dropLatitude ?? this.dropLatitude,
+      dropLongitude: dropLongitude ?? this.dropLongitude,
+      routeDetails: routeDetails ?? this.routeDetails,
+      tenantId: tenantId ?? this.tenantId,
+      boardingOtp: boardingOtp ?? this.boardingOtp,
+      deboardingOtp: deboardingOtp ?? this.deboardingOtp,
+      escortOtp: escortOtp ?? this.escortOtp,
+      shiftTime: shiftTime ?? this.shiftTime,
+    );
+  }
 }

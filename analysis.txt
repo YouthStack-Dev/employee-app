@@ -1,0 +1,126 @@
+Resolving dependencies...
+Downloading packages...
+  _flutterfire_internals 1.3.59 (1.3.66 available)
+  characters 1.4.0 (1.4.1 available)
+  code_assets 0.19.10 (1.0.0 available)
+  dio 5.9.0 (5.9.1 available)
+  firebase_core 3.15.2 (4.4.0 available)
+  firebase_core_web 2.24.1 (3.4.0 available)
+  firebase_database 11.3.10 (12.1.2 available)
+  firebase_database_platform_interface 0.2.6+10 (0.3.0+2 available)
+  firebase_database_web 0.2.6+16 (0.2.7+3 available)
+  firebase_messaging 15.2.10 (16.1.1 available)
+  firebase_messaging_platform_interface 4.6.10 (4.7.6 available)
+  firebase_messaging_web 3.10.10 (4.1.2 available)
+  flutter_launcher_icons 0.13.1 (0.14.4 available)
+  flutter_local_notifications 19.5.0 (20.0.0 available)
+  flutter_local_notifications_linux 6.0.0 (7.0.0 available)
+  flutter_local_notifications_platform_interface 9.1.0 (10.0.0 available)
+  flutter_local_notifications_windows 1.0.3 (2.0.0 available)
+  geolocator 13.0.4 (14.0.2 available)
+  geolocator_android 4.6.2 (5.0.2 available)
+  google_fonts 7.1.0 (8.0.0 available)
+  google_maps_flutter_android 2.18.9 (2.18.12 available)
+  hooks 0.20.5 (1.0.0 available)
+  json_annotation 4.9.0 (4.10.0 available)
+  matcher 0.12.17 (0.12.18 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.17.0 (1.18.1 available)
+  native_toolchain_c 0.17.2 (0.17.4 available)
+  objective_c 9.2.2 (9.2.5 available)
+  permission_handler 11.4.0 (12.0.1 available)
+  permission_handler_android 12.1.0 (13.0.1 available)
+  shared_preferences_android 2.4.18 (2.4.20 available)
+  test_api 0.7.7 (0.7.9 available)
+  timezone 0.10.1 (0.11.0 available)
+Got dependencies!
+33 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing employee_flutter...                                   
+
+warning • Unused import: 'screens/splash_screen.dart' • lib/main.dart:7:8 • unused_import
+  error • 'status' can't be used as a setter because it's final • lib/providers/booking_provider.dart:54:25 • assignment_to_final
+  error • 'status' can't be used as a setter because it's final • lib/providers/booking_provider.dart:57:25 • assignment_to_final
+warning • Unused import: '../services/weekoff_service.dart' • lib/screens/booking_confirmation_screen.dart:6:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_confirmation_screen.dart:164:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_confirmation_screen.dart:212:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_confirmation_screen.dart:272:55 • deprecated_member_use
+warning • Unused import: '../constants/app_colors.dart' • lib/screens/booking_details_screen.dart:5:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_details_screen.dart:166:165 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_details_screen.dart:274:137 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_success_screen.dart:38:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_success_screen.dart:91:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/booking_success_screen.dart:143:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_booking_screen.dart:252:51 • deprecated_member_use
+warning • Unnecessary cast • lib/screens/edit_booking_screen.dart:42:24 • unnecessary_cast
+warning • Unnecessary cast • lib/screens/edit_booking_screen.dart:43:22 • unnecessary_cast
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/login_screen.dart:78:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/login_screen.dart:102:66 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/login_screen.dart:143:66 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/login_screen.dart:193:55 • deprecated_member_use
+warning • Unused import: '../constants/app_colors.dart' • lib/screens/schedules_screen.dart:9:8 • unused_import
+warning • Unused import: '../services/booking_service.dart' • lib/screens/schedules_screen.dart:10:8 • unused_import
+warning • Unused import: 'track_driver_screen.dart' • lib/screens/schedules_screen.dart:14:8 • unused_import
+   info • The private field _mapController could be 'final' • lib/screens/schedules_screen.dart:26:34 • prefer_final_fields
+   info • The private field _markers could be 'final' • lib/screens/schedules_screen.dart:28:15 • prefer_final_fields
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:112:53 • deprecated_member_use
+   info • The 'child' argument should be last in widget constructor invocations • lib/screens/schedules_screen.dart:148:13 • sort_child_properties_last
+warning • The value of the local variable 'bookings' isn't used • lib/screens/schedules_screen.dart:177:11 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:209:39 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block • lib/screens/schedules_screen.dart:292:39 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/screens/schedules_screen.dart:293:47 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block • lib/screens/schedules_screen.dart:294:21 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:429:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:461:40 • deprecated_member_use
+warning • The value of the local variable 'isScheduled' isn't used • lib/screens/schedules_screen.dart:566:12 • unused_local_variable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:602:68 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/schedules_screen.dart:631:79 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/schedules_screen.dart:699:46 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/schedules_screen.dart:701:46 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/schedules_screen.dart:885:28 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/screens/schedules_screen.dart:887:54 • use_build_context_synchronously
+warning • Unused import: 'package:shared_preferences/shared_preferences.dart' • lib/screens/select_shift_screen.dart:2:8 • unused_import
+warning • The value of the field '_bookingService' isn't used • lib/screens/select_shift_screen.dart:21:24 • unused_field
+   info • The private field _isSubmitting could be 'final' • lib/screens/select_shift_screen.dart:24:8 • prefer_final_fields
+   info • Don't invoke 'print' in production code • lib/screens/select_shift_screen.dart:54:11 • avoid_print
+warning • The declaration '_isWeekoff' isn't referenced • lib/screens/select_shift_screen.dart:74:8 • unused_element
+warning • The declaration '_showError' isn't referenced • lib/screens/select_shift_screen.dart:109:8 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/select_shift_screen.dart:239:53 • deprecated_member_use
+warning • The value of the field '_debugPath' isn't used • lib/screens/track_driver_screen.dart:36:10 • unused_field
+warning • The value of the field '_debugTenantId' isn't used • lib/screens/track_driver_screen.dart:37:10 • unused_field
+warning • The value of the field '_debugDriverId' isn't used • lib/screens/track_driver_screen.dart:38:10 • unused_field
+warning • The value of the local variable 'size' isn't used • lib/screens/track_driver_screen.dart:72:11 • unused_local_variable
+   info • 'fromBytes' is deprecated and shouldn't be used. Use BitmapDescriptor.bytes method instead • lib/screens/track_driver_screen.dart:97:29 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/screens/track_driver_screen.dart:162:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/screens/track_driver_screen.dart:187:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/screens/track_driver_screen.dart:220:11 • avoid_print
+warning • The value of the local variable 'controller' isn't used • lib/screens/track_driver_screen.dart:227:12 • unused_local_variable
+warning • The '!' will have no effect because the receiver can't be null • lib/screens/track_driver_screen.dart:252:33 • unnecessary_non_null_assertion
+warning • The declaration '_debugRow' isn't referenced • lib/screens/track_driver_screen.dart:392:10 • unused_element
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/track_driver_screen.dart:467:46 • deprecated_member_use
+   info • 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/services/alert_service.dart:26:9 • deprecated_member_use
+   info • Don't invoke 'print' in production code • lib/services/auth_service.dart:20:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/auth_service.dart:32:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/auth_service.dart:35:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/booking_service.dart:99:9 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/booking_service.dart:140:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:15:3 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:41:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:125:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:132:6 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:140:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:177:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:190:11 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:205:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:216:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:223:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/notification_service.dart:226:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/shift_service.dart:22:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/weekoff_service.dart:19:7 • avoid_print
+   info • Don't invoke 'print' in production code • lib/services/weekoff_service.dart:42:7 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/calendar_widget.dart:196:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/calendar_widget.dart:207:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/calendar_widget.dart:244:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/glass_container.dart:35:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/glass_container.dart:38:37 • deprecated_member_use
+
