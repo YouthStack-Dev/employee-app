@@ -2,13 +2,23 @@ import 'package:flutter/material.dart';
 import '../models/booking_model.dart';
 import '../services/booking_service.dart';
 
+enum BookingType { home, history }
+
 class BookingProvider with ChangeNotifier {
   final BookingService _bookingService = BookingService();
-  List<Booking> _bookings = [];
+  
+  List<Booking> _homeBookings = [];
+  List<Booking> _historyBookings = [];
+  
   bool _isLoading = false;
   String? _error;
 
-  List<Booking> get bookings => _bookings;
+  List<Booking> get homeBookings => _homeBookings;
+  List<Booking> get historyBookings => _historyBookings;
+  
+  // Backward compatibility getter if needed, but better to force usage of specific lists
+  // List<Booking> get bookings => _homeBookings; 
+
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -20,8 +30,8 @@ class BookingProvider with ChangeNotifier {
       final result = await _bookingService.cancelBooking(bookingId);
 
       if (result['success']) {
-        // Remove locally or refresh
-        _bookings.removeWhere((b) => b.id == bookingId);
+        // Update status locally instead of removing, as per user request
+        _updateBookingStatusLocally(bookingId, 'Cancelled');
         _error = null;
       } else {
         _error = result['error'];
@@ -37,8 +47,22 @@ class BookingProvider with ChangeNotifier {
       return {'success': false, 'error': _error};
     }
   }
+
+  void _updateBookingStatusLocally(int id, String newStatus) {
+    // Helper to update status in both lists if present
+    for (int i = 0; i < _homeBookings.length; i++) {
+      if (_homeBookings[i].id == id) {
+        _homeBookings[i] = _homeBookings[i].copyWith(status: newStatus);
+      }
+    }
+    for (int i = 0; i < _historyBookings.length; i++) {
+      if (_historyBookings[i].id == id) {
+        _historyBookings[i] = _historyBookings[i].copyWith(status: newStatus);
+      }
+    }
+  }
   
-  Future<void> fetchBookings(int employeeId, {String? startDate, String? endDate}) async {
+  Future<void> fetchBookings(int employeeId, {String? startDate, String? endDate, BookingType type = BookingType.home}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -47,7 +71,23 @@ class BookingProvider with ChangeNotifier {
 
     _isLoading = false;
     if (result['success']) {
-      _bookings = result['data'];
+      final rawData = result['data'];
+      List<Booking> fetched = [];
+      
+      if (rawData is List) {
+         try {
+             fetched = rawData.cast<Booking>();
+         } catch (e) {
+             // Fallback if cast fails
+             fetched = List<Booking>.from(rawData);
+         }
+      }
+      
+      if (type == BookingType.home) {
+        _homeBookings = fetched;
+      } else {
+        _historyBookings = fetched;
+      }
       _error = null;
     } else {
       _error = result['error'];

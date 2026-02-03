@@ -23,7 +23,8 @@ class BookingService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final rawData = response.data['data'];
+        final List<dynamic> data = (rawData is List) ? rawData : [];
         final bookings = data.map((json) => Booking.fromJson(json)).toList();
         return {
           'success': true, 
@@ -60,8 +61,8 @@ class BookingService {
 
   Future<Map<String, dynamic>> updateBooking(int bookingId, Map<String, dynamic> updateData) async {
     try {
-      // Use /api/v1/employee/bookings/{id} (Verified base URL logic from RN)
-      final response = await _apiService.dio.put('${ApiConstants.bookings}/$bookingId', data: updateData);
+      // Use /api/v1/bookings/{id}
+      final response = await _apiService.dio.put('${ApiConstants.bookingOperations}/$bookingId', data: updateData);
       
       if (response.statusCode == 200 && response.data['success'] == true) {
          return {
@@ -164,7 +165,7 @@ class BookingService {
   Future<Map<String, dynamic>> cancelBooking(int bookingId) async {
       try {
           // Use /api/v1/bookings/cancel/{id}
-          final response = await _apiService.dio.patch('/api/v1/bookings/cancel/$bookingId');
+          final response = await _apiService.dio.patch('${ApiConstants.bookingOperations}/cancel/$bookingId');
           if (response.statusCode == 200 || response.statusCode == 201) {
               return {'success': true, 'message': 'Booking cancelled successfully'};
           }
@@ -179,7 +180,7 @@ class BookingService {
   Future<Map<String, dynamic>> getBookingDetails(int bookingId) async {
     try {
       // Use /api/v1/bookings/{id}
-      final response = await _apiService.dio.get('/api/v1/bookings/$bookingId');
+      final response = await _apiService.dio.get('${ApiConstants.bookingOperations}/$bookingId');
       if (response.statusCode == 200) {
         final data = response.data['data'];
         return {'success': true, 'data': Booking.fromJson(data)};

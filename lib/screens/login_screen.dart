@@ -17,6 +17,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _tenantController = TextEditingController(text: 'SAM001');
   final _usernameController = TextEditingController(text: 'emp2@emp.com');
   final _passwordController = TextEditingController(text: 'Employee@123');
+  
+  // Phone Login State
+  bool _isPhoneLogin = false;
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  bool _isOtpSent = false;
+  
   bool _isPasswordVisible = false;
 
   @override
@@ -38,6 +45,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _tenantController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -58,6 +67,44 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(authProvider.error ?? 'Login Failed'), backgroundColor: Colors.red),
       );
+    }
+  }
+
+  void _handleSendOtp() async {
+    if (_phoneController.text.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter phone number')));
+       return;
+    }
+    
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.sendOtp(_phoneController.text);
+    
+    if (success && mounted) {
+       setState(() { _isOtpSent = true; });
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Sent')));
+    } else if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error ?? 'Failed to send OTP'), backgroundColor: Colors.red),
+       );
+    }
+  }
+
+  void _handleVerifyOtp() async {
+    if (_otpController.text.isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter OTP')));
+       return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.verifyOtp(_phoneController.text, _otpController.text);
+
+    if (success && mounted) {
+       Navigator.pushReplacementNamed(context, '/schedules');
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login Successful')));
+    } else if (mounted) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authProvider.error ?? 'Invalid OTP'), backgroundColor: Colors.red),
+       );
     }
   }
 
@@ -107,67 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    _buildTextField(_tenantController, 'Tenant ID'),
-                    const SizedBox(height: 16),
-                    _buildTextField(_usernameController, 'Username / ID'),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      _passwordController, 
-                      'Password', 
-                      isObscure: !_isPasswordVisible,
-                      suffixIcon: IconButton(
-                        icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-                        onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    
-                    Consumer<AuthProvider>(
-                      builder: (context, auth, child) {
-                        return auth.isLoading
-                            ? const CircularProgressIndicator(color: AppColors.primary)
-                            : Column(
-                                children: [
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton(
-                                      onPressed: _handleLogin,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0D47A1), // Dark Blue
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(25),
-                                        ),
-                                        elevation: 5,
-                                        shadowColor: Colors.blue.withOpacity(0.3),
-                                      ),
-                                      child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: OutlinedButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Phone Login not implemented yet')));
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF0D47A1), // Dark Blue Text
-                                        side: const BorderSide(color: Color(0xFF0D47A1)),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(25),
-                                        ),
-                                        backgroundColor: Colors.transparent,
-                                      ),
-                                      child: const Text('Login with Phone Number', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                ],
-                              );
-                      },
-                    ),
+                    _isPhoneLogin ? _buildPhoneLoginUI() : _buildEmailLoginUI(),
                   ],
                 ),
               ),
@@ -214,4 +201,133 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ],
     );
-  }}
+  }
+
+  Widget _buildEmailLoginUI() {
+    return Column(
+      children: [
+        _buildTextField(_tenantController, 'Tenant ID'),
+        const SizedBox(height: 16),
+        _buildTextField(_usernameController, 'Username / ID'),
+        const SizedBox(height: 16),
+        _buildTextField(
+          _passwordController, 
+          'Password', 
+          isObscure: !_isPasswordVisible,
+          suffixIcon: IconButton(
+            icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+          ),
+        ),
+        const SizedBox(height: 30),
+        
+        Consumer<AuthProvider>(
+          builder: (context, auth, child) {
+            return auth.isLoading
+                ? const CircularProgressIndicator(color: AppColors.primary)
+                : Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0D47A1), // Dark Blue
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            elevation: 5,
+                            shadowColor: Colors.blue.withOpacity(0.3),
+                          ),
+                          child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton(
+                          onPressed: () {
+                             setState(() {
+                               _isPhoneLogin = true;
+                               _isOtpSent = false;
+                               _phoneController.clear();
+                               _otpController.clear();
+                             });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF0D47A1), // Dark Blue Text
+                            side: const BorderSide(color: Color(0xFF0D47A1)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            backgroundColor: Colors.transparent,
+                          ),
+                          child: const Text('Login with Phone Number', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneLoginUI() {
+     return Column(
+        children: [
+           const Text('Enter your phone number to login', style: TextStyle(color: Colors.grey, fontSize: 14)),
+           const SizedBox(height: 20),
+           
+           _buildTextField(_phoneController, 'Phone Number', isObscure: false),
+           
+           if (_isOtpSent) ...[
+              const SizedBox(height: 16),
+              _buildTextField(_otpController, 'Enter OTP', isObscure: false),
+           ],
+           
+           const SizedBox(height: 30),
+           
+           Consumer<AuthProvider>(
+             builder: (context, auth, child) {
+                return auth.isLoading
+                   ? const CircularProgressIndicator(color: AppColors.primary)
+                   : Column(
+                      children: [
+                         SizedBox(
+                           width: double.infinity,
+                           height: 50,
+                           child: ElevatedButton(
+                             onPressed: _isOtpSent ? _handleVerifyOtp : _handleSendOtp,
+                             style: ElevatedButton.styleFrom(
+                               backgroundColor: const Color(0xFF0D47A1), // Dark Blue
+                               foregroundColor: Colors.white,
+                               shape: RoundedRectangleBorder(
+                                 borderRadius: BorderRadius.circular(25),
+                               ),
+                               elevation: 5,
+                               shadowColor: Colors.blue.withOpacity(0.3),
+                             ),
+                             child: Text(_isOtpSent ? 'Verify & Login' : 'Send OTP', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                           ),
+                         ),
+                         const SizedBox(height: 16),
+                         TextButton(
+                           onPressed: () {
+                              setState(() {
+                                 _isPhoneLogin = false;
+                              });
+                           },
+                           child: const Text('Back to Email Login', style: TextStyle(color: Colors.grey)),
+                         ),
+                      ],
+                   );
+             },
+           )
+        ],
+     );
+  }
+}

@@ -79,7 +79,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
 
   Future<void> _handleUpdate() async {
      if (_selectedShiftId == null) return;
-     if (_selectedShiftId == _booking!['shift_id']) {
+     
+     // Allow update if status is Cancelled (Reactivate same shift)
+     final isCancelled = _booking!['status'] == 'Cancelled';
+     
+     if (!isCancelled && _selectedShiftId == _booking!['shift_id']) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a different shift')));
         return;
      }

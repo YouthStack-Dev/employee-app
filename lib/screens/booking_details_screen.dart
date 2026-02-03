@@ -11,8 +11,9 @@ import 'track_driver_screen.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final int bookingId;
+  final bool isReadOnly;
 
-  const BookingDetailsScreen({super.key, required this.bookingId});
+  const BookingDetailsScreen({super.key, required this.bookingId, this.isReadOnly = false});
 
   @override
   State<BookingDetailsScreen> createState() => _BookingDetailsScreenState();
@@ -146,8 +147,24 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       'Cancelled': const Color(0xFF636e72),
       'No-Show': const Color(0xFFe17055),
     };
+    final bookingDate = DateTime.tryParse(_booking!.date ?? '');
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // Comparison: bookingDate (which is usually just YYYY-MM-DD or start of day) >= today
+    // If date is null/invalid, assume it's NOT future/today (safest default)
+    final isFutureOrToday = bookingDate != null && !bookingDate.isBefore(today);
+
     final statusColor = statusColors[_booking!.status] ?? const Color(0xFF6C63FF);
-    final canCancel = _booking!.status == 'Request' || _booking!.status == 'Scheduled';
+    
+    final isRequestOrScheduled = _booking!.status == 'Request' || _booking!.status == 'Scheduled';
+    final isCancelled = _booking!.status == 'Cancelled';
+
+    final canCancel = !widget.isReadOnly && isRequestOrScheduled;
+    
+    // Enable Edit if:
+    // 1. It's Request or Scheduled
+    // 2. OR It's Cancelled AND is for Today or Future (Reactivate)
+    final canEdit = !widget.isReadOnly && (isRequestOrScheduled || (isCancelled && isFutureOrToday));
     
     // Check if driver is assigned
     final hasDriver = _booking!.routeDetails?['driver_details'] != null;
@@ -241,26 +258,29 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           const SizedBox(height: 24),
 
           // Action Buttons
-          if (canCancel)
+          if (canCancel || canEdit)
             Column(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _handleEditBooking,
-                    style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), backgroundColor: const Color(0xFF6C63FF)),
-                    child: const Text('Edit Booking', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                if (canEdit)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _handleEditBooking,
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), backgroundColor: const Color(0xFF6C63FF)),
+                      child: Text(isCancelled ? 'Reactivate Booking' : 'Edit Booking', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _isCancelling ? null : _handleCancelBooking,
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD63031), width: 2), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: _isCancelling ? const CircularProgressIndicator(strokeWidth: 2) : const Text('Cancel This Booking', style: TextStyle(color: Color(0xFFD63031), fontSize: 16, fontWeight: FontWeight.bold)),
+                if (canCancel) ...[
+                  if (canEdit) const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _isCancelling ? null : _handleCancelBooking,
+                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD63031), width: 2), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: _isCancelling ? const CircularProgressIndicator(strokeWidth: 2) : const Text('Cancel This Booking', style: TextStyle(color: Color(0xFFD63031), fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
                   ),
-                ),
+                ],
               ],
             )
         ],

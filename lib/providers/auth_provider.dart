@@ -70,4 +70,77 @@ class AuthProvider with ChangeNotifier {
     );
     return result;
   }
+  Future<bool> sendOtp(String phoneNumber) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    
+    // ------------------ ACTUAL API LOGIC ------------------
+    final result = await _authService.sendOtp(phoneNumber);
+    _isLoading = false;
+    
+    if (result['success']) {
+       notifyListeners();
+       return true;
+    } else {
+       _error = result['error'];
+       notifyListeners();
+       return false;
+    }
+  }
+
+  Future<bool> verifyOtp(String phoneNumber, String otp) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    // 1. Verify OTP -> Get Pre-Auth Token & Tenant List
+    final verifyResult = await _authService.verifyOtp(phoneNumber, otp);
+    
+    if (!verifyResult['success']) {
+       _isLoading = false;
+       _error = verifyResult['error'];
+       notifyListeners();
+       return false;
+    }
+
+    final data = verifyResult['data'];
+    final preAuthToken = data['pre_auth_token'];
+    final List availableTenants = data['available_tenants'] ?? [];
+
+    if (availableTenants.isEmpty) {
+       _isLoading = false;
+       _error = 'No tenants found for this user.';
+       notifyListeners();
+       return false;
+    }
+
+    // 2. Auto-Select First Tenant (Assumption for current UI flow)
+    // Safe extraction
+    final firstTenant = availableTenants[0];
+    if (firstTenant is! Map || firstTenant['tenant_id'] == null) {
+        _isLoading = false;
+        _error = 'Invalid tenant data received.';
+        notifyListeners();
+        return false;
+    }
+
+    final tenantId = firstTenant['tenant_id'];
+
+    // 3. Select Tenant -> Get Access Token & User Profile
+    final loginResult = await _authService.selectTenant(preAuthToken, tenantId);
+
+    _isLoading = false;
+    if (loginResult['success']) {
+      _user = loginResult['user'];
+      _error = null;
+      notifyListeners();
+      await NotificationService().registerToken();
+      return true;
+    } else {
+      _error = loginResult['error'];
+      notifyListeners();
+      return false;
+    }
+  }
 }
