@@ -294,13 +294,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                children: [
                                   const Text('Upcoming Rides', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // RENAMED
-                                   if (yourRides.isNotEmpty)
-                                     InkWell(
-                                       onTap: () {
-                                          // TODO
-                                       },
-                                       child: const Text('See All', style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold)),
-                                     ),
+                                   // See All button removed as per user request (list is scrollable)
                                ],
                              ),
                              const SizedBox(height: 10),

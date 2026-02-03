@@ -147,11 +147,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       'Cancelled': const Color(0xFF636e72),
       'No-Show': const Color(0xFFe17055),
     };
-    final bookingDate = DateTime.tryParse(_booking!.date ?? '') ?? DateTime.now();
+    final bookingDate = DateTime.tryParse(_booking!.date ?? '');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     // Comparison: bookingDate (which is usually just YYYY-MM-DD or start of day) >= today
-    final isFutureOrToday = !bookingDate.isBefore(today);
+    // If date is null/invalid, assume it's NOT future/today (safest default)
+    final isFutureOrToday = bookingDate != null && !bookingDate.isBefore(today);
 
     final statusColor = statusColors[_booking!.status] ?? const Color(0xFF6C63FF);
     

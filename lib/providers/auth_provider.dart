@@ -116,7 +116,16 @@ class AuthProvider with ChangeNotifier {
     }
 
     // 2. Auto-Select First Tenant (Assumption for current UI flow)
-    final tenantId = availableTenants[0]['tenant_id'];
+    // Safe extraction
+    final firstTenant = availableTenants[0];
+    if (firstTenant is! Map || firstTenant['tenant_id'] == null) {
+        _isLoading = false;
+        _error = 'Invalid tenant data received.';
+        notifyListeners();
+        return false;
+    }
+
+    final tenantId = firstTenant['tenant_id'];
 
     // 3. Select Tenant -> Get Access Token & User Profile
     final loginResult = await _authService.selectTenant(preAuthToken, tenantId);

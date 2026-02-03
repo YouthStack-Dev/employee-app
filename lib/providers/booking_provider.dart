@@ -71,7 +71,18 @@ class BookingProvider with ChangeNotifier {
 
     _isLoading = false;
     if (result['success']) {
-      List<Booking> fetched = result['data'];
+      final rawData = result['data'];
+      List<Booking> fetched = [];
+      
+      if (rawData is List) {
+         try {
+             fetched = rawData.cast<Booking>();
+         } catch (e) {
+             // Fallback if cast fails
+             fetched = List<Booking>.from(rawData);
+         }
+      }
+      
       if (type == BookingType.home) {
         _homeBookings = fetched;
       } else {

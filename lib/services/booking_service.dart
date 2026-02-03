@@ -23,7 +23,8 @@ class BookingService {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final rawData = response.data['data'];
+        final List<dynamic> data = (rawData is List) ? rawData : [];
         final bookings = data.map((json) => Booking.fromJson(json)).toList();
         return {
           'success': true, 

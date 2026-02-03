@@ -75,6 +75,9 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
+         if (response.data['data'] == null) {
+            return {'success': false, 'error': 'Empty response from server'};
+         }
          return {'success': true, 'data': response.data['data']};
       }
       return {'success': false, 'error': 'Failed to send OTP'};
@@ -91,6 +94,9 @@ class AuthService {
       });
 
       if (response.statusCode == 200) {
+        if (response.data['data'] == null) {
+            return {'success': false, 'error': 'Empty response from server'};
+        }
         return {'success': true, 'data': response.data['data']};
       }
       return {'success': false, 'error': 'Invalid OTP'};
@@ -109,6 +115,9 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = response.data['data'];
+        if (data == null) {
+            return {'success': false, 'error': 'Empty response from server'};
+        }
         
         final accessToken = data['access_token'];
         
