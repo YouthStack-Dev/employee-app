@@ -68,6 +68,79 @@ class AuthService {
     }
   }
 
+  Future<Map<String, dynamic>> sendOtp(String phoneNumber) async {
+    try {
+      final response = await _apiService.dio.post(ApiConstants.requestOtp, data: {
+        'username': phoneNumber,
+      });
+
+      if (response.statusCode == 200) {
+         return {'success': true, 'data': response.data['data']};
+      }
+      return {'success': false, 'error': 'Failed to send OTP'};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String phoneNumber, String otp) async {
+    try {
+      final response = await _apiService.dio.post(ApiConstants.verifyOtp, data: {
+        'username': phoneNumber,
+        'otp': otp,
+      });
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data['data']};
+      }
+      return {'success': false, 'error': 'Invalid OTP'};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> selectTenant(String preAuthToken, String tenantId) async {
+    try {
+      final response = await _apiService.dio.post(
+        ApiConstants.selectTenant,
+        options: Options(headers: {'X-Pre-Auth-Token': preAuthToken}),
+        data: {'tenant_id': tenantId},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        
+        final accessToken = data['access_token'];
+        
+        // Save token and user details
+        final prefs = await SharedPreferences.getInstance();
+        if (accessToken != null) {
+          await prefs.setString('access_token', accessToken);
+        }
+        
+        await prefs.setString('tenant_id', tenantId);
+        
+        final user = data['user'];
+
+        if (user != null) {
+             final employee = user['employee'];
+             if (employee != null && employee['employee_id'] != null) {
+                 await prefs.setString('employee_id', employee['employee_id'].toString());
+             }
+        }
+        
+        return {
+          'success': true,
+          'user': User.fromJson(data),
+          'access_token': accessToken,
+        };
+      }
+      return {'success': false, 'error': 'Failed to select tenant'};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     
     if (success && mounted) {
        setState(() { _isOtpSent = true; });
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Sent (Simulated)')));
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP Sent')));
     } else if (mounted) {
        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(authProvider.error ?? 'Failed to send OTP'), backgroundColor: Colors.red),
@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
        Navigator.pushReplacementNamed(context, '/schedules');
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login Successful (Simulated)')));
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login Successful')));
     } else if (mounted) {
        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(authProvider.error ?? 'Invalid OTP'), backgroundColor: Colors.red),

@@ -75,13 +75,10 @@ class AuthProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
     
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // ------------------ ACTUAL API LOGIC (COMMENTED OUT) ------------------
-    /*
+    // ------------------ ACTUAL API LOGIC ------------------
     final result = await _authService.sendOtp(phoneNumber);
-     _isLoading = false;
+    _isLoading = false;
+    
     if (result['success']) {
        notifyListeners();
        return true;
@@ -90,13 +87,6 @@ class AuthProvider with ChangeNotifier {
        notifyListeners();
        return false;
     }
-    */
-    // ----------------------------------------------------------------------
-    
-    // SIMULATED SUCCESS
-    _isLoading = false;
-    notifyListeners();
-    return true; 
   }
 
   Future<bool> verifyOtp(String phoneNumber, String otp) async {
@@ -104,51 +94,44 @@ class AuthProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
 
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 2));
+    // 1. Verify OTP -> Get Pre-Auth Token & Tenant List
+    final verifyResult = await _authService.verifyOtp(phoneNumber, otp);
+    
+    if (!verifyResult['success']) {
+       _isLoading = false;
+       _error = verifyResult['error'];
+       notifyListeners();
+       return false;
+    }
 
-    // ------------------ ACTUAL API LOGIC (COMMENTED OUT) ------------------
-    /*
-    final result = await _authService.verifyOtp(phoneNumber, otp);
+    final data = verifyResult['data'];
+    final preAuthToken = data['pre_auth_token'];
+    final List availableTenants = data['available_tenants'] ?? [];
+
+    if (availableTenants.isEmpty) {
+       _isLoading = false;
+       _error = 'No tenants found for this user.';
+       notifyListeners();
+       return false;
+    }
+
+    // 2. Auto-Select First Tenant (Assumption for current UI flow)
+    final tenantId = availableTenants[0]['tenant_id'];
+
+    // 3. Select Tenant -> Get Access Token & User Profile
+    final loginResult = await _authService.selectTenant(preAuthToken, tenantId);
+
     _isLoading = false;
-    if (result['success']) {
-      _user = result['user'];
+    if (loginResult['success']) {
+      _user = loginResult['user'];
       _error = null;
       notifyListeners();
       await NotificationService().registerToken();
       return true;
     } else {
-      _error = result['error'];
+      _error = loginResult['error'];
       notifyListeners();
       return false;
     }
-    */
-    // ----------------------------------------------------------------------
-
-    // SIMULATED SUCCESS (Does NOT log in the user really, just returns true for UI testing)
-    // To make "Login" work fully in simulation, we would need a mock user.
-    // user said "once otp is authnticated give login to the user". 
-    // Since I can't really login without a user object from backend, I will simulate it partially.
-    // I'll create a dummy user so the app navigates.
-    
-    _user = User(
-       employeeId: 999,
-       name: 'Phone User',
-       email: 'phone@test.com',
-       // phone: phoneNumber, // User model doesn't have phone? Let's check. 
-       // User model has: employeeId, username, tenantId, role, name, email.
-       // It DOES NOT have phone.
-       // So I should remove phone.
-       // And 'roles' is 'role' (String?). Factory says role is String?.
-       // user.dart: final String? role;
-       role: 'Employee',
-       tenantId: 'SAM001', 
-       // isActive: true // User model doesn't have isActive?
-       // user.dart lines 1-8: no isActive.
-    );
-    
-    _isLoading = false;
-    notifyListeners();
-    return true;
   }
 }
