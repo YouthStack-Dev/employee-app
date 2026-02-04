@@ -13,6 +13,7 @@ import 'booking_details_screen.dart';
 import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
 import 'create_booking_screen.dart';
+import '../services/alert_service.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -376,7 +377,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                           )
                        ],
                     ),
-                    const Icon(Icons.keyboard_arrow_up, color: Colors.grey), // Expanded indicator
                  ],
               ),
               const SizedBox(height: 12),
@@ -687,17 +687,62 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   // ---------------- HISTORY TAB ----------------
+  int _historyToggleIndex = 0; // 0: Bookings, 1: SOS
+  List<dynamic> _sosHistory = [];
+  bool _isLoadingSOS = false;
+
+  void _fetchSOSHistory([DateTime? date]) async {
+    setState(() => _isLoadingSOS = true);
+    final targetDate = date ?? _selectedHistoryDate;
+    final dateStr = DateFormat('yyyy-MM-dd').format(targetDate);
+    
+    final service = AlertService();
+    // Fetch for the specific date selected
+    final result = await service.fetchMyAlerts(
+      startDate: dateStr,
+      endDate: dateStr,
+    );
+    
+    if (mounted) {
+      if (result['success']) {
+         setState(() {
+           _sosHistory = result['data']['data']['alerts'] ?? []; 
+           _isLoadingSOS = false;
+         });
+      } else {
+         setState(() => _isLoadingSOS = false);
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['error'] ?? 'Failed to load SOS history')));
+      }
+    }
+  }
+
   Widget _buildHistoryTab() {
     return Column(
       children: [
         AppBar(
-          title: const Text('Ride History', style: TextStyle(color: Colors.black)),
+          title: const Text('History', style: TextStyle(color: Colors.black)),
           backgroundColor: Colors.white,
           elevation: 0,
           automaticallyImplyLeading: false,
         ),
         
-        // Date Selection Section
+        // Toggle (Bookings vs SOS)
+        Container(
+           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+           padding: const EdgeInsets.all(4),
+           decoration: BoxDecoration(
+             color: Colors.grey.shade100,
+             borderRadius: BorderRadius.circular(12),
+           ),
+           child: Row(
+             children: [
+               Expanded(child: _buildToggleBtn('Bookings', 0)),
+               Expanded(child: _buildToggleBtn('SOS History', 1)),
+             ],
+           ),
+        ),
+
+        // Shared Date Selection Section
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           color: Colors.white,
@@ -716,7 +761,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       context: context,
                       initialDate: _selectedHistoryDate,
                       firstDate: DateTime(2020),
-                      lastDate: DateTime.now(), // Present and previous days only
+                      lastDate: DateTime.now(), 
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
@@ -728,7 +773,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     );
                     if (picked != null && picked != _selectedHistoryDate) {
                        setState(() => _selectedHistoryDate = picked);
-                       _fetchHistoryBookings(picked);
+                       if (_historyToggleIndex == 0) {
+                          _fetchHistoryBookings(picked);
+                       } else {
+                          _fetchSOSHistory(picked);
+                       }
                     }
                  },
                  icon: const Icon(Icons.edit_calendar, size: 16),
@@ -744,43 +793,142 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         const Divider(height: 1),
 
         Expanded(
-          child: Consumer<BookingProvider>(
-            builder: (context, provider, child) {
-              if (provider.isLoading) {
-                 return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
-              }
-
-              // Show ALL rides for the selected date as requested
-              // Provider data is already filtered by API to only return this date's bookings
-              final history = List<Booking>.from(provider.historyBookings);
-              
-              // Sort desc by time (since date is same)
-              // Note: provider.bookings might include active rides if date is today.
-              history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
-
-              if (history.isEmpty) {
-                 return Center(
-                   child: Column(
-                     mainAxisAlignment: MainAxisAlignment.center,
-                     children: [
-                       Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
-                       const SizedBox(height: 10),
-                       Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
-                     ],
-                   ),
-                 );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: history.length,
-                itemBuilder: (context, index) => _buildSimpleRideCard(history[index], isHistory: true),
-              );
-            },
-          ),
+          child: _historyToggleIndex == 0 ? _buildBookingsHistoryList() : _buildSOSHistoryList(),
         ),
       ],
     );
+  }
+
+  Widget _buildToggleBtn(String label, int index) {
+     final isSelected = _historyToggleIndex == index;
+     return GestureDetector(
+       onTap: () {
+         setState(() => _historyToggleIndex = index);
+         if (index == 1 && _sosHistory.isEmpty) {
+            _fetchSOSHistory();
+         }
+       },
+       child: Container(
+         padding: const EdgeInsets.symmetric(vertical: 12),
+         decoration: BoxDecoration(
+           color: isSelected ? Colors.white : Colors.transparent,
+           borderRadius: BorderRadius.circular(10),
+           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+         ),
+         child: Center(
+           child: Text(label, style: TextStyle(
+             color: isSelected ? Colors.black : Colors.grey,
+             fontWeight: FontWeight.bold,
+           )),
+         ),
+       ),
+     );
+  }
+
+  Widget _buildBookingsHistoryList() {
+      return Consumer<BookingProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+             return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
+          }
+
+          final history = List<Booking>.from(provider.historyBookings);
+          history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
+
+          if (history.isEmpty) {
+             return Center(
+               child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
+                   const SizedBox(height: 10),
+                   Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
+                 ],
+               ),
+             );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: history.length,
+            itemBuilder: (context, index) => _buildSimpleRideCard(history[index], isHistory: true),
+          );
+        },
+      );
+  }
+
+  Widget _buildSOSHistoryList() {
+     if (_isLoadingSOS) return const Center(child: CircularProgressIndicator(color: Colors.red));
+     
+     if (_sosHistory.isEmpty) {
+        return Center(child: Text('No SOS Alerts found', style: TextStyle(color: Colors.grey.shade500)));
+     }
+
+     return ListView.builder(
+       padding: const EdgeInsets.all(20),
+       itemCount: _sosHistory.length,
+       itemBuilder: (context, index) {
+          final alert = _sosHistory[index];
+          // Alert fields: alert_id, status, triggered_at, location: {latitude, longitude}
+          final dateStr = alert['triggered_at'];
+          DateTime? date;
+          if (dateStr != null) date = DateTime.tryParse(dateStr);
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+               color: Colors.white,
+               borderRadius: BorderRadius.circular(16),
+               border: Border.all(color: Colors.red.withOpacity(0.2)),
+               boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+            ),
+            child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                       Row(
+                         children: [
+                            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                  const Text('SOS Alert', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  if (date != null)
+                                    Text(DateFormat('MMM d, yyyy • h:mm a').format(date.toLocal()), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                               ],
+                            )
+                         ],
+                       ),
+                       Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                             color: (alert['status'] == 'CLOSED' ? Colors.green : Colors.red).withOpacity(0.1),
+                             borderRadius: BorderRadius.circular(8)
+                          ),
+                          child: Text(alert['status'] ?? 'UNKNOWN', style: TextStyle(
+                             color: alert['status'] == 'CLOSED' ? Colors.green : Colors.red,
+                             fontWeight: FontWeight.bold, fontSize: 12
+                          )),
+                       )
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Location Details:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  if (alert['location'] != null) ...[
+                      Text('Lat: ${alert['location']['latitude'] ?? '-'}', style: const TextStyle(fontSize: 14)),
+                      Text('Lng: ${alert['location']['longitude'] ?? '-'}', style: const TextStyle(fontSize: 14)),
+                  ] else 
+                      const Text('Location not available', style: TextStyle(fontStyle: FontStyle.italic)),
+               ],
+            ),
+          );
+       },
+     );
   }
 
   // ---------------- PROFILE TAB ----------------

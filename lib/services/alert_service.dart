@@ -83,4 +83,56 @@ class AlertService {
       return {'success': false, 'error': 'Unexpected error: $e'};
     }
   }
+  Future<Map<String, dynamic>> fetchMyAlerts({
+    int limit = 20, 
+    int offset = 0,
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      final tenantId = prefs.getString('tenant_id');
+
+      if (token == null) {
+        return {'success': false, 'error': 'Not logged in'};
+      }
+
+      final Map<String, dynamic> queryParams = {
+        'limit': limit,
+        'offset': offset,
+      };
+
+      if (startDate != null) queryParams['start_date'] = startDate;
+      if (endDate != null) queryParams['end_date'] = endDate;
+
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}${ApiConstants.myAlerts}',
+        queryParameters: queryParams,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            if (tenantId != null) 'X-Tenant-Id': tenantId,
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data};
+      } else {
+        return {'success': false, 'error': 'Failed to fetch alerts'};
+      }
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to load alerts';
+      if (e.response != null && e.response?.data != null) {
+          final data = e.response?.data;
+          if (data is Map && data['message'] != null) {
+              errorMessage = data['message'];
+          }
+      }
+      return {'success': false, 'error': errorMessage};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 }

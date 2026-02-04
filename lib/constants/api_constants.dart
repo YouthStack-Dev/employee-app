@@ -19,4 +19,5 @@ class ApiConstants {
   
   // Alert endpoints
   static const String triggerAlert = '/api/v1/alerts/trigger';
+  static const String myAlerts = '/api/v1/alerts/my-alerts';
 }
