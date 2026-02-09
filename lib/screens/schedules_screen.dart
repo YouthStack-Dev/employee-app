@@ -14,6 +14,7 @@ import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
 import 'create_booking_screen.dart';
 import '../services/alert_service.dart';
+import 'sos_details_screen.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -691,16 +692,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   List<dynamic> _sosHistory = [];
   bool _isLoadingSOS = false;
 
-  void _fetchSOSHistory([DateTime? date]) async {
+  void _fetchSOSHistory() async {
     setState(() => _isLoadingSOS = true);
-    final targetDate = date ?? _selectedHistoryDate;
-    final dateStr = DateFormat('yyyy-MM-dd').format(targetDate);
-    
     final service = AlertService();
-    // Fetch for the specific date selected
+    // Fetch ALL alerts (no date filter) as per requirements to show history log
     final result = await service.fetchMyAlerts(
-      startDate: dateStr,
-      endDate: dateStr,
+       // startDate: null, 
+       // endDate: null,
     );
     
     if (mounted) {
@@ -729,20 +727,47 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         // Toggle (Bookings vs SOS)
         Container(
            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-           padding: const EdgeInsets.all(4),
-           decoration: BoxDecoration(
-             color: Colors.grey.shade100,
-             borderRadius: BorderRadius.circular(12),
-           ),
-           child: Row(
-             children: [
-               Expanded(child: _buildToggleBtn('Bookings', 0)),
-               Expanded(child: _buildToggleBtn('SOS History', 1)),
-             ],
-           ),
-        ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildToggleBtn('Bookings', 0)),
+                        Expanded(child: _buildToggleBtn('SOS History', 1)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                   decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200)
+                   ),
+                   child: IconButton(
+                     icon: const Icon(Icons.refresh, color: Color(0xFF0D47A1)),
+                     onPressed: () {
+                        if (_historyToggleIndex == 0) {
+                           _fetchHistoryBookings(_selectedHistoryDate);
+                        } else {
+                           _fetchSOSHistory();
+                        }
+                     },
+                   ),
+                )
+              ],
+            ),
+         ),
 
-        // Shared Date Selection Section
+        // Date Selection (Only for Bookings)
+        if (_historyToggleIndex == 0)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           color: Colors.white,
@@ -773,11 +798,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     );
                     if (picked != null && picked != _selectedHistoryDate) {
                        setState(() => _selectedHistoryDate = picked);
-                       if (_historyToggleIndex == 0) {
-                          _fetchHistoryBookings(picked);
-                       } else {
-                          _fetchSOSHistory(picked);
-                       }
+                       _fetchHistoryBookings(picked);
                     }
                  },
                  icon: const Icon(Icons.edit_calendar, size: 16),
@@ -790,6 +811,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             ],
           ),
         ),
+      if (_historyToggleIndex == 0) const Divider(height: 1),
         const Divider(height: 1),
 
         Expanded(
@@ -861,7 +883,16 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
      if (_isLoadingSOS) return const Center(child: CircularProgressIndicator(color: Colors.red));
      
      if (_sosHistory.isEmpty) {
-        return Center(child: Text('No SOS Alerts found', style: TextStyle(color: Colors.grey.shade500)));
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               Icon(Icons.history, size: 60, color: Colors.grey.shade300),
+               const SizedBox(height: 10),
+               Text('No SOS Alerts found', style: TextStyle(color: Colors.grey.shade500)),
+            ],
+          ),
+        );
      }
 
      return ListView.builder(
@@ -869,64 +900,158 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
        itemCount: _sosHistory.length,
        itemBuilder: (context, index) {
           final alert = _sosHistory[index];
-          // Alert fields: alert_id, status, triggered_at, location: {latitude, longitude}
           final dateStr = alert['triggered_at'];
           DateTime? date;
           if (dateStr != null) date = DateTime.tryParse(dateStr);
           
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-               color: Colors.white,
-               borderRadius: BorderRadius.circular(16),
-               border: Border.all(color: Colors.red.withOpacity(0.2)),
-               boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
-            ),
+          final status = alert['status'] ?? 'UNKNOWN';
+          final severity = alert['severity'] ?? 'HIGH';
+          final isFalseAlarm = alert['is_false_alarm'] == true;
+          final notes = alert['resolution_notes'];
+          
+          Color statusColor = Colors.red;
+          if (status == 'CLOSED') statusColor = Colors.green;
+          if (status == 'TRIGGERED') statusColor = Colors.red;
+          if (status == 'ACKNOWLEDGED') statusColor = Colors.orange;
+
+          return InkWell(
+            onTap: () {
+               if (alert['alert_id'] != null) {
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(builder: (_) => SOSDetailsScreen(alertId: alert['alert_id'])),
+                 );
+               }
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(16),
+                 border: Border.all(color: statusColor.withOpacity(0.3)),
+                 boxShadow: [BoxShadow(color: statusColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+              ),
             child: Column(
                crossAxisAlignment: CrossAxisAlignment.start,
                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                       Row(
-                         children: [
-                            const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Column(
-                               crossAxisAlignment: CrossAxisAlignment.start,
-                               children: [
-                                  const Text('SOS Alert', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                  if (date != null)
-                                    Text(DateFormat('MMM d, yyyy • h:mm a').format(date.toLocal()), style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                               ],
-                            )
-                         ],
-                       ),
-                       Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                             color: (alert['status'] == 'CLOSED' ? Colors.green : Colors.red).withOpacity(0.1),
-                             borderRadius: BorderRadius.circular(8)
-                          ),
-                          child: Text(alert['status'] ?? 'UNKNOWN', style: TextStyle(
-                             color: alert['status'] == 'CLOSED' ? Colors.green : Colors.red,
-                             fontWeight: FontWeight.bold, fontSize: 12
-                          )),
-                       )
-                    ],
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.05),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                         Row(
+                           children: [
+                              Icon(Icons.warning_amber_rounded, color: statusColor),
+                              const SizedBox(width: 8),
+                              Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                    const Text('SOS Alert', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    if (date != null)
+                                      Text(DateFormat('h:mm a • MMM d, yyyy').format(date.toLocal()), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                 ],
+                              )
+                           ],
+                         ),
+                         Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                               color: statusColor,
+                               borderRadius: BorderRadius.circular(8)
+                            ),
+                            child: Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                         )
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text('Location Details:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 4),
-                  if (alert['location'] != null) ...[
-                      Text('Lat: ${alert['location']['latitude'] ?? '-'}', style: const TextStyle(fontSize: 14)),
-                      Text('Lng: ${alert['location']['longitude'] ?? '-'}', style: const TextStyle(fontSize: 14)),
-                  ] else 
-                      const Text('Location not available', style: TextStyle(fontStyle: FontStyle.italic)),
+                  
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                          // Badges Row
+                          Row(
+                            children: [
+                               Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                     color: Colors.red.shade50,
+                                     borderRadius: BorderRadius.circular(6),
+                                     border: Border.all(color: Colors.red.shade200)
+                                  ),
+                                  child: Row(
+                                    children: [
+                                       const Icon(Icons.priority_high, size: 12, color: Colors.red),
+                                       const SizedBox(width: 4),
+                                       Text('Severity: $severity', style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                               ),
+                               if (isFalseAlarm) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                     decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(6),
+                                     ),
+                                     child: const Text('False Alarm', style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                               ]
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Location
+                          const Text('Location Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Builder(
+                            builder: (context) {
+                               dynamic lat = alert['location']?['latitude'] ?? alert['trigger_latitude'];
+                               dynamic lng = alert['location']?['longitude'] ?? alert['trigger_longitude'];
+                               
+                               if (lat != null && lng != null) {
+                                  return Row(
+                                    children: [
+                                       Icon(Icons.location_on, size: 16, color: Colors.grey.shade400),
+                                       const SizedBox(width: 4),
+                                       Text('${double.tryParse(lat.toString())?.toStringAsFixed(5) ?? lat}, ${double.tryParse(lng.toString())?.toStringAsFixed(5) ?? lng}', style: const TextStyle(fontSize: 14)),
+                                    ],
+                                  );
+                               } else {
+                                  return const Text('Location not available', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey));
+                               }
+                            }
+                          ),
+                          
+                          // Resolution Details
+                          if (status == 'CLOSED' && notes != null) ...[
+                             const SizedBox(height: 16),
+                             const Divider(),
+                             const SizedBox(height: 8),
+                             const Text('Resolution Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                             const SizedBox(height: 4),
+                             Text(notes, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+                             if (alert['closed_at'] != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Resolved: ${DateFormat('MMM d, h:mm a').format(DateTime.parse(alert['closed_at']).toLocal())}',
+                                  style: TextStyle(fontSize: 12, color: Colors.green.shade700)
+                                ),
+                             ]
+                          ]
+                       ],
+                    ),
+                  )
                ],
             ),
-          );
+          ));
        },
      );
   }

@@ -88,6 +88,7 @@ class AlertService {
     int offset = 0,
     String? startDate,
     String? endDate,
+    String? status,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -105,6 +106,7 @@ class AlertService {
 
       if (startDate != null) queryParams['start_date'] = startDate;
       if (endDate != null) queryParams['end_date'] = endDate;
+      if (status != null) queryParams['status'] = status;
 
       final response = await _dio.get(
         '${ApiConstants.baseUrl}${ApiConstants.myAlerts}',
@@ -131,6 +133,33 @@ class AlertService {
           }
       }
       return {'success': false, 'error': errorMessage};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+    }
+  Future<Map<String, dynamic>> fetchAlertDetails(int alertId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token');
+      final tenantId = prefs.getString('tenant_id');
+
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}${ApiConstants.alerts}/$alertId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            if (tenantId != null) 'X-Tenant-Id': tenantId,
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': response.data};
+      } else {
+        return {'success': false, 'error': 'Failed to fetch alert details'};
+      }
+    } on DioException catch (e) {
+      return {'success': false, 'error': e.response?.data['message'] ?? e.message};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
