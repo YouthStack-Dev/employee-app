@@ -692,13 +692,20 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   List<dynamic> _sosHistory = [];
   bool _isLoadingSOS = false;
 
-  void _fetchSOSHistory() async {
+    void _fetchSOSHistory([DateTime? date]) async {
     setState(() => _isLoadingSOS = true);
     final service = AlertService();
-    // Fetch ALL alerts (no date filter) as per requirements to show history log
+    
+    // Use provided date or fallback to selected date if currently in SOS tab context
+    final targetDate = date ?? _selectedHistoryDate;
+
+    // Use yyyy-MM-dd format to match Booking history behavior
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final formattedDate = dateFormat.format(targetDate);
+
     final result = await service.fetchMyAlerts(
-       // startDate: null, 
-       // endDate: null,
+       startDate: formattedDate, 
+       endDate: formattedDate,
     );
     
     if (mounted) {
@@ -757,7 +764,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                         if (_historyToggleIndex == 0) {
                            _fetchHistoryBookings(_selectedHistoryDate);
                         } else {
-                           _fetchSOSHistory();
+                           _fetchSOSHistory(_selectedHistoryDate);
                         }
                      },
                    ),
@@ -766,8 +773,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             ),
          ),
 
-        // Date Selection (Only for Bookings)
-        if (_historyToggleIndex == 0)
+        // Date Selection (For Both Bookings and SOS)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           color: Colors.white,
@@ -798,7 +804,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     );
                     if (picked != null && picked != _selectedHistoryDate) {
                        setState(() => _selectedHistoryDate = picked);
-                       _fetchHistoryBookings(picked);
+                       if (_historyToggleIndex == 0) {
+                          _fetchHistoryBookings(picked);
+                       } else {
+                          _fetchSOSHistory(picked);
+                       }
                     }
                  },
                  icon: const Icon(Icons.edit_calendar, size: 16),
@@ -811,7 +821,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             ],
           ),
         ),
-      if (_historyToggleIndex == 0) const Divider(height: 1),
         const Divider(height: 1),
 
         Expanded(
@@ -826,8 +835,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
      return GestureDetector(
        onTap: () {
          setState(() => _historyToggleIndex = index);
-         if (index == 1 && _sosHistory.isEmpty) {
-            _fetchSOSHistory();
+         if (index == 0) {
+            _fetchHistoryBookings(_selectedHistoryDate); // Refresh bookings when switching back too, or just reuse state
+         } else if (index == 1) {
+            _fetchSOSHistory(_selectedHistoryDate);
          }
        },
        child: Container(

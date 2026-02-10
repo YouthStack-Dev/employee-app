@@ -111,7 +111,7 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
                       ),
 
                       // Map Section
-                      if (_alertData?['trigger_latitude'] != null)
+                      if (_markers.isNotEmpty)
                         SizedBox(
                           height: 250,
                           child: GoogleMap(
@@ -139,17 +139,17 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
                                ),
                                child: Column(
                                  children: [
-                                   _buildRow('Alert ID', '#${_alertData!['alert_id']}'),
+                                   _buildRow('Alert ID', '#${_alertData?['alert_id'] ?? '-'}'),
                                    const Divider(),
-                                   _buildRow('Severity', _alertData!['severity'] ?? 'N/A', 
-                                      valueColor: (_alertData!['severity'] == 'CRITICAL' || _alertData!['severity'] == 'HIGH') ? Colors.red : Colors.black),
+                                   _buildRow('Severity', _alertData?['severity'] ?? 'N/A', 
+                                      valueColor: (_alertData?['severity'] == 'CRITICAL' || _alertData?['severity'] == 'HIGH') ? Colors.red : Colors.black),
                                    const Divider(),
-                                   _buildRow('Triggered At', _formatDate(_alertData!['triggered_at'])),
-                                   if (_alertData!['booking_id'] != null) ...[
+                                   _buildRow('Triggered At', _formatDate(_alertData?['triggered_at'])),
+                                   if (_alertData?['booking_id'] != null) ...[
                                       const Divider(),
                                       _buildRow('Booking ID', '#${_alertData!['booking_id']}'),
                                    ],
-                                   if (_alertData!['driver_name'] != null) ...[
+                                   if (_alertData?['driver_name'] != null) ...[
                                       const Divider(),
                                       _buildRow('Driver', _alertData!['driver_name']),
                                    ]
@@ -164,25 +164,25 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
                              // Timeline
                              _buildTimelineItem(
                                title: 'Triggered',
-                               time: _alertData!['triggered_at'],
+                               time: _alertData?['triggered_at'],
                                icon: Icons.notifications_active,
                                color: Colors.red,
                                isLast: status == 'TRIGGERED'
                              ),
-                             if (_alertData!['acknowledged_at'] != null)
+                             if (_alertData?['acknowledged_at'] != null)
                                _buildTimelineItem(
                                  title: 'Acknowledged',
-                                 subtitle: 'By ${_alertData!['acknowledged_by_name'] ?? 'Responder'}',
-                                 time: _alertData!['acknowledged_at'],
+                                 subtitle: 'By ${_alertData?['acknowledged_by_name'] ?? 'Responder'}',
+                                 time: _alertData?['acknowledged_at'],
                                  icon: Icons.thumb_up,
                                  color: Colors.orange,
                                  isLast: status == 'ACKNOWLEDGED'
                                ),
-                             if (_alertData!['closed_at'] != null)
+                             if (_alertData?['closed_at'] != null)
                                _buildTimelineItem(
                                  title: 'Closed',
-                                 subtitle: _alertData!['resolution_notes'] != null ? 'Notes: ${_alertData!['resolution_notes']}' : null,
-                                 time: _alertData!['closed_at'],
+                                 subtitle: _alertData?['resolution_notes'] != null ? 'Notes: ${_alertData!['resolution_notes']}' : null,
+                                 time: _alertData?['closed_at'],
                                  icon: Icons.check_circle,
                                  color: Colors.green,
                                  isLast: true
@@ -209,7 +209,7 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
     );
   }
 
-  Widget _buildTimelineItem({required String title, String? subtitle, required String time, required IconData icon, required Color color, bool isLast = false}) {
+  Widget _buildTimelineItem({required String title, String? subtitle, String? time, required IconData icon, required Color color, bool isLast = false}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

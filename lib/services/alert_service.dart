@@ -143,6 +143,10 @@ class AlertService {
       final token = prefs.getString('access_token');
       final tenantId = prefs.getString('tenant_id');
 
+      if (token == null) {
+        return {'success': false, 'error': 'Not logged in'};
+      }
+
       final response = await _dio.get(
         '${ApiConstants.baseUrl}${ApiConstants.alerts}/$alertId',
         options: Options(
@@ -159,7 +163,18 @@ class AlertService {
         return {'success': false, 'error': 'Failed to fetch alert details'};
       }
     } on DioException catch (e) {
-      return {'success': false, 'error': e.response?.data['message'] ?? e.message};
+      String errorMessage = 'Failed to fetch alert details';
+      if (e.response != null && e.response?.data != null) {
+          final data = e.response?.data;
+          if (data is Map) {
+             if (data['message'] != null) {
+                errorMessage = data['message'];
+             } else if (data['detail'] != null) {
+                errorMessage = data['detail'].toString(); 
+             }
+          }
+      }
+      return {'success': false, 'error': errorMessage};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
