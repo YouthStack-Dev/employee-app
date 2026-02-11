@@ -69,9 +69,9 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
     final color = _getStatusColor(status);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white, // Cleaner background
       appBar: AppBar(
-        title: const Text('Alert Details', style: TextStyle(color: Colors.black)),
+        title: const Text('Alert Details', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -83,83 +83,87 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
           ? Center(child: CircularProgressIndicator(color: color))
           : _error != null 
               ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
-              : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Status Banner
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        color: color.withOpacity(0.1),
-                        child: Column(
-                          children: [
-                            Icon(Icons.warning_amber_rounded, size: 40, color: color),
-                            const SizedBox(height: 8),
-                            Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 20)),
-                            if (_alertData?['is_false_alarm'] == true)
-                              Container(
-                                margin: const EdgeInsets.only(top: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(20)
-                                ),
-                                child: const Text('False Alarm', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                              )
-                          ],
+              : Column(
+                  children: [
+                    // Map Section (Top)
+                    if (_markers.isNotEmpty)
+                      SizedBox(
+                        height: 250,
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: _markers.first.position,
+                            zoom: 15,
+                          ),
+                          markers: _markers,
+                          liteModeEnabled: true,
                         ),
                       ),
-
-                      // Map Section
-                      if (_markers.isNotEmpty)
-                        SizedBox(
-                          height: 250,
-                          child: GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target: _markers.first.position,
-                              zoom: 15,
-                            ),
-                            markers: _markers,
-                            liteModeEnabled: true, // Lightweight map for scrolling lists/details
-                          ),
-                        ),
-
-                      Padding(
-                        padding: const EdgeInsets.all(16),
+                    
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                             // Basic Info Card
-                             Container(
-                               padding: const EdgeInsets.all(16),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 borderRadius: BorderRadius.circular(12),
-                                 boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0,2))]
-                               ),
-                               child: Column(
-                                 children: [
-                                   _buildRow('Alert ID', '#${_alertData?['alert_id'] ?? '-'}'),
-                                   const Divider(),
-                                   _buildRow('Severity', _alertData?['severity'] ?? 'N/A', 
-                                      valueColor: (_alertData?['severity'] == 'CRITICAL' || _alertData?['severity'] == 'HIGH') ? Colors.red : Colors.black),
-                                   const Divider(),
-                                   _buildRow('Triggered At', _formatDate(_alertData?['triggered_at'])),
-                                   if (_alertData?['booking_id'] != null) ...[
-                                      const Divider(),
-                                      _buildRow('Booking ID', '#${_alertData!['booking_id']}'),
-                                   ],
-                                   if (_alertData?['driver_name'] != null) ...[
-                                      const Divider(),
-                                      _buildRow('Driver', _alertData!['driver_name']),
-                                   ]
-                                 ],
-                               ),
+                             // Header Section
+                             Row(
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                       Text('SOS Alert #${_alertData?['alert_id'] ?? '-'}', 
+                                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                       const SizedBox(height: 4),
+                                       Text(_formatDate(_alertData?['triggered_at']), 
+                                          style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                                    ],
+                                  ),
+                                  // Status Badge
+                                  Container(
+                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                     decoration: BoxDecoration(
+                                        color: color.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: color.withOpacity(0.3))
+                                     ),
+                                     child: Row(
+                                       mainAxisSize: MainAxisSize.min,
+                                       children: [
+                                          Icon(
+                                            _alertData?['is_false_alarm'] == true ? Icons.error_outline : Icons.circle, 
+                                            size: 10, color: color
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _alertData?['is_false_alarm'] == true ? 'FALSE ALARM' : status, 
+                                            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)
+                                          ),
+                                       ],
+                                     ),
+                                  )
+                               ],
+                             ),
+                             
+                             const SizedBox(height: 24),
+
+                             // Basic Info Grid
+                             Wrap(
+                               spacing: 16,
+                               runSpacing: 16,
+                               children: [
+                                  _buildInfoChip(Icons.priority_high, 'Severity', _alertData?['severity'] ?? 'N/A', 
+                                    iconColor: (_alertData?['severity'] == 'CRITICAL') ? Colors.red : Colors.orange),
+                                  if (_alertData?['driver_name'] != null)
+                                    _buildInfoChip(Icons.person, 'Driver', _alertData!['driver_name']),
+                                  if (_alertData?['booking_id'] != null)
+                                    _buildInfoChip(Icons.directions_car, 'Ride ID', '#${_alertData!['booking_id']}'),
+                               ],
                              ),
 
-                             const SizedBox(height: 20),
+                             const SizedBox(height: 32),
                              const Text('Resolution Timeline', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                             const SizedBox(height: 10),
+                             const SizedBox(height: 16),
                              
                              // Timeline
                              _buildTimelineItem(
@@ -189,21 +193,33 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
                                ),
                           ],
                         ),
-                      )
-                    ],
-                  ),
+                      ),
+                    )
+                  ],
                 ),
     );
   }
 
-  Widget _buildRow(String label, String value, {Color valueColor = Colors.black}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _buildInfoChip(IconData icon, String label, String value, {Color iconColor = Colors.grey}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200)
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: valueColor)),
+           Icon(icon, size: 16, color: iconColor),
+           const SizedBox(width: 8),
+           Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+                Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+             ],
+           )
         ],
       ),
     );
@@ -217,24 +233,29 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
+              decoration: BoxDecoration(
+                 color: Colors.white,
+                 shape: BoxShape.circle,
+                 border: Border.all(color: color.withOpacity(0.5), width: 2)
+              ),
+              child: Icon(icon, color: color, size: 16),
             ),
             if (!isLast)
-              Container(width: 2, height: 40, color: Colors.grey.shade300)
+              Container(width: 2, height: 40, color: Colors.grey.shade200)
           ],
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 2),
               Text(_formatDate(time), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
               if (subtitle != null)
                  Padding(
-                   padding: const EdgeInsets.only(top: 4),
-                   child: Text(subtitle, style: const TextStyle(fontStyle: FontStyle.italic)),
+                   padding: const EdgeInsets.only(top: 6),
+                   child: Text(subtitle, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black87)),
                  ),
               const SizedBox(height: 24),
             ],
@@ -248,7 +269,7 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
     if (dateStr == null) return '-';
     try {
       final date = DateTime.parse(dateStr).toLocal();
-      return DateFormat('MMM d, yyyy • h:mm a').format(date);
+      return DateFormat('MMM d, h:mm a').format(date);
     } catch (e) {
       return dateStr;
     }

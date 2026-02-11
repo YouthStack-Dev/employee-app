@@ -1017,46 +1017,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                                ]
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          
-                          // Location
-                          const Text('Location Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          Builder(
-                            builder: (context) {
-                               dynamic lat = alert['location']?['latitude'] ?? alert['trigger_latitude'];
-                               dynamic lng = alert['location']?['longitude'] ?? alert['trigger_longitude'];
-                               
-                               if (lat != null && lng != null) {
-                                  return Row(
-                                    children: [
-                                       Icon(Icons.location_on, size: 16, color: Colors.grey.shade400),
-                                       const SizedBox(width: 4),
-                                       Text('${double.tryParse(lat.toString())?.toStringAsFixed(5) ?? lat}, ${double.tryParse(lng.toString())?.toStringAsFixed(5) ?? lng}', style: const TextStyle(fontSize: 14)),
-                                    ],
-                                  );
-                               } else {
-                                  return const Text('Location not available', style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey));
-                               }
-                            }
-                          ),
-                          
-                          // Resolution Details
-                          if (status == 'CLOSED' && notes != null) ...[
-                             const SizedBox(height: 16),
-                             const Divider(),
-                             const SizedBox(height: 8),
-                             const Text('Resolution Notes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-                             const SizedBox(height: 4),
-                             Text(notes, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
-                             if (alert['closed_at'] != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Resolved: ${DateFormat('MMM d, h:mm a').format(DateTime.parse(alert['closed_at']).toLocal())}',
-                                  style: TextStyle(fontSize: 12, color: Colors.green.shade700)
-                                ),
-                             ]
-                          ]
+                          // Simplified View: Location and Notes removed as per user request. 
+                          // Full details are available in SOSDetailsScreen.
                        ],
                     ),
                   )
