@@ -20,11 +20,15 @@ class AuthService {
         print('LOGIN RESPONSE DATA: $data'); // DEBUG LOG
         
         final accessToken = data['access_token'];
+        final refreshToken = data['refresh_token'];
         
         // Save token and user details
         final prefs = await SharedPreferences.getInstance();
         if (accessToken != null) {
           await prefs.setString('access_token', accessToken);
+        }
+        if (refreshToken != null) {
+          await prefs.setString('refresh_token', refreshToken);
         }
         
         // CRITICAL FIX: Save the tenantId passed from the input argument
@@ -120,11 +124,15 @@ class AuthService {
         }
         
         final accessToken = data['access_token'];
+        final refreshToken = data['refresh_token'];
         
         // Save token and user details
         final prefs = await SharedPreferences.getInstance();
         if (accessToken != null) {
           await prefs.setString('access_token', accessToken);
+        }
+        if (refreshToken != null) {
+          await prefs.setString('refresh_token', refreshToken);
         }
         
         await prefs.setString('tenant_id', tenantId);
