@@ -23,8 +23,9 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class _MyAppState extends State<MyApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -56,7 +57,7 @@ class _MyAppState extends State<MyApp> {
         scrollBehavior: const MaterialScrollBehavior().copyWith(
           physics: const BouncingScrollPhysics(),
         ),
-        home: const LoginScreen(),
+        home: const SplashScreen(),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/schedules': (context) => const SchedulesScreen(),
