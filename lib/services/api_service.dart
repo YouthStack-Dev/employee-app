@@ -26,7 +26,10 @@ class ApiService {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        if (e.response?.statusCode == 401) {
+        if (e.response?.statusCode == 401 && e.requestOptions.extra['_retry'] != true) {
+          // Prevent infinite loop on 401 from retries
+          e.requestOptions.extra['_retry'] = true;
+
           // Token expired or invalid, try to refresh
           final prefs = await SharedPreferences.getInstance();
           final refreshToken = prefs.getString('refresh_token');
@@ -35,7 +38,10 @@ class ApiService {
           if (refreshToken != null) {
             try {
               // Use a separate Dio instance to avoid infinite loops and interceptor clashes
-              final refreshDio = Dio();
+              final refreshDio = Dio(BaseOptions(
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 10),
+              ));
               
               // Add tenant_id if required by backend
               final dataPayload = {'refresh_token': refreshToken};
@@ -77,11 +83,13 @@ class ApiService {
               
               // Force redirect to LoginScreen using global navigator key
               navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+              return handler.reject(refreshError is DioException ? refreshError : e);
             }
           } else {
              // If no refresh token, force logout
              await prefs.remove('access_token');
              navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+             return handler.reject(e);
           }
         }
         return handler.next(e);

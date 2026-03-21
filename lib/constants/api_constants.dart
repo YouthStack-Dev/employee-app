@@ -11,6 +11,8 @@ class ApiConstants {
   static const String shifts = '/api/v1/shifts';
   static const String createBooking = '/api/v1/bookings/';
   static const String bookingOperations = '/api/v1/bookings';
+  static const String reviewTags = '/api/v1/reviews/tags';
+  static const String bookingReview = '/api/v1/employee/bookings';
   
   // Push Notification endpoints
   static const String registerFcmToken = '/api/v1/push-notifications/register-token';
@@ -22,4 +24,7 @@ class ApiConstants {
   static const String triggerAlert = '/api/v1/alerts/trigger';
   static const String myAlerts = '/api/v1/alerts/my-alerts';
   static const String alerts = '/api/v1/alerts';
+
+  // Announcements
+  static const String employeeAnnouncements = '/api/v1/employee/announcements';
 }

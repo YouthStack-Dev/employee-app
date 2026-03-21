@@ -8,6 +8,9 @@ import '../services/booking_service.dart';
 import '../providers/auth_provider.dart';
 import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
+import 'review_screen.dart';
+import '../services/review_service.dart';
+import '../models/review_model.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
   final int bookingId;
@@ -26,6 +29,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   String? _error;
   bool _isCancelling = false;
   String? _tenantId; // Resolved Tenant ID
+  RideReview? _existingReview;
+  bool _hasReview = false;
+  final ReviewService _reviewService = ReviewService();
 
   @override
   void initState() {
@@ -54,9 +60,28 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
            resolvedId = prefsTenantId ?? authProvider.user!.tenantId!;
         }
 
+        RideReview? reviewData;
+        bool reviewExists = false;
+        
+        if (bookingData.status == 'Completed') {
+           try {
+             final reviewResult = await _reviewService.getBookingReview(widget.bookingId);
+             if (reviewResult['success'] && reviewResult['data'] != null) {
+                reviewData = reviewResult['data'];
+                reviewExists = true;
+             }
+           } catch (e) {
+             print('Error fetching review status: $e');
+           }
+        }
+
+        if (!mounted) return;
+
         setState(() {
           _booking = bookingData;
           _tenantId = resolvedId;
+          _existingReview = reviewData;
+          _hasReview = reviewExists;
           _isLoading = false;
         });
       } else {
@@ -118,6 +143,19 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
      },
      tenantId: _tenantId,
      )));
+  }
+
+  Future<void> _handleReviewRide() async {
+    if (_booking == null) return;
+    
+    final result = await Navigator.push(
+      context, 
+      MaterialPageRoute(builder: (_) => ReviewScreen(bookingId: widget.bookingId, existingReview: _existingReview))
+    );
+    
+    if (result == true) {
+      _fetchBookingDetails(); // Refresh to get the newly submitted review
+    }
   }
 
   @override
@@ -257,32 +295,48 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
           const SizedBox(height: 24),
 
-          // Action Buttons
-          if (canCancel || canEdit)
-            Column(
-              children: [
-                if (canEdit)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _handleEditBooking,
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), backgroundColor: const Color(0xFF6C63FF)),
-                      child: Text(isCancelled ? 'Reactivate Booking' : 'Edit Booking', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                if (canCancel) ...[
-                  if (canEdit) const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _isCancelling ? null : _handleCancelBooking,
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD63031), width: 2), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: _isCancelling ? const CircularProgressIndicator(strokeWidth: 2) : const Text('Cancel This Booking', style: TextStyle(color: Color(0xFFD63031), fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ],
-            )
+           // Action Buttons
+           if (canCancel || canEdit || _booking!.status == 'Completed')
+             Column(
+               children: [
+                 if (_booking!.status == 'Completed')
+                   SizedBox(
+                     width: double.infinity,
+                     child: ElevatedButton.icon(
+                       onPressed: _handleReviewRide,
+                       icon: Icon(_hasReview ? Icons.star : Icons.star_border, color: Colors.white),
+                       style: ElevatedButton.styleFrom(
+                         padding: const EdgeInsets.symmetric(vertical: 15), 
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
+                         backgroundColor: _hasReview ? Colors.amber.shade600 : Colors.amber.shade700
+                       ),
+                       label: Text(_hasReview ? 'View Your Review' : 'Rate this Ride', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                     ),
+                   ),
+                 if (canEdit) ...[
+                   if (_booking!.status == 'Completed') const SizedBox(height: 12),
+                   SizedBox(
+                     width: double.infinity,
+                     child: ElevatedButton(
+                       onPressed: _handleEditBooking,
+                       style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), backgroundColor: const Color(0xFF6C63FF)),
+                       child: Text(isCancelled ? 'Reactivate Booking' : 'Edit Booking', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                     ),
+                   ),
+                 ],
+                 if (canCancel) ...[
+                   if (canEdit || _booking!.status == 'Completed') const SizedBox(height: 12),
+                   SizedBox(
+                     width: double.infinity,
+                     child: OutlinedButton(
+                       onPressed: _isCancelling ? null : _handleCancelBooking,
+                       style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD63031), width: 2), padding: const EdgeInsets.symmetric(vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                       child: _isCancelling ? const CircularProgressIndicator(strokeWidth: 2) : const Text('Cancel This Booking', style: TextStyle(color: Color(0xFFD63031), fontSize: 16, fontWeight: FontWeight.bold)),
+                     ),
+                   ),
+                 ],
+               ],
+             )
         ],
       ),
     );

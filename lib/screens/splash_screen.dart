@@ -20,8 +20,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    // Artificial delay for splash effect
-    await Future.delayed(const Duration(seconds: 2));
+    // Brief delay to ensure splash is visible for a moment
+    await Future.delayed(const Duration(milliseconds: 1500));
     
     if (mounted) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -29,9 +29,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => isLoggedIn ? const SchedulesScreen() : const LoginScreen(),
-          ),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => 
+                isLoggedIn ? const SchedulesScreen() : const LoginScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 400),
+          )
         );
       }
     }
@@ -40,23 +45,34 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.directions_car, size: 80, color: Colors.white),
-            const SizedBox(height: 20),
-            const Text(
-              'Employee App',
+            // Brand Logo
+            Text(
+              'MLT',
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+                color: Colors.black,
+                fontSize: 64,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 6,
+                shadows: [
+                  Shadow(
+                    color: Colors.grey.shade400,
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  )
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 50),
+            // Loading Indicator
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              strokeWidth: 3,
+            ),
           ],
         ),
       ),

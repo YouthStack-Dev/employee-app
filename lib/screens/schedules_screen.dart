@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../providers/announcement_provider.dart';
 import '../constants/app_colors.dart';
 import '../services/booking_service.dart';
 import '../models/booking_model.dart';
@@ -13,8 +14,11 @@ import 'booking_details_screen.dart';
 import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
 import 'create_booking_screen.dart';
+import 'announcements_screen.dart';
 import '../services/alert_service.dart';
 import 'sos_details_screen.dart';
+import 'review_screen.dart';
+import '../services/review_service.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -40,6 +44,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   void _refreshBookings() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user?.employeeId != null) {
+      Provider.of<AnnouncementProvider>(context, listen: false).fetchInbox(refresh: true);
+      
       final now = DateTime.now();
       // Fetch -1 day to +8 days for Home Dashboard
       final start = now.subtract(const Duration(days: 1));
@@ -158,6 +164,44 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                          icon: const Icon(Icons.refresh, color: Colors.black), 
                          onPressed: _refreshBookings
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Consumer<AnnouncementProvider>(
+                      builder: (context, announcementProvider, _) {
+                        return Stack(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.grey.shade100,
+                              child: IconButton(
+                                 icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+                                 onPressed: () {
+                                   Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()));
+                                 },
+                              ),
+                            ),
+                            if (announcementProvider.unreadCount > 0)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '${announcementProvider.unreadCount > 9 ? '9+' : announcementProvider.unreadCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(width: 10),
                     CircleAvatar(
@@ -593,53 +637,68 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                ],
              ),
              
-             const SizedBox(height: 16),
-
-             // Actions (Cancel, Track) - Note: Edit is handled above in the header-like row or we consolidate? 
-             // Wait, the previous code block inserted Edit specific logic into a row. 
-             // Let's ensure I'm targeting the right block.
-             // The previous edit was:
-             /*
-                  // Edit
-                  // Show for Request, Scheduled, OR Cancelled (if Today/Future)
-                  if (!isHistory && (b.status == 'Request' ...)) ...[
-                     const SizedBox(width: 10),
-                     SizedBox(
-                       width: 40, height: 40,
-                       child: IconButton(
-                         icon: const Icon(Icons.edit, color: Colors.grey),
-                         style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditBookingScreen(bookingId: b.id!))),
-                       ),
+             // Actions
+             Row(
+               children: [
+                 Expanded(
+                   child: ElevatedButton.icon(
+                     onPressed: () async {
+                        final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
+                         if (result == true && !isHistory) {
+                            _refreshBookings();
+                         }
+                     },
+                     style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
                      ),
-                  ],
-             */
-             // I need to replace that exact block's onPressed.
-
-                   // Track / View
-                   SizedBox(
-                     width: double.infinity,
+                     icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
+                     label: const Text('View'),
+                   ),
+                 ),
+                 if (b.status == 'Completed') ...[
+                   const SizedBox(width: 10),
+                   Expanded(
                      child: ElevatedButton.icon(
                        onPressed: () async {
-                          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
-                           if (result == true && !isHistory) {
-                              _refreshBookings();
-                           }
+                          // Prevent N+1 queries by fetching review status just-in-time when they tap "Rate"
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                          );
+                          
+                          final reviewResult = await ReviewService().getBookingReview(b.id!);
+                          if (context.mounted) Navigator.pop(context); // pop loading indicator
+                          
+                          if (reviewResult['success']) {
+                             final existingReview = reviewResult['data'];
+                             if (context.mounted) {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewScreen(bookingId: b.id!, existingReview: existingReview)));
+                             }
+                          } else {
+                             if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reviewResult['error'] ?? 'Error fetching review')));
+                          }
                        },
                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
+                          backgroundColor: Colors.amber.shade600,
+                          foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                        ),
-                       icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
-                       label: const Text('View'),
+                       icon: const Icon(Icons.star, size: 16),
+                       label: const Text('Review'),
                      ),
                    ),
-                ],
-            ),
+                 ],
+               ],
+             ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildLocationRow(Color color, String text) {
