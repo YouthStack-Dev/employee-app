@@ -14,9 +14,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _tenantController = TextEditingController(text: 'SAM001');
-  final _usernameController = TextEditingController(text: 'emp2@emp.com');
-  final _passwordController = TextEditingController(text: 'Employee@123');
+  final _tenantController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   
   // Phone Login State
   bool _isPhoneLogin = false;
