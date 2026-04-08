@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../providers/announcement_provider.dart';
 import '../constants/app_colors.dart';
 import '../services/booking_service.dart';
 import '../models/booking_model.dart';
@@ -13,6 +14,11 @@ import 'booking_details_screen.dart';
 import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
 import 'create_booking_screen.dart';
+import 'announcements_screen.dart';
+import '../services/alert_service.dart';
+import 'sos_details_screen.dart';
+import 'review_screen.dart';
+import '../services/review_service.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -38,6 +44,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   void _refreshBookings() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user?.employeeId != null) {
+      Provider.of<AnnouncementProvider>(context, listen: false).fetchInbox(refresh: true);
+      
       final now = DateTime.now();
       // Fetch -1 day to +8 days for Home Dashboard
       final start = now.subtract(const Duration(days: 1));
@@ -156,6 +164,44 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                          icon: const Icon(Icons.refresh, color: Colors.black), 
                          onPressed: _refreshBookings
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Consumer<AnnouncementProvider>(
+                      builder: (context, announcementProvider, _) {
+                        return Stack(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.grey.shade100,
+                              child: IconButton(
+                                 icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+                                 onPressed: () {
+                                   Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()));
+                                 },
+                              ),
+                            ),
+                            if (announcementProvider.unreadCount > 0)
+                              Positioned(
+                                right: 8,
+                                top: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '${announcementProvider.unreadCount > 9 ? '9+' : announcementProvider.unreadCount}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(width: 10),
                     CircleAvatar(
@@ -376,7 +422,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                           )
                        ],
                     ),
-                    const Icon(Icons.keyboard_arrow_up, color: Colors.grey), // Expanded indicator
                  ],
               ),
               const SizedBox(height: 12),
@@ -592,53 +637,68 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                ],
              ),
              
-             const SizedBox(height: 16),
-
-             // Actions (Cancel, Track) - Note: Edit is handled above in the header-like row or we consolidate? 
-             // Wait, the previous code block inserted Edit specific logic into a row. 
-             // Let's ensure I'm targeting the right block.
-             // The previous edit was:
-             /*
-                  // Edit
-                  // Show for Request, Scheduled, OR Cancelled (if Today/Future)
-                  if (!isHistory && (b.status == 'Request' ...)) ...[
-                     const SizedBox(width: 10),
-                     SizedBox(
-                       width: 40, height: 40,
-                       child: IconButton(
-                         icon: const Icon(Icons.edit, color: Colors.grey),
-                         style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EditBookingScreen(bookingId: b.id!))),
-                       ),
+             // Actions
+             Row(
+               children: [
+                 Expanded(
+                   child: ElevatedButton.icon(
+                     onPressed: () async {
+                        final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
+                         if (result == true && !isHistory) {
+                            _refreshBookings();
+                         }
+                     },
+                     style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
                      ),
-                  ],
-             */
-             // I need to replace that exact block's onPressed.
-
-                   // Track / View
-                   SizedBox(
-                     width: double.infinity,
+                     icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
+                     label: const Text('View'),
+                   ),
+                 ),
+                 if (b.status == 'Completed') ...[
+                   const SizedBox(width: 10),
+                   Expanded(
                      child: ElevatedButton.icon(
                        onPressed: () async {
-                          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
-                           if (result == true && !isHistory) {
-                              _refreshBookings();
-                           }
+                          // Prevent N+1 queries by fetching review status just-in-time when they tap "Rate"
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                          );
+                          
+                          final reviewResult = await ReviewService().getBookingReview(b.id!);
+                          if (context.mounted) Navigator.pop(context); // pop loading indicator
+                          
+                          if (reviewResult['success']) {
+                             final existingReview = reviewResult['data'];
+                             if (context.mounted) {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewScreen(bookingId: b.id!, existingReview: existingReview)));
+                             }
+                          } else {
+                             if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reviewResult['error'] ?? 'Error fetching review')));
+                          }
                        },
                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black,
+                          backgroundColor: Colors.amber.shade600,
+                          foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                        ),
-                       icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
-                       label: const Text('View'),
+                       icon: const Icon(Icons.star, size: 16),
+                       label: const Text('Review'),
                      ),
                    ),
-                ],
-            ),
+                 ],
+               ],
+             ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildLocationRow(Color color, String text) {
@@ -687,17 +747,92 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   // ---------------- HISTORY TAB ----------------
+  int _historyToggleIndex = 0; // 0: Bookings, 1: SOS
+  List<dynamic> _sosHistory = [];
+  bool _isLoadingSOS = false;
+
+    void _fetchSOSHistory([DateTime? date]) async {
+    setState(() => _isLoadingSOS = true);
+    final service = AlertService();
+    
+    // Use provided date or fallback to selected date if currently in SOS tab context
+    final targetDate = date ?? _selectedHistoryDate;
+
+    // Use yyyy-MM-dd format to match Booking history behavior
+    final dateFormat = DateFormat('yyyy-MM-dd');
+    final formattedDate = dateFormat.format(targetDate);
+
+    final result = await service.fetchMyAlerts(
+       startDate: formattedDate, 
+       endDate: formattedDate,
+    );
+    
+    if (mounted) {
+      if (result['success']) {
+         setState(() {
+           _sosHistory = result['data']['data']['alerts'] ?? []; 
+           _isLoadingSOS = false;
+         });
+      } else {
+         setState(() => _isLoadingSOS = false);
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['error'] ?? 'Failed to load SOS history')));
+      }
+    }
+  }
+
   Widget _buildHistoryTab() {
     return Column(
       children: [
         AppBar(
-          title: const Text('Ride History', style: TextStyle(color: Colors.black)),
+          title: const Text('History', style: TextStyle(color: Colors.black)),
           backgroundColor: Colors.white,
           elevation: 0,
           automaticallyImplyLeading: false,
         ),
         
-        // Date Selection Section
+        // Toggle (Bookings vs SOS)
+        Container(
+           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildToggleBtn('Bookings', 0)),
+                        Expanded(child: _buildToggleBtn('SOS History', 1)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                   decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200)
+                   ),
+                   child: IconButton(
+                     icon: const Icon(Icons.refresh, color: Color(0xFF0D47A1)),
+                     onPressed: () {
+                        if (_historyToggleIndex == 0) {
+                           _fetchHistoryBookings(_selectedHistoryDate);
+                        } else {
+                           _fetchSOSHistory(_selectedHistoryDate);
+                        }
+                     },
+                   ),
+                )
+              ],
+            ),
+         ),
+
+        // Date Selection (For Both Bookings and SOS)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           color: Colors.white,
@@ -716,7 +851,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       context: context,
                       initialDate: _selectedHistoryDate,
                       firstDate: DateTime(2020),
-                      lastDate: DateTime.now(), // Present and previous days only
+                      lastDate: DateTime.now(), 
                       builder: (context, child) {
                         return Theme(
                           data: Theme.of(context).copyWith(
@@ -728,7 +863,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     );
                     if (picked != null && picked != _selectedHistoryDate) {
                        setState(() => _selectedHistoryDate = picked);
-                       _fetchHistoryBookings(picked);
+                       if (_historyToggleIndex == 0) {
+                          _fetchHistoryBookings(picked);
+                       } else {
+                          _fetchSOSHistory(picked);
+                       }
                     }
                  },
                  icon: const Icon(Icons.edit_calendar, size: 16),
@@ -744,43 +883,209 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         const Divider(height: 1),
 
         Expanded(
-          child: Consumer<BookingProvider>(
-            builder: (context, provider, child) {
-              if (provider.isLoading) {
-                 return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
-              }
-
-              // Show ALL rides for the selected date as requested
-              // Provider data is already filtered by API to only return this date's bookings
-              final history = List<Booking>.from(provider.historyBookings);
-              
-              // Sort desc by time (since date is same)
-              // Note: provider.bookings might include active rides if date is today.
-              history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
-
-              if (history.isEmpty) {
-                 return Center(
-                   child: Column(
-                     mainAxisAlignment: MainAxisAlignment.center,
-                     children: [
-                       Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
-                       const SizedBox(height: 10),
-                       Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
-                     ],
-                   ),
-                 );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: history.length,
-                itemBuilder: (context, index) => _buildSimpleRideCard(history[index], isHistory: true),
-              );
-            },
-          ),
+          child: _historyToggleIndex == 0 ? _buildBookingsHistoryList() : _buildSOSHistoryList(),
         ),
       ],
     );
+  }
+
+  Widget _buildToggleBtn(String label, int index) {
+     final isSelected = _historyToggleIndex == index;
+     return GestureDetector(
+       onTap: () {
+         setState(() => _historyToggleIndex = index);
+         if (index == 0) {
+            _fetchHistoryBookings(_selectedHistoryDate); // Refresh bookings when switching back too, or just reuse state
+         } else if (index == 1) {
+            _fetchSOSHistory(_selectedHistoryDate);
+         }
+       },
+       child: Container(
+         padding: const EdgeInsets.symmetric(vertical: 12),
+         decoration: BoxDecoration(
+           color: isSelected ? Colors.white : Colors.transparent,
+           borderRadius: BorderRadius.circular(10),
+           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
+         ),
+         child: Center(
+           child: Text(label, style: TextStyle(
+             color: isSelected ? Colors.black : Colors.grey,
+             fontWeight: FontWeight.bold,
+           )),
+         ),
+       ),
+     );
+  }
+
+  Widget _buildBookingsHistoryList() {
+      return Consumer<BookingProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+             return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
+          }
+
+          final history = List<Booking>.from(provider.historyBookings);
+          history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
+
+          if (history.isEmpty) {
+             return Center(
+               child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center,
+                 children: [
+                   Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
+                   const SizedBox(height: 10),
+                   Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
+                 ],
+               ),
+             );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: history.length,
+            itemBuilder: (context, index) => _buildSimpleRideCard(history[index], isHistory: true),
+          );
+        },
+      );
+  }
+
+  Widget _buildSOSHistoryList() {
+     if (_isLoadingSOS) return const Center(child: CircularProgressIndicator(color: Colors.red));
+     
+     if (_sosHistory.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+               Icon(Icons.history, size: 60, color: Colors.grey.shade300),
+               const SizedBox(height: 10),
+               Text('No SOS Alerts found', style: TextStyle(color: Colors.grey.shade500)),
+            ],
+          ),
+        );
+     }
+
+     return ListView.builder(
+       padding: const EdgeInsets.all(20),
+       itemCount: _sosHistory.length,
+       itemBuilder: (context, index) {
+          final alert = _sosHistory[index];
+          final dateStr = alert['triggered_at'];
+          DateTime? date;
+          if (dateStr != null) date = DateTime.tryParse(dateStr);
+          
+          final status = alert['status'] ?? 'UNKNOWN';
+          final severity = alert['severity'] ?? 'HIGH';
+          final isFalseAlarm = alert['is_false_alarm'] == true;
+          final notes = alert['resolution_notes'];
+          
+          Color statusColor = Colors.red;
+          if (status == 'CLOSED') statusColor = Colors.green;
+          if (status == 'TRIGGERED') statusColor = Colors.red;
+          if (status == 'ACKNOWLEDGED') statusColor = Colors.orange;
+
+          return InkWell(
+            onTap: () {
+               if (alert['alert_id'] != null) {
+                 Navigator.push(
+                   context,
+                   MaterialPageRoute(builder: (_) => SOSDetailsScreen(alertId: alert['alert_id'])),
+                 );
+               }
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(16),
+                 border: Border.all(color: statusColor.withOpacity(0.3)),
+                 boxShadow: [BoxShadow(color: statusColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+              ),
+            child: Column(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.05),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                         Row(
+                           children: [
+                              Icon(Icons.warning_amber_rounded, color: statusColor),
+                              const SizedBox(width: 8),
+                              Column(
+                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                 children: [
+                                    const Text('SOS Alert', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    if (date != null)
+                                      Text(DateFormat('h:mm a • MMM d, yyyy').format(date.toLocal()), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                 ],
+                              )
+                           ],
+                         ),
+                         Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                               color: statusColor,
+                               borderRadius: BorderRadius.circular(8)
+                            ),
+                            child: Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                         )
+                      ],
+                    ),
+                  ),
+                  
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                          // Badges Row
+                          Row(
+                            children: [
+                               Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                     color: Colors.red.shade50,
+                                     borderRadius: BorderRadius.circular(6),
+                                     border: Border.all(color: Colors.red.shade200)
+                                  ),
+                                  child: Row(
+                                    children: [
+                                       const Icon(Icons.priority_high, size: 12, color: Colors.red),
+                                       const SizedBox(width: 4),
+                                       Text('Severity: $severity', style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                               ),
+                               if (isFalseAlarm) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                     decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(6),
+                                     ),
+                                     child: const Text('False Alarm', style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                               ]
+                            ],
+                          ),
+                          // Simplified View: Location and Notes removed as per user request. 
+                          // Full details are available in SOSDetailsScreen.
+                       ],
+                    ),
+                  )
+               ],
+            ),
+          ));
+       },
+     );
   }
 
   // ---------------- PROFILE TAB ----------------

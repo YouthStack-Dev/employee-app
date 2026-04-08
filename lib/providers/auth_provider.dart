@@ -56,9 +56,19 @@ class AuthProvider with ChangeNotifier {
     final tenantId = prefs.getString('tenant_id');
     final employeeId = prefs.getString('employee_id');
 
+    print('CHECK LOGIN STATUS: access_token exists? ${token != null}');
+    print('CHECK LOGIN STATUS: tenant_id: $tenantId');
+    print('CHECK LOGIN STATUS: employee_id: $employeeId');
+
     if (token != null && tenantId != null && employeeId != null) {
       // Restore user session if needed, or just return true to allow navigation
       // Ideally we would fetch user profile here if we want to populate _user
+      _user = User(
+        employeeId: int.tryParse(employeeId),
+        tenantId: tenantId,
+        // Add other fields if necessary or fetch full profile from API later
+      );
+      notifyListeners();
       return true;
     }
     return false;

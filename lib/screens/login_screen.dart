@@ -14,9 +14,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _tenantController = TextEditingController(text: 'SAM001');
-  final _usernameController = TextEditingController(text: 'emp2@emp.com');
-  final _passwordController = TextEditingController(text: 'Employee@123');
+  final _tenantController = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   
   // Phone Login State
   bool _isPhoneLogin = false;
@@ -171,15 +171,16 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
-          child: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600)), // Grey text for white bg
+          child: Text(hint, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w600)), 
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))], // Subtle shadow for depth
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))], 
           ),
           child: TextField(
+            key: ValueKey(hint),
             controller: controller,
             obscureText: isObscure,
             style: const TextStyle(color: Colors.black),
@@ -187,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
               hintText: hint,
               hintStyle: TextStyle(color: Colors.grey.shade400),
               filled: true,
-              fillColor: Colors.transparent, // Handle color in Container
+              fillColor: Colors.transparent, 
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,

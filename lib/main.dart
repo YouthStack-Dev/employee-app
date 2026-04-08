@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
+import 'providers/announcement_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/splash_screen.dart';
@@ -23,8 +24,9 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class _MyAppState extends State<MyApp> {
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _MyAppState extends State<MyApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
       ],
       child: MaterialApp(
         title: 'Employee App',
@@ -56,7 +59,7 @@ class _MyAppState extends State<MyApp> {
         scrollBehavior: const MaterialScrollBehavior().copyWith(
           physics: const BouncingScrollPhysics(),
         ),
-        home: const LoginScreen(),
+        home: const SplashScreen(),
         routes: {
           '/login': (context) => const LoginScreen(),
           '/schedules': (context) => const SchedulesScreen(),
