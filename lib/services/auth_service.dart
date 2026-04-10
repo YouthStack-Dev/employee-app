@@ -85,6 +85,19 @@ class AuthService {
          return {'success': true, 'data': response.data['data']};
       }
       return {'success': false, 'error': 'Failed to send OTP'};
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to send OTP';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('detail')) {
+            if (data['detail'] is Map && data['detail']['message'] != null) {
+               errorMessage = data['detail']['message'];
+            } else if (data['detail'] is String) {
+               errorMessage = data['detail'];
+            }
+        }
+      }
+      return {'success': false, 'error': errorMessage};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
@@ -104,6 +117,19 @@ class AuthService {
         return {'success': true, 'data': response.data['data']};
       }
       return {'success': false, 'error': 'Invalid OTP'};
+    } on DioException catch (e) {
+      String errorMessage = 'Invalid OTP';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('detail')) {
+            if (data['detail'] is Map && data['detail']['message'] != null) {
+               errorMessage = data['detail']['message'];
+            } else if (data['detail'] is String) {
+               errorMessage = data['detail'];
+            }
+        }
+      }
+      return {'success': false, 'error': errorMessage};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }
@@ -153,6 +179,19 @@ class AuthService {
         };
       }
       return {'success': false, 'error': 'Failed to select tenant'};
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to select tenant';
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map && data.containsKey('detail')) {
+            if (data['detail'] is Map && data['detail']['message'] != null) {
+               errorMessage = data['detail']['message'];
+            } else if (data['detail'] is String) {
+               errorMessage = data['detail'];
+            }
+        }
+      }
+      return {'success': false, 'error': errorMessage};
     } catch (e) {
       return {'success': false, 'error': e.toString()};
     }

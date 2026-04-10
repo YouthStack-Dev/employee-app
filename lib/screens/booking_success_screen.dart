@@ -21,11 +21,12 @@ class BookingSuccessScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA), // Light grey background
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
               // Success Icon
               Container(
                 width: 100,
@@ -121,35 +122,41 @@ class BookingSuccessScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, color: Color(0xFF2D3436), height: 1.5),
                 ),
               ),
-              const Spacer(),
-
-              // Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to Schedules/Home and clear stack
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SchedulesScreen()),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 6,
-                    shadowColor: AppColors.primary.withOpacity(0.3),
-                  ),
-                  child: const Text(
-                    'View My Bookings',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                ),
-              ),
               const SizedBox(height: 20),
             ],
+          ),
+        ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Color(0xFFF5F7FA),
+        ),
+        child: SafeArea(
+          child: SizedBox(
+            height: 55,
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Navigate to Schedules/Home and clear stack
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SchedulesScreen()),
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 6,
+                shadowColor: AppColors.primary.withOpacity(0.3),
+              ),
+              child: const Text(
+                'View My Bookings',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
           ),
         ),
       ),

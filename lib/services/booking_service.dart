@@ -17,8 +17,10 @@ class BookingService {
       final response = await _apiService.dio.get(
         ApiConstants.bookings,
         queryParameters: {
+          'employee_id': employeeId,
           'start_date': start,
           'end_date': end,
+          'limit': 50,
         },
       );
 

@@ -140,16 +140,20 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // App Logo Placeholder
+                    // MLT App Logo
                     Container(
-                      width: 80, height: 80,
+                      width: 90, height: 90,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5))]
                       ),
-                      child: const Center(
-                        child: Icon(Icons.change_history, size: 50, color: Color(0xFF0D47A1)), // Blue logo placeholder
+                      child: Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 40),
@@ -183,10 +187,10 @@ class _LoginScreenState extends State<LoginScreen> {
             key: ValueKey(hint),
             controller: controller,
             obscureText: isObscure,
-            style: const TextStyle(color: Colors.black),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400),
+              hintStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500),
               filled: true,
               fillColor: Colors.transparent, 
               border: OutlineInputBorder(
@@ -280,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildPhoneLoginUI() {
      return Column(
         children: [
-           const Text('Enter your phone number to login', style: TextStyle(color: Colors.grey, fontSize: 14)),
+           const Text('Enter your phone number to login', style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w500)),
            const SizedBox(height: 20),
            
            _buildTextField(_phoneController, 'Phone Number', isObscure: false),
@@ -322,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                  _isPhoneLogin = false;
                               });
                            },
-                           child: const Text('Back to Email Login', style: TextStyle(color: Colors.grey)),
+                           child: const Text('Back to Email Login', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600)),
                          ),
                       ],
                    );
