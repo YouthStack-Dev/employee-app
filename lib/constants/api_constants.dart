@@ -1,12 +1,12 @@
 class ApiConstants {
-  static const String baseUrl = 'https://api.gocab.tech';
+  static const String baseUrl = 'https://api.mltcorporate.com';
   
   static const String login = '/api/v1/auth/employee/login';
   static const String requestOtp = '/api/v1/auth/employee/request-otp';
   static const String verifyOtp = '/api/v1/auth/employee/verify-otp';
   static const String selectTenant = '/api/v1/auth/employee/select-tenant';
   static const String refreshToken = '/api/v1/auth/refresh-token';
-  static const String bookings = '/api/v1/employee/bookings';
+  static const String bookings = '/api/v1/bookings/employee';
   static const String weekoffConfig = '/api/v1/weekoff-configs';
   static const String shifts = '/api/v1/shifts';
   static const String createBooking = '/api/v1/bookings/';
