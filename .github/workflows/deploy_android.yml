@@ -1,0 +1,58 @@
+name: Deploy Android to Play Store
+
+on:
+  push:
+    branches:
+      - main
+  # Allows you to manually trigger the deployment from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: ⚙️ Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 🗝️ Decode Keystore
+        # This converts your uploaded base64 keystore back into a physical .jks file on the runner
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
+
+      - name: 📝 Create key.properties
+        # This securely creates the key.properties file that Gradle needs for the release build
+        run: |
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "storeFile=../upload-keystore.jks" >> android/key.properties
+
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+
+      - name: 🏗️ Build App Bundle
+        run: flutter build appbundle --release
+
+      - name: 🗝️ Decode Play Store Configuration
+        # Creates the play_config.json file from the JSON text you got from Google Cloud
+        run: echo '${{ secrets.PLAY_STORE_CONFIG_JSON }}' > play_config.json
+
+      - name: 🚀 Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: play_config.json
+          packageName: com.mltcorporate.employeeconnect
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          track: production
+          status: completed
