@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.CALL_PHONE"/>
 
     <application
-        android:label="employee_flutter"
+        android:label="MLT Technologies"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

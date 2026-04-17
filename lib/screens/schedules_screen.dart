@@ -235,8 +235,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         
         // Active Filter
         final potentialActive = allBookings.where((b) {
-           if (b.status == 'Ongoing') return true;
-           if (b.status == 'Scheduled') {
+           final s = b.status?.toLowerCase();
+           if (s == 'ongoing') return true;
+           if (s == 'scheduled') {
               final hasDriver = b.routeDetails?['driver_details']?['driver_id'] != null;
               return hasDriver;
            }
@@ -244,8 +245,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         }).toList();
 
         potentialActive.sort((a, b) {
-           if (a.status == 'Ongoing' && b.status != 'Ongoing') return -1;
-           if (b.status == 'Ongoing' && a.status != 'Ongoing') return 1;
+           final sA = a.status?.toLowerCase();
+           final sB = b.status?.toLowerCase();
+           if (sA == 'ongoing' && sB != 'ongoing') return -1;
+           if (sB == 'ongoing' && sA != 'ongoing') return 1;
            return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
         });
 
@@ -253,7 +256,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         
         final yourRides = allBookings.where((b) {
            if (b.id == activeRide?.id) return false; 
-           return ['Request', 'Cancelled', 'Rejected', 'Scheduled'].contains(b.status);
+           final s = b.status?.toLowerCase() ?? '';
+           return ['request', 'cancelled', 'rejected', 'scheduled', 'pending', 'upcoming'].contains(s);
         }).toList();
         
         yourRides.sort((a, b) {
@@ -535,10 +539,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       }
       if (time.length > 5) time = time.substring(0, 5);
 
-     final isScheduled = b.status == 'Scheduled';
+     final statusLower = b.status?.toLowerCase() ?? '';
      Color statusColor = Colors.green;
-     if (b.status == 'Request') statusColor = Colors.orange;
-     if (b.status == 'Cancelled' || b.status == 'Rejected') statusColor = Colors.red;
+     if (statusLower == 'request') statusColor = Colors.orange;
+     if (statusLower == 'cancelled' || statusLower == 'rejected') statusColor = Colors.red;
 
      return GestureDetector(
        onTap: () async {
@@ -602,7 +606,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
              Row(
                children: [
                   // Cancel
-                  if (!isHistory && b.status != 'Cancelled' && b.status != 'Rejected' && b.status != 'Completed')
+                  if (!isHistory && statusLower != 'cancelled' && statusLower != 'rejected' && statusLower != 'completed')
                   SizedBox(
                     width: 40, height: 40,
                     child: IconButton(
@@ -613,7 +617,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                   ),
                   // Edit
                   // Show for Request, Scheduled, OR Cancelled (if Today/Future)
-                  if (!isHistory && (b.status == 'Request' || b.status == 'Scheduled' || (b.status == 'Cancelled' && (() {
+                  if (!isHistory && (statusLower == 'request' || statusLower == 'scheduled' || statusLower == 'pending' || (statusLower == 'cancelled' && (() {
                       final now = DateTime.now();
                       final today = DateTime(now.year, now.month, now.day);
                       final bDate = DateTime.tryParse(b.date ?? '') ?? DateTime.now();
@@ -658,7 +662,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                      label: const Text('View'),
                    ),
                  ),
-                 if (b.status == 'Completed') ...[
+                 if (statusLower == 'completed') ...[
                    const SizedBox(width: 10),
                    Expanded(
                      child: ElevatedButton.icon(
