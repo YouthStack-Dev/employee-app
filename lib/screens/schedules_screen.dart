@@ -257,7 +257,11 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         final yourRides = allBookings.where((b) {
            if (b.id == activeRide?.id) return false; 
            final s = b.status?.toLowerCase() ?? '';
-           return ['request', 'cancelled', 'rejected', 'scheduled', 'pending', 'upcoming'].contains(s);
+           // Don't show ongoing rides here (they should be caught as active, but just in case)
+           if (s == 'ongoing') return false; 
+           // Previously we explicitly checked for 'scheduled', 'pending', etc., which hid unknown backend statuses!
+           // Now we just show all records returned by the API (which is bounded to current date ranges).
+           return true;
         }).toList();
         
         yourRides.sort((a, b) {
@@ -606,7 +610,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
              Row(
                children: [
                   // Cancel
-                  if (!isHistory && statusLower != 'cancelled' && statusLower != 'rejected' && statusLower != 'completed')
+                  if (!isHistory && statusLower != 'cancelled' && statusLower != 'rejected' && statusLower != 'completed' && statusLower != 'ongoing')
                   SizedBox(
                     width: 40, height: 40,
                     child: IconButton(
@@ -616,13 +620,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     ),
                   ),
                   // Edit
-                  // Show for Request, Scheduled, OR Cancelled (if Today/Future)
-                  if (!isHistory && (statusLower == 'request' || statusLower == 'scheduled' || statusLower == 'pending' || (statusLower == 'cancelled' && (() {
+                  // Show for anything that is NOT completed/ongoing and is in the future/today
+                  if (!isHistory && statusLower != 'completed' && statusLower != 'ongoing' && (() {
                       final now = DateTime.now();
                       final today = DateTime(now.year, now.month, now.day);
                       final bDate = DateTime.tryParse(b.date ?? '') ?? DateTime.now();
                       return !bDate.isBefore(today);
-                  })()))) ...[
+                  })()) ...[
                      const SizedBox(width: 10),
                      SizedBox(
                        width: 40, height: 40,
