@@ -257,10 +257,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         final yourRides = allBookings.where((b) {
            if (b.id == activeRide?.id) return false; 
            final s = b.status?.toLowerCase() ?? '';
-           // Don't show ongoing rides here (they should be caught as active, but just in case)
-           if (s == 'ongoing') return false; 
-           // Previously we explicitly checked for 'scheduled', 'pending', etc., which hid unknown backend statuses!
-           // Now we just show all records returned by the API (which is bounded to current date ranges).
+           // Exclude ongoing (caught as active) and completed (should move to History)
+           if (s == 'ongoing' || s == 'completed') return false; 
+           // Show all other records (including unknown custom backend statuses like 'allocated')
            return true;
         }).toList();
         
