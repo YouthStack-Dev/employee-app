@@ -14,6 +14,8 @@ class BookingService {
       final start = startDate ?? DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
       final end = endDate ?? DateFormat('yyyy-MM-dd').format(now.add(const Duration(days: 7)));
 
+      print('📋 FETCH BOOKINGS REQUEST: employee_id=$employeeId, start=$start, end=$end');
+
       final response = await _apiService.dio.get(
         ApiConstants.bookings,
         queryParameters: {
@@ -24,14 +26,47 @@ class BookingService {
         },
       );
 
+      print('📋 FETCH BOOKINGS RESPONSE STATUS: ${response.statusCode}');
+      print('📋 FETCH BOOKINGS RAW DATA TYPE: ${response.data.runtimeType}');
+      print('📋 FETCH BOOKINGS RAW DATA: ${response.data}');
+
       if (response.statusCode == 200) {
-        final rawData = response.data['data'];
-        final List<dynamic> data = (rawData is List) ? rawData : [];
-        final bookings = data.map((json) => Booking.fromJson(json)).toList();
+        // Safely extract the data — the API may return different shapes per tenant
+        final responseData = response.data;
+        List<dynamic> bookingsList = [];
+
+        if (responseData is Map<String, dynamic>) {
+          final rawData = responseData['data'];
+          if (rawData is List) {
+            bookingsList = rawData;
+          } else if (rawData is Map<String, dynamic>) {
+            // Handle paginated response: { data: { bookings: [...] } }
+            if (rawData['bookings'] is List) {
+              bookingsList = rawData['bookings'];
+            } else if (rawData['results'] is List) {
+              bookingsList = rawData['results'];
+            }
+          }
+        } else if (responseData is List) {
+          bookingsList = responseData;
+        }
+
+        print('📋 PARSED BOOKINGS COUNT: ${bookingsList.length}');
+        if (bookingsList.isNotEmpty) {
+          print('📋 FIRST BOOKING: ${bookingsList[0]}');
+        }
+
+        final bookings = bookingsList.map((json) {
+          if (json is Map<String, dynamic>) {
+            return Booking.fromJson(json);
+          }
+          return Booking.fromJson(Map<String, dynamic>.from(json));
+        }).toList();
+
         return {
           'success': true, 
           'data': bookings,
-          'meta': response.data['meta'] // Pass meta data if available
+          'meta': (responseData is Map) ? responseData['meta'] : null
         };
       }
       return {'success': false, 'error': 'Failed to fetch bookings'};
@@ -41,18 +76,29 @@ class BookingService {
       // Specifically handle the 500 error we know exists
       if (e.response?.statusCode == 500) {
         final data = e.response?.data;
-        if (data != null && data['detail'] != null && data['detail']['message'] != null) {
-             errorMessage = 'Server Error: ${data['detail']['message']}';
-             if (data['detail']['details'] != null) {
-                 errorMessage += '\nDetails: ${data['detail']['details']['original_error']}';
-             }
+        if (data is Map<String, dynamic>) {
+          final detail = data['detail'];
+          if (detail is Map && detail['message'] != null) {
+              errorMessage = 'Server Error: ${detail['message']}';
+              if (detail['details'] is Map && detail['details']['original_error'] != null) {
+                  errorMessage += '\nDetails: ${detail['details']['original_error']}';
+              }
+          } else if (detail is String) {
+              errorMessage = detail;
+          } else {
+              errorMessage = 'Internal Server Error (500)';
+          }
         } else {
              errorMessage = 'Internal Server Error (500)';
         }
       } else if (e.response?.data != null) {
          // General error parsing
          final data = e.response!.data;
-         if (data['detail'] is String) errorMessage = data['detail'];
+         if (data is Map<String, dynamic> && data['detail'] is String) {
+           errorMessage = data['detail'];
+         } else if (data is String) {
+           errorMessage = data;
+         }
       }
       
       return {'success': false, 'error': errorMessage};
