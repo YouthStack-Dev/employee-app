@@ -24,8 +24,14 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 1500));
     
     if (mounted) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final isLoggedIn = await authProvider.checkLoginStatus();
+      bool isLoggedIn = false;
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        isLoggedIn = await authProvider.checkLoginStatus();
+      } catch (e) {
+        debugPrint('Auth check error: $e');
+        isLoggedIn = false;
+      }
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -51,26 +57,19 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Brand Logo
-            Text(
+            const Text(
               'MLT',
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 64,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 6,
-                shadows: [
-                  Shadow(
-                    color: Colors.grey.shade400,
-                    blurRadius: 15,
-                    offset: const Offset(0, 5),
-                  )
-                ],
               ),
             ),
             const SizedBox(height: 50),
             // Loading Indicator
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
               strokeWidth: 3,
             ),
           ],
