@@ -67,30 +67,43 @@ class BookingProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    print('🔵 PROVIDER: Calling fetchBookings for employeeId=$employeeId, type=$type');
     final result = await _bookingService.fetchBookings(employeeId: employeeId, startDate: startDate, endDate: endDate);
 
     _isLoading = false;
+    print('🔵 PROVIDER: Result success=${result['success']}, error=${result['error']}');
+    
     if (result['success']) {
       final rawData = result['data'];
+      print('🔵 PROVIDER: rawData type=${rawData.runtimeType}, length=${rawData is List ? rawData.length : 'N/A'}');
       List<Booking> fetched = [];
       
       if (rawData is List) {
          try {
              fetched = rawData.cast<Booking>();
          } catch (e) {
+             print('🔵 PROVIDER: cast<Booking> failed: $e, using List.from fallback');
              // Fallback if cast fails
              fetched = List<Booking>.from(rawData);
          }
       }
       
+      print('🔵 PROVIDER: fetched ${fetched.length} bookings for type=$type');
+      if (fetched.isNotEmpty) {
+        print('🔵 PROVIDER: First booking id=${fetched[0].id}, status=${fetched[0].status}, date=${fetched[0].date}');
+      }
+      
       if (type == BookingType.home) {
         _homeBookings = fetched;
+        print('🔵 PROVIDER: Set _homeBookings, now has ${_homeBookings.length} items');
       } else {
         _historyBookings = fetched;
+        print('🔵 PROVIDER: Set _historyBookings, now has ${_historyBookings.length} items');
       }
       _error = null;
     } else {
       _error = result['error'];
+      print('🔵 PROVIDER: ERROR = $_error');
     }
     notifyListeners();
   }

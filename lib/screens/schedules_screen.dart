@@ -231,7 +231,24 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   Widget _buildHomeContent(ScrollController? scrollController) {
     return Consumer<BookingProvider>(
       builder: (context, provider, child) {
-        final allBookings = List<Booking>.from(provider.homeBookings);
+        final allBookingsRaw = List<Booking>.from(provider.homeBookings);
+        
+        // Date window: yesterday to +6 days from today
+        final now = DateTime.now();
+        final windowStart = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+        final windowEnd = DateTime(now.year, now.month, now.day).add(const Duration(days: 7)); // today + 6 days
+        
+        // Filter bookings to only show within the date window
+        final allBookings = allBookingsRaw.where((b) {
+          if (b.date == null) return false;
+          try {
+            final bookingDate = DateTime.parse(b.date!);
+            final dateOnly = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
+            return !dateOnly.isBefore(windowStart) && dateOnly.isBefore(windowEnd);
+          } catch (e) {
+            return false;
+          }
+        }).toList();
         
         // Active Filter
         final potentialActive = allBookings.where((b) {

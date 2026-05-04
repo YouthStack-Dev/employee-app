@@ -13,6 +13,7 @@ class AuthService {
         'tenant_id': tenantId,
         'username': username,
         'password': password,
+        'login_source': 'app',
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
