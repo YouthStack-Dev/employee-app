@@ -948,7 +948,19 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
              return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
           }
 
-          final history = List<Booking>.from(provider.historyBookings);
+          final allHistory = List<Booking>.from(provider.historyBookings);
+          final selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedHistoryDate);
+          
+          final history = allHistory.where((b) {
+            if (b.date == null) return false;
+            try {
+              final bookingDate = DateTime.parse(b.date!);
+              return DateFormat('yyyy-MM-dd').format(bookingDate) == selectedDateStr;
+            } catch (e) {
+              return false;
+            }
+          }).toList();
+          
           history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
 
           if (history.isEmpty) {
