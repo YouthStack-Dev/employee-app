@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import 'edit_booking_screen.dart';
 import 'track_driver_screen.dart';
 import 'review_screen.dart';
+import 'chat_screen.dart';
 import '../services/review_service.dart';
 import '../models/review_model.dart';
 
@@ -145,6 +146,18 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
      )));
   }
 
+  void _handleOpenChat() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          bookingId: widget.bookingId,
+          bookingStatus: _booking?.status,
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleReviewRide() async {
     if (_booking == null) return;
     
@@ -207,6 +220,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     // Check if driver is assigned
     final hasDriver = _booking!.routeDetails?['driver_details'] != null;
     final canTrack = ['Scheduled', 'Ongoing'].contains(_booking!.status) && hasDriver;
+    // Show chat whenever a driver is assigned (active or completed trips)
+    final canChat = hasDriver && !['Cancelled', 'No-Show'].contains(_booking!.status);
     
     // Resolve Shift Time
     final displayShiftTime = _booking!.shiftTime?.substring(0, 5) ?? _booking!.pickupTime?.substring(0, 5) ?? 'N/A';
@@ -235,14 +250,31 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 const Text('👤 Employee Access', style: TextStyle(color: Colors.white70, fontSize: 14)),
                 
                 // Track Button if active AND driver assigned
-                if (canTrack)
+                if (canTrack || canChat)
                    Padding(
                      padding: const EdgeInsets.only(top: 15),
-                     child: ElevatedButton.icon(
-                        onPressed: _handleTrackDriver,
-                        icon: const Icon(Icons.map, size: 16, color: Color(0xFF6C63FF)),
-                        label: const Text('Track Driver', style: TextStyle(color: Color(0xFF6C63FF), fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                     child: Row(
+                       children: [
+                         if (canTrack)
+                           Expanded(
+                             child: ElevatedButton.icon(
+                                onPressed: _handleTrackDriver,
+                                icon: const Icon(Icons.map, size: 16, color: Color(0xFF6C63FF)),
+                                label: const Text('Track Driver', style: TextStyle(color: Color(0xFF6C63FF), fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                             ),
+                           ),
+                         if (canTrack && canChat) const SizedBox(width: 10),
+                         if (canChat)
+                           Expanded(
+                             child: ElevatedButton.icon(
+                                onPressed: _handleOpenChat,
+                                icon: const Icon(Icons.chat_bubble_outline, size: 16, color: Color(0xFF6C63FF)),
+                                label: const Text('Chat', style: TextStyle(color: Color(0xFF6C63FF), fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                             ),
+                           ),
+                       ],
                      ),
                    )
               ],

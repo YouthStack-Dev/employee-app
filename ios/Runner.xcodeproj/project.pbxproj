@@ -199,6 +199,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				A6C7044444E16FAB8C2401E3 /* [CP] Embed Pods Frameworks */,
 				7CC20568701BD0565BA4453B /* [CP] Copy Pods Resources */,
+				BD1A2C3D4E5F6A7B8C9D0E1F /* Copy Pods dSYMs */,
 			);
 			buildRules = (
 			);
@@ -377,6 +378,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		BD1A2C3D4E5F6A7B8C9D0E1F /* Copy Pods dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Pods dSYMs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Copy dSYMs from Pods build directory into the archive dSYMs folder\nif [ \"$ACTION\" = \"install\" ]; then\n  DSYM_SRC=\"${BUILT_PRODUCTS_DIR}\"\n  DSYM_DST=\"${DWARF_DSYM_FOLDER_PATH}\"\n  find \"${PODS_BUILD_DIR}\" -name \"*.dSYM\" 2>/dev/null | while read dsym; do\n    echo \"Copying dSYM: $dsym\"\n    cp -r \"$dsym\" \"$DSYM_DST/\" 2>/dev/null || true\n  done\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

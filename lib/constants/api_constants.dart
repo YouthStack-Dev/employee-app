@@ -27,4 +27,8 @@ class ApiConstants {
 
   // Announcements
   static const String employeeAnnouncements = '/api/v1/employee/announcements';
+
+  // Chat endpoints
+  static const String employeeChat = '/api/v1/employee/chat';
+  static const String chatSupportedLanguages = '/api/v1/chat/supported-languages';
 }

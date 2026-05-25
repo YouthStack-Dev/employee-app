@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/announcement_provider.dart';
+import 'providers/chat_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/splash_screen.dart';
@@ -19,22 +20,27 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    runApp(MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'Firebase Error:\n$e',
-              style: TextStyle(color: Colors.red, fontSize: 14),
-              textAlign: TextAlign.center,
+    // duplicate-app means Firebase is already running in the native layer
+    // (happens on Android when the Dart isolate restarts but native survives).
+    // Swallow it and continue — the existing instance is perfectly usable.
+    if (!e.toString().contains('duplicate-app')) {
+      runApp(MaterialApp(
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Firebase Error:\n$e',
+                style: TextStyle(color: Colors.red, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),
-      ),
-    ));
-    return;
+      ));
+      return;
+    }
   }
   runApp(const MyApp());
 }
@@ -64,6 +70,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: MaterialApp(
         title: 'Employee App',
