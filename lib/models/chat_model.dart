@@ -44,7 +44,11 @@ class ChatSession {
     );
   }
 
-  ChatSession copyWith({String? employeeLanguage, String? driverLanguage}) {
+  ChatSession copyWith({
+    String? employeeLanguage,
+    String? driverLanguage,
+    String? firebasePath,
+  }) {
     return ChatSession(
       id: id,
       bookingId: bookingId,
@@ -56,7 +60,7 @@ class ChatSession {
       activatedAt: activatedAt,
       createdAt: createdAt,
       warningMessage: warningMessage,
-      firebasePath: firebasePath,
+      firebasePath: firebasePath ?? this.firebasePath,
       created: created,
     );
   }

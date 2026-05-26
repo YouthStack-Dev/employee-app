@@ -58,12 +58,14 @@ class NotificationService {
       provisional: false,
     );
 
-    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
-      print('FCM permission declined');
+    final status = settings.authorizationStatus;
+    if (status != AuthorizationStatus.authorized &&
+        status != AuthorizationStatus.provisional) {
+      print('FCM permission declined (status: $status)');
       return;
     }
 
-    print('FCM permission granted');
+    print('FCM permission granted (status: $status)');
 
     // Local notifications setup
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -86,6 +88,16 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.createNotificationChannel(_defaultChannel);
     await androidPlugin?.createNotificationChannel(_chatChannel);
+
+    // iOS foreground presentation: let our onMessage handler show the banner
+    // via flutter_local_notifications (so ActiveChat suppression logic works).
+    // Only update the badge count natively; suppress the native alert/sound
+    // to avoid showing the same notification twice.
+    await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+      alert: false,
+      badge: true,
+      sound: false,
+    );
 
     // Foreground message handler
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -125,27 +137,34 @@ class NotificationService {
 
   // ── Foreground message handler ─────────────────────────────────
 
+  // Monotonically increasing ID for local notifications.
+  // flutter_local_notifications IDs are int — we use a simple counter so two
+  // simultaneous notifications never cancel each other (unlike hashCode which
+  // can collide for different RemoteNotification objects).
+  static int _notifIdCounter = 0;
+
   void _handleForegroundMessage(RemoteMessage message) {
     final data = message.data;
     final type = data['type'] as String?;
 
     // Suppress chat banner when the user already has that chat open
     if (type == 'chat_message') {
-      final bookingId = int.tryParse(data['booking_id'] ?? '');
+      final bookingId = int.tryParse(data['booking_id']?.toString() ?? '');
       if (bookingId != null && ActiveChat.bookingId == bookingId) {
         return; // user is looking at this conversation — skip banner
       }
     }
 
     final notification = message.notification;
-    final android = notification?.android;
-    if (notification == null || android == null) return;
+    if (notification == null) return;
 
     final channel =
         (type == 'chat_message') ? _chatChannel : _defaultChannel;
 
+    final notifId = ++_notifIdCounter;
+
     _localNotifications.show(
-      notification.hashCode,
+      notifId,
       notification.title,
       notification.body,
       NotificationDetails(
@@ -154,6 +173,11 @@ class NotificationService {
           channel.name,
           channelDescription: channel.description,
           icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
       payload: _encodePayload(data),
@@ -171,9 +195,15 @@ class NotificationService {
   /// Inspects the FCM data map and routes to the right screen.
   void _navigateFromMessage(Map<String, dynamic> data) {
     final type = data['type'] as String?;
-    final bookingId = int.tryParse((data['booking_id'] ?? '') as String);
+    // FCM data values are always strings; local notification payloads are
+    // decoded via Uri.splitQueryString which also yields strings.
+    // Use .toString() defensively in case the platform ever sends an int.
+    final bookingId = int.tryParse(data['booking_id']?.toString() ?? '');
 
     if (type == 'chat_message' && bookingId != null) {
+      // Don't push a duplicate screen if the user is already on this chat.
+      if (ActiveChat.bookingId == bookingId) return;
+
       _navigatorKey?.currentState?.push(
         MaterialPageRoute(
           builder: (_) => ChatScreen(bookingId: bookingId),
@@ -198,11 +228,29 @@ class NotificationService {
 
   Future<void> registerToken() async {
     try {
-      final token = await _firebaseMessaging.getToken();
+      // On iOS, getToken() depends on APNs registration which is async.
+      // requestPermission() triggers APNs but the callback may not have
+      // fired yet. Retry up to 5 times with increasing back-off.
+      String? token;
+      for (int attempt = 1; attempt <= 5; attempt++) {
+        // Log APNs token status on iOS for diagnostics
+        if (Platform.isIOS) {
+          final apnsToken = await _firebaseMessaging.getAPNSToken();
+          print('APNs token (attempt $attempt): ${apnsToken != null ? "✅ available" : "❌ null"}');
+        }
+
+        token = await _firebaseMessaging.getToken();
+        if (token != null) break;
+
+        print('⚠️ FCM getToken() attempt $attempt returned null — retrying in ${attempt * 2}s');
+        await Future.delayed(Duration(seconds: attempt * 2));
+      }
+
       if (token == null) {
-        print('Failed to get FCM token');
+        print('❌ FCM: getToken() returned null after 5 attempts — APNs not ready');
         return;
       }
+      print('✅ FCM token obtained (first 20 chars): ${token.substring(0, 20)}...');
 
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token');
@@ -235,7 +283,7 @@ class NotificationService {
         'platform': 'app',
       };
 
-      print('Registering FCM token: $payload');
+      print('Registering FCM token: device_type=${payload['device_type']}, device_model=${payload['device_model']}');
 
       final response = await _apiService.dio.post(
         ApiConstants.registerFcmToken,
@@ -248,7 +296,7 @@ class NotificationService {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('FCM token registered');
+        print('✅ FCM token registered with backend (HTTP ${response.statusCode})');
 
         String? regId;
         final respData = response.data;
@@ -260,7 +308,7 @@ class NotificationService {
         }
       }
     } catch (e) {
-      print('Error registering FCM token: $e');
+      print('❌ Error registering FCM token: $e');
     }
   }
 

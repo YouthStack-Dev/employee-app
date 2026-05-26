@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/chat_model.dart';
@@ -39,20 +38,18 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
-  StreamSubscription<DatabaseEvent>? _childAddedSub;
-  StreamSubscription<DatabaseEvent>? _childChangedSub;
-  DatabaseReference? _messagesRef;
-
   bool _isInitializing = true;
   String? _initError;
   int _charCount = 0;
+  // Used to detect when new messages arrive so we can auto-scroll.
+  int _lastKnownMessageCount = 0;
 
   // ── Lifecycle ──────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    ActiveChat.bookingId = widget.bookingId; // mark screen as open
+    ActiveChat.bookingId = widget.bookingId;
     _textController.addListener(() {
       setState(() => _charCount = _textController.text.length);
     });
@@ -61,9 +58,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    ActiveChat.bookingId = null; // mark screen as closed
-    _childAddedSub?.cancel();
-    _childChangedSub?.cancel();
+    ActiveChat.bookingId = null;
+    // DO NOT cancel the Firebase listener here.
+    // ChatProvider is a singleton — the listener must stay alive so messages
+    // received while the screen is closed are available on re-entry.
     _textController.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -79,7 +77,14 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     final chatProvider = context.read<ChatProvider>();
-    chatProvider.reset();
+
+    // Reset only if we are switching to a different booking.
+    // On re-entry to the same booking, keep existing messages and the
+    // running Firebase listener — just refresh REST history on top.
+    final currentBookingId = chatProvider.session?.bookingId;
+    if (currentBookingId != null && currentBookingId != widget.bookingId) {
+      chatProvider.resetForNewBooking();
+    }
 
     // 1. Open / retrieve the session
     final sessionOk = await chatProvider.openSession(widget.bookingId);
@@ -93,55 +98,25 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    // 2. Load initial message history from REST API
+    // 2. Load message history from REST API.
+    //    This also sets _lastRestTimestamp for the Firebase .startAfter() filter.
     await chatProvider.loadMessages(widget.bookingId);
     if (!mounted) return;
 
-    // 3. Attach Firebase RTDB listener on the session's firebase_path
+    // 3. Start (or keep) the Firebase RTDB listener.
+    //    listenToFirebase() is idempotent: if we're already subscribed to this
+    //    path with no errors it returns immediately with no duplicate events.
     final firebasePath = chatProvider.session?.firebasePath;
     if (firebasePath != null && firebasePath.isNotEmpty) {
-      _attachFirebaseListener(firebasePath);
+      chatProvider.listenToFirebase(firebasePath);
     }
 
     // 4. Fetch supported languages (cached after first call)
     chatProvider.fetchSupportedLanguages();
 
+    _lastKnownMessageCount = chatProvider.messages.length;
     setState(() => _isInitializing = false);
     _scrollToBottom();
-  }
-
-  // ── Firebase RTDB listener ─────────────────────────────────
-
-  void _attachFirebaseListener(String path) {
-    _childAddedSub?.cancel();
-    _childChangedSub?.cancel();
-
-    _messagesRef = FirebaseDatabase.instance.ref(path);
-
-    // firebase_message_id is now a UUID (not a time-ordered push key), so we
-    // must order by the 'timestamp' field instead of by key.
-    final query = _messagesRef!.orderByChild('timestamp');
-
-    // New message arrived
-    _childAddedSub = query.onChildAdded.listen((event) {
-      if (!mounted) return;
-      final key = event.snapshot.key;
-      final value = event.snapshot.value;
-      if (key != null && value != null && value is Map) {
-        context.read<ChatProvider>().applyFirebaseMessage(key, value);
-        _scrollToBottom();
-      }
-    });
-
-    // Translation patch arrives ~1 s after the original message
-    _childChangedSub = query.onChildChanged.listen((event) {
-      if (!mounted) return;
-      final key = event.snapshot.key;
-      final value = event.snapshot.value;
-      if (key != null && value != null && value is Map) {
-        context.read<ChatProvider>().applyFirebaseMessage(key, value);
-      }
-    });
   }
 
   // ── Send message ───────────────────────────────────────────
@@ -150,7 +125,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    // Client-side length guard (API enforces 1000 chars)
     if (text.length > _kMaxMessageLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -375,6 +349,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
               final messages = prov.messages;
 
+              // When a reload is in progress (language change / full refresh),
+              // reset the counter so that when messages repopulate we
+              // re-trigger the auto-scroll even though the count ends up the
+              // same as before (e.g. 79 → clear → 79).
+              if (prov.isLoadingMessages) {
+                _lastKnownMessageCount = 0;
+              }
+
+              // Auto-scroll when new messages arrive from Firebase listener
+              if (messages.length > _lastKnownMessageCount) {
+                _lastKnownMessageCount = messages.length;
+                WidgetsBinding.instance
+                    .addPostFrameCallback((_) => _scrollToBottom());
+              }
+
               if (messages.isEmpty) {
                 return Center(
                   child: Column(
@@ -414,7 +403,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildInputBar() {
-    // Read-only when session is inactive OR booking is in a terminal state
     final sessionInactive =
         context.watch<ChatProvider>().session?.isActive == false;
     final statusReadOnly = widget.bookingStatus == 'Cancelled' ||
@@ -432,7 +420,6 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     }
 
-    // Show character counter only when approaching the limit (> 800)
     final nearLimit = _charCount > 800;
     final overLimit = _charCount > _kMaxMessageLength;
     final counterColor = overLimit
@@ -474,7 +461,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         hintText: 'Type a message…',
                         hintStyle: TextStyle(color: Color(0xFFB2BEC3)),
                         border: InputBorder.none,
-                        counterText: '', // we draw our own counter below
+                        counterText: '',
                         contentPadding: EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                       ),
@@ -508,7 +495,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ],
             ),
-            // Character counter — visible only when > 800
             if (nearLimit)
               Padding(
                 padding: const EdgeInsets.only(right: 52, top: 2),
@@ -590,7 +576,7 @@ class _ChatBubble extends StatelessWidget {
         isEmployee ? const Color(0xFF6C63FF) : const Color(0xFFECEFF1);
     final textColor = isEmployee ? Colors.white : const Color(0xFF2D3436);
     final timeColor = isEmployee
-        ? Colors.white.withOpacity(0.7)
+        ? Colors.white.withValues(alpha: 0.7)
         : const Color(0xFF636E72);
 
     final displayText = message.translatedText.isNotEmpty
@@ -611,7 +597,7 @@ class _ChatBubble extends StatelessWidget {
           if (!isEmployee) ...[
             CircleAvatar(
               radius: 14,
-              backgroundColor: const Color(0xFF6C63FF).withOpacity(0.15),
+              backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.15),
               child: const Icon(Icons.person,
                   size: 16, color: Color(0xFF6C63FF)),
             ),
@@ -632,7 +618,7 @@ class _ChatBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -647,7 +633,7 @@ class _ChatBubble extends StatelessWidget {
                       child: Text(
                         'Driver',
                         style: TextStyle(
-                          color: const Color(0xFF6C63FF).withOpacity(0.8),
+                          color: const Color(0xFF6C63FF).withValues(alpha: 0.8),
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -681,7 +667,7 @@ class _ChatBubble extends StatelessWidget {
             const SizedBox(width: 6),
             CircleAvatar(
               radius: 14,
-              backgroundColor: const Color(0xFF6C63FF).withOpacity(0.2),
+              backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
               child: const Icon(Icons.person,
                   size: 16, color: Color(0xFF6C63FF)),
             ),
