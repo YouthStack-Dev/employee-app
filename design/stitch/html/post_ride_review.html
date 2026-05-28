@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#610243",
+              "surface-tint": "#4c40df",
+              "on-surface": "#2c2f32",
+              "on-primary": "#f5f1ff",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#6448b1",
+              "primary-fixed": "#9995ff",
+              "error-dim": "#a70138",
+              "error": "#b41340",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "on-tertiary-fixed": "#360023",
+              "on-secondary-container": "#4f329b",
+              "primary-container": "#9995ff",
+              "on-error-container": "#510017",
+              "on-secondary-fixed": "#3b1a87",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "on-background": "#2c2f32",
+              "on-secondary-fixed-variant": "#583da5",
+              "surface": "#f5f7fa",
+              "on-secondary": "#f7f0ff",
+              "on-tertiary": "#ffeff4",
+              "secondary-container": "#d8caff",
+              "tertiary-container": "#fe8bc9",
+              "on-error": "#ffefef",
+              "outline": "#74777a",
+              "inverse-surface": "#0b0f11",
+              "on-primary-container": "#16007d",
+              "secondary-fixed": "#d8caff",
+              "surface-variant": "#d9dde1",
+              "primary": "#4c40df",
+              "on-primary-fixed": "#000000",
+              "inverse-on-surface": "#9a9da0",
+              "surface-bright": "#f5f7fa",
+              "surface-dim": "#d0d5d9",
+              "secondary-dim": "#573ca4",
+              "tertiary": "#983670",
+              "surface-container": "#e5e8ec",
+              "background": "#f5f7fa",
+              "surface-container-high": "#dfe3e7",
+              "surface-container-highest": "#d9dde1",
+              "error-container": "#f74b6d",
+              "primary-fixed-dim": "#8a85ff",
+              "tertiary-dim": "#892a64",
+              "tertiary-fixed": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "outline-variant": "#abadb0",
+              "secondary-fixed-dim": "#cbbaff",
+              "primary-dim": "#4030d3",
+              "on-surface-variant": "#595c5e",
+              "surface-container-low": "#eef1f4"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .filled-icon {
+        font-variation-settings: 'FILL' 1;
+      }
+      .glass-header {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(20px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface antialiased min-h-screen pb-32">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 glass-header bg-gradient-to-b from-slate-50/50 to-transparent">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface text-2xl">close</span>
+<h1 class="font-headline font-extrabold text-xl -tracking-[0.02em] text-slate-900">Rate Your Ride</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img alt="Employee Profile Photo" class="w-full h-full object-cover" data-alt="Close up of a professional male employee profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOwzdQfZ8ooLRWX5J5518vNPCr8iZH_MD93zMRT2llK8psjEF6pcFZIqbhmBguVoZWdPnEz2YyeFM4hblBf8COKUydM0JEr9KoadpNnN4sxoKYuwPpfJtTr4rO5x4PB2mP5sklla9FAYp7yEUP5gC9bwlW_S00cSHgupZEBUOwoAQj50oasHaV1p4ZKJm3wexwxnMpLeeN1orOOJMhW87yDX_PZ5TDbq6EnlUl6QNZdvi6PVwvwjjPs3QqrUOOXa23MXdWyevwv0I"/>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto space-y-6">
+<!-- Hero Summary Section -->
+<section class="bg-surface-container-lowest rounded-xl p-8 text-center space-y-6 shadow-sm">
+<div class="space-y-2">
+<h2 class="font-headline font-bold text-2xl text-on-surface">How was your trip?</h2>
+<p class="text-on-surface-variant text-sm">Trip from HQ Office to International Airport</p>
+</div>
+<!-- Global 5-star Rating -->
+<div class="flex justify-center gap-2">
+<span class="material-symbols-outlined text-primary text-5xl filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-5xl filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-5xl filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-5xl filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-surface-container-highest text-5xl" data-icon="star">star</span>
+</div>
+</section>
+<!-- Driver Evaluation Section -->
+<section class="bg-surface-container-low rounded-xl p-6 space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="Driver Profile" class="w-full h-full object-cover" data-alt="Professional portrait of a friendly transport driver" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4kK1SKmH-WZF1sI_TL_POz3dntg-U1ga2BTb2XK6D-k0HTIMMT2bqc2X50kAdy8h_ECcKskn0A_NQpIs1ku7gkAr43gGTdl9k9uVOJxs3YOjDaF-7LbMXtzOzJ0nBqiowz5qoJ2F3Syemrf6aEE6WnpX-T3bDGG5QlvXXMfEjl4ZaBBDJWHaBQgxgVWDqybq4br2ye1gksNwDpF61uOFYsWHtaCJDlI3tDyRvQeUnhqdV6Y9_PINTfvFuEQycvOFEdaORnIvDImU"/>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-on-surface">Driver Evaluation</h3>
+<p class="text-xs font-label uppercase tracking-widest text-on-surface-variant">Michael Chen</p>
+</div>
+</div>
+<!-- Mini Stars -->
+<div class="flex gap-0.5">
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-outline-variant/30 text-lg" data-icon="star">star</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-primary text-on-primary shadow-sm">On Time</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-primary text-on-primary shadow-sm">Polite</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-surface-container-lowest text-on-surface-variant hover:bg-white">Safe Driving</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-surface-container-lowest text-on-surface-variant hover:bg-white">Professional</button>
+</div>
+</section>
+<!-- Vehicle Evaluation Section -->
+<section class="bg-surface-container-low rounded-xl p-6 space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-on-surface">Vehicle Evaluation</h3>
+<p class="text-xs font-label uppercase tracking-widest text-on-surface-variant">Tesla Model Y • ABC-1234</p>
+</div>
+</div>
+<div class="flex gap-0.5">
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+<span class="material-symbols-outlined text-primary text-lg filled-icon" data-icon="star">star</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-primary text-on-primary shadow-sm">Clean</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-primary text-on-primary shadow-sm">AC Working</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-primary text-on-primary shadow-sm">Comfortable</button>
+<button class="px-5 py-2.5 rounded-full text-sm font-medium transition-all bg-surface-container-lowest text-on-surface-variant hover:bg-white">Electric</button>
+</div>
+</section>
+<!-- Comment Box -->
+<section class="space-y-3">
+<label class="font-headline font-bold text-on-surface-variant text-sm px-1">Additional Comments (Optional)</label>
+<textarea class="w-full h-32 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all p-4 text-on-surface placeholder:text-outline/50" placeholder="Share more details about your experience..."></textarea>
+</section>
+</main>
+<!-- Bottom Action Bar -->
+<footer class="fixed bottom-0 left-0 w-full z-50 px-6 pb-10 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+<button class="w-full py-5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-headline font-bold text-lg shadow-[0_8px_30px_rgba(76,64,223,0.2)] active:scale-95 duration-200 ease-in-out">
+            Submit Review
+        </button>
+</footer>
+<!-- Invisible Bottom Nav Buffer -->
+<div class="h-10"></div>
+</body></html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - MLT Mobility</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#610243",
+              "surface-tint": "#4c40df",
+              "on-surface": "#2c2f32",
+              "on-primary": "#f5f1ff",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#6448b1",
+              "primary-fixed": "#9995ff",
+              "error-dim": "#a70138",
+              "error": "#b41340",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "on-tertiary-fixed": "#360023",
+              "on-secondary-container": "#4f329b",
+              "primary-container": "#9995ff",
+              "on-error-container": "#510017",
+              "on-secondary-fixed": "#3b1a87",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "on-background": "#2c2f32",
+              "on-secondary-fixed-variant": "#583da5",
+              "surface": "#f5f7fa",
+              "on-secondary": "#f7f0ff",
+              "on-tertiary": "#ffeff4",
+              "secondary-container": "#d8caff",
+              "tertiary-container": "#fe8bc9",
+              "on-error": "#ffefef",
+              "outline": "#74777a",
+              "inverse-surface": "#0b0f11",
+              "on-primary-container": "#16007d",
+              "secondary-fixed": "#d8caff",
+              "surface-variant": "#d9dde1",
+              "primary": "#4c40df",
+              "on-primary-fixed": "#000000",
+              "inverse-on-surface": "#9a9da0",
+              "surface-bright": "#f5f7fa",
+              "surface-dim": "#d0d5d9",
+              "secondary-dim": "#573ca4",
+              "tertiary": "#983670",
+              "surface-container": "#e5e8ec",
+              "background": "#f5f7fa",
+              "surface-container-high": "#dfe3e7",
+              "surface-container-highest": "#d9dde1",
+              "error-container": "#f74b6d",
+              "primary-fixed-dim": "#8a85ff",
+              "tertiary-dim": "#892a64",
+              "tertiary-fixed": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "outline-variant": "#abadb0",
+              "secondary-fixed-dim": "#cbbaff",
+              "primary-dim": "#4030d3",
+              "on-surface-variant": "#595c5e",
+              "surface-container-low": "#eef1f4"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "2xl": "1rem",
+              "3xl": "1.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .indigo-gradient {
+            background: linear-gradient(135deg, #4c40df 0%, #9995ff 100%);
+        }
+        .geometric-bg {
+            background-color: #f5f7fa;
+            background-image: radial-gradient(circle at 2px 2px, #4c40df 1px, transparent 0);
+            background-size: 32px 32px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.1), transparent);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface min-h-screen flex flex-col">
+<!-- Subtle Geometric Header Section -->
+<div class="relative h-[265px] w-full overflow-hidden bg-white">
+<div class="absolute inset-0 geometric-bg opacity-40"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+<!-- Branding Anchor -->
+<div class="relative z-10 flex flex-col items-center justify-center h-full pt-8">
+<div class="w-16 h-16 rounded-2xl bg-white shadow-[0_8px_30px_rgb(76,64,223,0.12)] flex items-center justify-center mb-4 border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="directions_car">directions_car</span>
+</div>
+<h1 class="font-headline font-extrabold text-2xl -tracking-[0.02em] text-on-surface">MLT Mobility</h1>
+<p class="font-label text-xs uppercase tracking-widest text-on-surface-variant mt-1">Corporate Transport Portal</p>
+</div>
+</div>
+<!-- Login Container -->
+<main class="flex-grow flex items-start justify-center px-6 -mt-10 relative z-20">
+<div class="w-full max-w-md bg-surface-container-lowest rounded-3xl p-8 shadow-[0_20px_50px_rgba(76,64,223,0.05)] border border-outline-variant/5">
+<header class="mb-8">
+<h2 class="font-headline font-bold text-xl text-on-surface">Welcome Back</h2>
+<p class="text-on-surface-variant text-sm mt-1">Secure access to your enterprise mobility suite</p>
+</header>
+<form class="space-y-5">
+<!-- Tenant ID -->
+<div class="space-y-1.5">
+<label class="font-label text-[10px] font-medium uppercase tracking-wider text-on-surface-variant ml-1">Tenant ID</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" data-icon="domain">domain</span>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container-low border-none rounded-[15px] focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-outline/50 text-sm font-medium" placeholder="e.g. CORP_GLOBAL" type="text"/>
+</div>
+</div>
+<!-- Employee ID / Email -->
+<div class="space-y-1.5">
+<label class="font-label text-[10px] font-medium uppercase tracking-wider text-on-surface-variant ml-1">Employee ID / Email</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" data-icon="badge">badge</span>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container-low border-none rounded-[15px] focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-outline/50 text-sm font-medium" placeholder="ID or business email" type="text"/>
+</div>
+</div>
+<!-- Password -->
+<div class="space-y-1.5">
+<div class="flex justify-between items-end mb-0.5">
+<label class="font-label text-[10px] font-medium uppercase tracking-wider text-on-surface-variant ml-1">Password</label>
+<a class="text-[10px] font-semibold text-primary uppercase tracking-tight hover:underline" href="#">Forgot?</a>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" data-icon="lock">lock</span>
+<input class="w-full h-14 pl-12 pr-12 bg-surface-container-low border-none rounded-[15px] focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-outline/50 text-sm font-medium" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-lg" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-14 indigo-gradient text-on-primary font-headline font-bold rounded-2xl shadow-[0_8px_20px_rgba(76,64,223,0.2)] hover:scale-[1.01] active:scale-[0.98] transition-all mt-4 flex items-center justify-center gap-2" type="submit">
+                    Login
+                    <span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<!-- Secondary Actions -->
+<footer class="mt-8 pt-6 border-t border-outline-variant/10 flex flex-col items-center gap-4">
+<p class="text-xs text-on-surface-variant">Don't have an account? <a class="text-primary font-bold hover:underline" href="#">Contact HR</a></p>
+<div class="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-full">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">System Status: Operational</span>
+</div>
+</footer>
+</div>
+</main>
+<!-- Support Link Footer -->
+<div class="pb-8 text-center">
+<div class="inline-flex items-center gap-6 opacity-60">
+<a class="text-[10px] font-medium uppercase tracking-widest hover:text-primary transition-colors" href="#">Terms</a>
+<a class="text-[10px] font-medium uppercase tracking-widest hover:text-primary transition-colors" href="#">Privacy</a>
+<a class="text-[10px] font-medium uppercase tracking-widest hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+<!-- Decorative Bottom Graphic -->
+<div class="fixed bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary-container to-secondary pointer-events-none"></div>
+</body></html>

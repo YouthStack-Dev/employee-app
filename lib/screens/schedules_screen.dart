@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:async';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import '../constants/app_theme.dart';
+import '../models/booking_model.dart';
+import '../providers/announcement_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
-import '../providers/announcement_provider.dart';
-import '../constants/app_colors.dart';
-import '../services/booking_service.dart';
-import '../models/booking_model.dart';
-import 'booking_details_screen.dart';
-import 'edit_booking_screen.dart';
-import 'track_driver_screen.dart';
-import 'create_booking_screen.dart';
-import 'announcements_screen.dart';
 import '../services/alert_service.dart';
-import 'sos_details_screen.dart';
-import 'review_screen.dart';
 import '../services/review_service.dart';
+import '../widgets/fx_widgets.dart';
+import 'announcements_screen.dart';
+import 'booking_details_screen.dart';
+import 'create_booking_screen.dart';
+import 'edit_booking_screen.dart';
+import 'review_screen.dart';
+import 'sos_details_screen.dart';
+import 'sos_history_screen.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -28,1164 +25,887 @@ class SchedulesScreen extends StatefulWidget {
 }
 
 class _SchedulesScreenState extends State<SchedulesScreen> {
-  int _currentIndex = 0; // 0: Home, 1: History
+  int _bottomIndex = 1; // 0 dashboard, 1 bookings (default), 2 tracking, 3 profile
+  int _segmentIndex = 0; // 0 upcoming, 1 past
   DateTime _selectedHistoryDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _refreshBookings();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshBookings());
   }
-
-
 
   void _refreshBookings() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user?.employeeId != null) {
-      Provider.of<AnnouncementProvider>(context, listen: false).fetchInbox(refresh: true);
-      
-      final now = DateTime.now();
-      // Fetch -1 day to +8 days for Home Dashboard
-      final start = now.subtract(const Duration(days: 1));
-      final end = start.add(const Duration(days: 8)); 
-      final dateFormat = DateFormat('yyyy-MM-dd');
-      
-      Provider.of<BookingProvider>(context, listen: false).fetchBookings(
-        user!.employeeId!,
-        startDate: dateFormat.format(start),
-        endDate: dateFormat.format(end),
-        type: BookingType.home,
-      );
-    }
+    if (user?.employeeId == null) return;
+    Provider.of<AnnouncementProvider>(context, listen: false).fetchInbox(refresh: true);
+    final now = DateTime.now();
+    final start = now.subtract(const Duration(days: 1));
+    final end = start.add(const Duration(days: 8));
+    final fmt = DateFormat('yyyy-MM-dd');
+    Provider.of<BookingProvider>(context, listen: false).fetchBookings(
+      user!.employeeId!,
+      startDate: fmt.format(start),
+      endDate: fmt.format(end),
+      type: BookingType.home,
+    );
   }
 
   void _fetchHistoryBookings(DateTime date) {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user?.employeeId != null) {
-      final dateFormat = DateFormat('yyyy-MM-dd');
-      // Fetch specifically for the selected date
-      Provider.of<BookingProvider>(context, listen: false).fetchBookings(
-        user!.employeeId!,
-        startDate: dateFormat.format(date),
-        endDate: dateFormat.format(date),
-        type: BookingType.history,
-      );
-    }
+    if (user?.employeeId == null) return;
+    final fmt = DateFormat('yyyy-MM-dd');
+    Provider.of<BookingProvider>(context, listen: false).fetchBookings(
+      user!.employeeId!,
+      startDate: fmt.format(date),
+      endDate: fmt.format(date),
+      type: BookingType.history,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false, // Ensure map doesn't distort
-      body: _buildBody(),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -2))],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-             setState(() => _currentIndex = index);
-             if (index == 0) {
-                _refreshBookings(); // Restore Home data
-             } else if (index == 1) {
-                // Default to today for History when switching or keep selected?
-                // User asked for "present day and previous days". 
-                // We'll init history with today's data.
-                _selectedHistoryDate = DateTime.now();
-                _fetchHistoryBookings(_selectedHistoryDate);
-             }
-          },
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF0D47A1),
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-             BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-             BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          ],
-        ),
+      backgroundColor: FxColors.background,
+      extendBody: true,
+      body: SafeArea(bottom: false, child: _segmentIndex == 0 ? _buildUpcoming() : _buildPast()),
+      bottomNavigationBar: FxBottomNav(
+        currentIndex: _bottomIndex,
+        onTap: (i) {
+          setState(() => _bottomIndex = i);
+          if (i == 0) _refreshBookings();
+        },
+        items: const [
+          FxBottomNavItem(Icons.dashboard_rounded, 'Dashboard'),
+          FxBottomNavItem(Icons.calendar_month_rounded, 'Bookings'),
+          FxBottomNavItem(Icons.explore_rounded, 'Tracking'),
+          FxBottomNavItem(Icons.person_rounded, 'Profile'),
+        ],
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton(
-            heroTag: 'sos_btn',
-            onPressed: _triggerSOS,
-            backgroundColor: Colors.red,
-            child: const Icon(Icons.sos, color: Colors.white, size: 30),
-            elevation: 4,
-            shape: const CircleBorder(),
+      floatingActionButton: _segmentIndex == 0
+          ? Container(
+              margin: const EdgeInsets.only(bottom: 70),
+              child: GestureDetector(
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const CreateBookingScreen())),
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    gradient: FxGradients.indigo,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: FxShadows.button,
+                  ),
+                  child: const Icon(Icons.add_rounded, color: FxColors.onPrimary, size: 28),
+                ),
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+    );
+  }
+
+  // ------------------ UPCOMING (DASHBOARD) ------------------
+  Widget _buildUpcoming() {
+    return Consumer<BookingProvider>(
+      builder: (context, provider, _) {
+        final all = List<Booking>.from(provider.homeBookings);
+        final now = DateTime.now();
+        final windowStart = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
+        final windowEnd = DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
+        final inWindow = all.where((b) {
+          if (b.date == null) return false;
+          final d = DateTime.tryParse(b.date!);
+          if (d == null) return false;
+          final dOnly = DateTime(d.year, d.month, d.day);
+          return !dOnly.isBefore(windowStart) && dOnly.isBefore(windowEnd);
+        }).toList();
+
+        final activeList = inWindow.where((b) {
+          final s = b.status?.toLowerCase();
+          if (s == 'ongoing') return true;
+          if (s == 'scheduled') return b.routeDetails?['driver_details']?['driver_id'] != null;
+          return false;
+        }).toList()
+          ..sort((a, b) {
+            final sa = a.status?.toLowerCase();
+            final sb = b.status?.toLowerCase();
+            if (sa == 'ongoing' && sb != 'ongoing') return -1;
+            if (sb == 'ongoing' && sa != 'ongoing') return 1;
+            return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
+          });
+        final activeRide = activeList.isNotEmpty ? activeList.first : null;
+
+        final scheduled = inWindow.where((b) {
+          if (b.id == activeRide?.id) return false;
+          final s = b.status?.toLowerCase() ?? '';
+          return s != 'ongoing' && s != 'completed';
+        }).toList()
+          ..sort((a, b) {
+            final c = (a.date ?? '').compareTo(b.date ?? '');
+            if (c != 0) return c;
+            return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
+          });
+
+        final todayStr = DateFormat('yyyy-MM-dd').format(now);
+        final today = scheduled.where((b) => b.date == todayStr).toList();
+        final laterCount = scheduled.length - today.length;
+
+        return RefreshIndicator(
+          color: FxColors.primary,
+          onRefresh: () async => _refreshBookings(),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(child: _buildAppHeader()),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    FxSegmented(
+                      labels: const ['Upcoming Rides', 'Past Rides'],
+                      selectedIndex: _segmentIndex,
+                      onChanged: (i) => setState(() {
+                        _segmentIndex = i;
+                        if (i == 1) _fetchHistoryBookings(_selectedHistoryDate);
+                      }),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Scheduled for Today', style: FxText.headlineSm()),
+                        FxPill(text: '${today.length} Rides'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (provider.isLoading && inWindow.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                      ),
+                    if (activeRide != null) _activeRideCard(activeRide),
+                    if (activeRide != null) const SizedBox(height: 16),
+                    ...today.map((b) => Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _scheduledRideCard(b, isHistory: false),
+                        )),
+                    if (today.isEmpty && activeRide == null && !provider.isLoading)
+                      _emptyState(Icons.directions_car_outlined, 'No rides scheduled for today'),
+                    const SizedBox(height: 12),
+                    if (laterCount > 0)
+                      Row(
+                        children: [
+                          Text('Coming Up', style: FxText.headlineSm()),
+                          const SizedBox(width: 12),
+                          FxPill(
+                            text: '$laterCount',
+                            color: FxColors.onSurfaceVariant,
+                            background: FxColors.surfaceContainerLow,
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 16),
+                    ...scheduled
+                        .where((b) => b.date != todayStr)
+                        .map((b) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _scheduledRideCard(b, isHistory: false),
+                            )),
+                    const SizedBox(height: 16),
+                    _bentoTomorrow(scheduled, now),
+                    const SizedBox(height: 32),
+                  ]),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          if (_currentIndex == 0)
-            FloatingActionButton(
-              heroTag: 'create_booking_btn',
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateBookingScreen())),
-              backgroundColor: const Color(0xFF0D47A1),
-              child: const Icon(Icons.add, color: Colors.white),
+        );
+      },
+    );
+  }
+
+  Widget _buildAppHeader() {
+    final user = context.watch<AuthProvider>().user;
+    final name = user?.name ?? 'Welcome';
+    final initials = (user?.name ?? 'E')
+        .trim()
+        .split(' ')
+        .where((s) => s.isNotEmpty)
+        .take(2)
+        .map((s) => s[0].toUpperCase())
+        .join();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: FxGradients.indigo,
+              borderRadius: BorderRadius.circular(14),
             ),
+            child: Text(
+              initials.isEmpty ? 'E' : initials,
+              style: FxText.title(color: FxColors.onPrimary),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FxMetaLabel('Welcome back,'),
+                Text(name, style: FxText.headlineMd()),
+              ],
+            ),
+          ),
+          Consumer<AnnouncementProvider>(
+            builder: (_, ap, __) => Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _iconButton(
+                  Icons.notifications_outlined,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AnnouncementsScreen()),
+                  ),
+                ),
+                if (ap.unreadCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: FxColors.error,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        ap.unreadCount > 9 ? '9+' : '${ap.unreadCount}',
+                        style: FxText.labelSm(color: FxColors.onError).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FxSosButton(onPressed: _triggerSOS),
         ],
       ),
     );
   }
 
-  Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0: return _buildHomeTab();
-      case 1: return _buildHistoryTab();
-      default: return _buildHomeTab();
-    }
+  Widget _iconButton(IconData icon, {VoidCallback? onTap}) {
+    return Material(
+      color: FxColors.surfaceContainerLowest,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: FxColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: FxShadows.soft,
+          ),
+          child: Icon(icon, color: FxColors.onSurfaceVariant, size: 22),
+        ),
+      ),
+    );
   }
 
-  // ---------------- HOME TAB ----------------
-  Widget _buildHomeTab() {
-    return Column(
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-          color: Colors.white,
-          child: Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-                const Text('Home', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.black)),
+  Widget _activeRideCard(Booking b) {
+    final timeRange = _formatTimeRange(b);
+    final vehicle = b.routeDetails?['vehicle_details']?['vehicle_name']?.toString() ?? 'Vehicle assigned';
+    final plate = b.routeDetails?['vehicle_details']?['plate_number']?.toString() ?? '';
+    return FxCard(
+      padding: EdgeInsets.zero,
+      onTap: () => Navigator.push(context,
+          MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!))),
+      child: Column(
+        children: [
+          // Glossy top accent bar
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              gradient: FxGradients.indigoH,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      backgroundColor: Colors.grey.shade100,
-                      child: IconButton(
-                         icon: const Icon(Icons.refresh, color: Colors.black), 
-                         onPressed: _refreshBookings
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FxMetaLabel('Ongoing Journey'),
+                          const SizedBox(height: 2),
+                          Text(timeRange, style: FxText.headlineMd(color: FxColors.primary)),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Consumer<AnnouncementProvider>(
-                      builder: (context, announcementProvider, _) {
-                        return Stack(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: Colors.grey.shade100,
-                              child: IconButton(
-                                 icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-                                 onPressed: () {
-                                   Navigator.push(context, MaterialPageRoute(builder: (_) => const AnnouncementsScreen()));
-                                 },
-                              ),
-                            ),
-                            if (announcementProvider.unreadCount > 0)
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    '${announcementProvider.unreadCount > 9 ? '9+' : announcementProvider.unreadCount}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    CircleAvatar(
-                      backgroundColor: Colors.red.shade50,
-                      child: IconButton(
-                         icon: const Icon(Icons.logout, color: Colors.red), 
-                         onPressed: () {
-                             Provider.of<AuthProvider>(context, listen: false).logout();
-                             Navigator.pushReplacementNamed(context, '/login');
-                         }
-                      ),
+                    FxPill(
+                      text: b.status ?? 'Ongoing',
+                      color: FxColors.onPrimaryContainer,
+                      background: FxColors.primaryContainer.withOpacity(0.25),
+                      pulse: true,
                     ),
                   ],
-                )
-             ],
+                ),
+                const SizedBox(height: 20),
+                FxRouteTimeline(
+                  pickup: b.pickupLocation ?? 'Pickup point',
+                  drop: b.dropLocation ?? 'Drop-off',
+                  isActive: true,
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  height: 1,
+                  color: FxColors.surfaceContainerLow,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: FxColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.directions_car_rounded,
+                          color: FxColors.onSurfaceVariant, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(vehicle, style: FxText.titleSm()),
+                          if (plate.isNotEmpty)
+                            FxMetaLabel(plate),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: FxColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.map_rounded, color: FxColors.onPrimary, size: 20),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scheduledRideCard(Booking b, {required bool isHistory}) {
+    final timeRange = _formatTimeRange(b);
+    final isLogin = b.logType == 'IN';
+    final dateLabel = _humanDate(b.date);
+    final status = b.status ?? 'Scheduled';
+    final statusColor = FxColors.statusColor(status);
+    final isLive = status == 'Ongoing';
+
+    return FxTonalCard(
+      padding: const EdgeInsets.all(20),
+      onTap: () async {
+        if (b.id == null) return;
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) =>
+                  BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)),
+        );
+        if (result == true) {
+          isHistory ? _fetchHistoryBookings(_selectedHistoryDate) : _refreshBookings();
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FxMetaLabel('$dateLabel • ${isLogin ? 'LOGIN' : 'LOGOUT'}'),
+                    const SizedBox(height: 2),
+                    Text(timeRange, style: FxText.headlineMd()),
+                  ],
+                ),
+              ),
+              FxPill(
+                text: status,
+                color: statusColor,
+                background: statusColor.withOpacity(0.15),
+                pulse: isLive,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FxRouteTimeline(
+            pickup: b.pickupLocation ?? 'Pickup point',
+            drop: b.dropLocation ?? 'Drop-off',
+            isActive: isLive,
+          ),
+          if (!isHistory && _canActOn(status)) ...[
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                FxSecondaryButton(
+                  icon: Icons.edit_rounded,
+                  label: 'Edit',
+                  background: FxColors.surfaceContainerLowest,
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => EditBookingScreen(bookingId: b.id!)),
+                    );
+                    if (result == true) _refreshBookings();
+                  },
+                ),
+                FxSecondaryButton(
+                  icon: Icons.close_rounded,
+                  label: 'Cancel',
+                  background: FxColors.errorContainer.withOpacity(0.1),
+                  foreground: FxColors.error,
+                  onPressed: () => _showCancelDialog(b),
+                ),
+              ],
+            ),
+          ],
+          if (isHistory && status == 'Completed') ...[
+            const SizedBox(height: 18),
+            FxSecondaryButton(
+              icon: Icons.star_rounded,
+              label: 'Rate this ride',
+              background: FxColors.tertiaryContainer.withOpacity(0.25),
+              foreground: FxColors.tertiary,
+              onPressed: () => _openReview(b),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bentoTomorrow(List<Booking> upcoming, DateTime now) {
+    final tomorrowDate = now.add(const Duration(days: 1));
+    final tomorrowStr = DateFormat('yyyy-MM-dd').format(tomorrowDate);
+    final tomorrowList = upcoming.where((b) => b.date == tomorrowStr).toList();
+    Booking? nextShift;
+    if (tomorrowList.isNotEmpty) {
+      tomorrowList.sort((a, b) =>
+          (a.shiftTime ?? '').compareTo(b.shiftTime ?? ''));
+      nextShift = tomorrowList.first;
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: FxTonalCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                FxMetaLabel('Tomorrow'),
+                const SizedBox(height: 28),
+                Text('${tomorrowList.length.toString().padLeft(2, '0')}',
+                    style: FxText.displaySm()),
+                const SizedBox(height: 2),
+                Text('Total rides scheduled', style: FxText.bodySm()),
+              ],
+            ),
           ),
         ),
-
-        // Body
+        const SizedBox(width: 16),
         Expanded(
-          child: _buildHomeContent(null),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: FxColors.primaryContainer.withOpacity(0.15),
+              borderRadius: FxRadii.card,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                FxMetaLabel('Next Shift', color: FxColors.primary),
+                const SizedBox(height: 24),
+                Text(
+                  nextShift?.shiftTime?.substring(0, 5) ?? '—',
+                  style: FxText.headlineLg(color: FxColors.onPrimaryContainer),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  nextShift?.pickupLocation ?? 'No shift assigned',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: FxText.bodySm(color: FxColors.onPrimaryContainer),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildHomeContent(ScrollController? scrollController) {
+  // ------------------ PAST (HISTORY) ------------------
+  Widget _buildPast() {
     return Consumer<BookingProvider>(
-      builder: (context, provider, child) {
-        final allBookingsRaw = List<Booking>.from(provider.homeBookings);
-        
-        // Date window: yesterday to +6 days from today
-        final now = DateTime.now();
-        final windowStart = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1));
-        final windowEnd = DateTime(now.year, now.month, now.day).add(const Duration(days: 7)); // today + 6 days
-        
-        // Filter bookings to only show within the date window
-        final allBookings = allBookingsRaw.where((b) {
+      builder: (context, provider, _) {
+        final all = List<Booking>.from(provider.historyBookings);
+        final selStr = DateFormat('yyyy-MM-dd').format(_selectedHistoryDate);
+        final filtered = all.where((b) {
           if (b.date == null) return false;
-          try {
-            final bookingDate = DateTime.parse(b.date!);
-            final dateOnly = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
-            return !dateOnly.isBefore(windowStart) && dateOnly.isBefore(windowEnd);
-          } catch (e) {
-            return false;
-          }
-        }).toList();
-        
-        // Active Filter
-        final potentialActive = allBookings.where((b) {
-           final s = b.status?.toLowerCase();
-           if (s == 'ongoing') return true;
-           if (s == 'scheduled') {
-              final hasDriver = b.routeDetails?['driver_details']?['driver_id'] != null;
-              return hasDriver;
-           }
-           return false;
-        }).toList();
+          final d = DateTime.tryParse(b.date!);
+          if (d == null) return false;
+          return DateFormat('yyyy-MM-dd').format(d) == selStr;
+        }).toList()
+          ..sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '')
+              .compareTo(a.shiftTime ?? a.pickupTime ?? ''));
 
-        potentialActive.sort((a, b) {
-           final sA = a.status?.toLowerCase();
-           final sB = b.status?.toLowerCase();
-           if (sA == 'ongoing' && sB != 'ongoing') return -1;
-           if (sB == 'ongoing' && sA != 'ongoing') return 1;
-           return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
-        });
-
-        final Booking? activeRide = potentialActive.isNotEmpty ? potentialActive.first : null;
-        
-        final yourRides = allBookings.where((b) {
-           if (b.id == activeRide?.id) return false; 
-           final s = b.status?.toLowerCase() ?? '';
-           // Exclude ongoing (caught as active) and completed (should move to History)
-           if (s == 'ongoing' || s == 'completed') return false; 
-           // Show all other records (including unknown custom backend statuses like 'allocated')
-           return true;
-        }).toList();
-        
-        yourRides.sort((a, b) {
-            int cmp = (a.date ?? '').compareTo(b.date ?? '');
-            if (cmp != 0) return cmp;
-            return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
-        });
-        
-        // Group by Date
-        final groupedRides = <String, List<Booking>>{};
-        for (var ride in yourRides) {
-            String dateKey = ride.date ?? 'Unknown Date';
-            try {
-               final date = DateTime.parse(dateKey);
-               final now = DateTime.now();
-               final today = DateTime(now.year, now.month, now.day);
-               final tomorrow = today.add(const Duration(days: 1));
-               final rideDate = DateTime(date.year, date.month, date.day);
-
-               if (rideDate == today) dateKey = 'Today';
-               else if (rideDate == tomorrow) dateKey = 'Tomorrow';
-               else dateKey = DateFormat('EEE, MMM d').format(date);
-            } catch (e) {
-               // keep original string
-            }
-            
-            if (!groupedRides.containsKey(dateKey)) {
-                groupedRides[dateKey] = [];
-            }
-            groupedRides[dateKey]!.add(ride);
-        }
-
-        return Column(
-          children: [
-             // 1. STICKY ACTIVE SECTION
-             Container(
-               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 boxShadow: [
-                   BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
-                 ],
-                 // Ensure it looks like it sits on top if we want that visual
-               ),
-               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                     if (activeRide != null) ...[
-                       const Text('Active Ride', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                       const SizedBox(height: 10),
-                       _buildActiveRideCard(activeRide),
-                     ]
-                     // If no active ride, we could hide it or show empty state. 
-                     // Since user wants "Sticky Active Ride", if there IS one, it sticks. 
-                     // If not, we can show nothing or a small placeholder?
-                     // Let's stick (pun intended) to hiding it if null to save space, but per UI mocks often we show it.
-                     // The previous code showed "No Active Rides". Let's keep that but maybe smaller?
-                     // Actually, if we show "No Active Rides", it uses 1/3 screen.
-                     // The request is about "Active rides stay sticky".
-                     else ...[
-                        const Text('Active Ride', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        Container(
-                           padding: const EdgeInsets.all(20),
-                           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-                           child: const Center(child: Text('No Active Rides', style: TextStyle(color: Colors.grey))),
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _buildAppHeader()),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  FxSegmented(
+                    labels: const ['Upcoming Rides', 'Past Rides'],
+                    selectedIndex: _segmentIndex,
+                    onChanged: (i) => setState(() => _segmentIndex = i),
+                  ),
+                  const SizedBox(height: 24),
+                  _historyDateBar(),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FxSecondaryButton(
+                          icon: Icons.calendar_month_rounded,
+                          label: 'Bookings',
+                          background: FxColors.primary.withOpacity(0.1),
+                          foreground: FxColors.primary,
+                          onPressed: () {},
                         ),
-                     ]
-                  ],
-               ),
-             ),
-
-             // 2. SCROLLABLE UPCOMING LIST
-             Expanded(
-               child: ListView(
-                  padding: const EdgeInsets.only(top: 20, bottom: 80), // Padding for separation and bottom nav
-                  children: [
-                     Padding(
-                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                       child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                             Row(
-                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                               children: [
-                                  const Text('Upcoming Rides', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // RENAMED
-                                   // See All button removed as per user request (list is scrollable)
-                               ],
-                             ),
-                             const SizedBox(height: 10),
-                             
-                             if (yourRides.isEmpty)
-                                Container(
-                                  padding: const EdgeInsets.all(40),
-                                  child: Column(
-                                    children: [
-                                      Icon(Icons.directions_car_outlined, size: 60, color: Colors.grey.shade300),
-                                      const SizedBox(height: 10),
-                                      Text('No upcoming rides', style: TextStyle(color: Colors.grey.shade500)),
-                                    ],
-                                  ),
-                                ),
-                                
-                             ...groupedRides.entries.expand((entry) {
-                                 return [
-                                     Padding(
-                                       padding: const EdgeInsets.symmetric(vertical: 10),
-                                       child: Text(entry.key, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
-                                     ),
-                                     ...entry.value.map((b) => _buildSimpleRideCard(b)),
-                                 ];
-                             }),
-                          ],
-                       ),
-                     ),
-                  ],
-               ),
-             ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FxSecondaryButton(
+                          icon: Icons.warning_amber_rounded,
+                          label: 'SOS History',
+                          background: FxColors.surfaceContainerLowest,
+                          foreground: FxColors.error,
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const SosHistoryScreen()),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  if (provider.isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                    )
+                  else if (filtered.isEmpty)
+                    _emptyState(Icons.history_toggle_off,
+                        'No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}')
+                  else
+                    ...filtered.map((b) => Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _scheduledRideCard(b, isHistory: true),
+                        )),
+                ]),
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  // ... (History and Profile tabs unchanged)
-
-  // ---------------- WIDGETS ----------------
-
-  Widget _buildActiveRideCard(Booking b) {
-     final isLogin = b.logType == 'IN';
-     String time = b.shiftTime ?? '--:--';
-     if (time.length > 5) time = time.substring(0, 5);
-     
-     // Color logic
-     Color statusColor = Colors.green;
-     String statusText = b.status ?? 'Scheduled';
-     if (b.status == 'Ongoing') { statusColor = Colors.blue; }
-     
-     return Container(
-         width: double.infinity,
-         padding: const EdgeInsets.all(16),
-         decoration: BoxDecoration(
-           color: Colors.white,
-           borderRadius: BorderRadius.circular(20),
-           boxShadow: [
-             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
-           ]
-         ),
-         child: Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-              // Header
-              Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                    Row(
-                       children: [
-                          Icon(isLogin ? Icons.login : Icons.logout, color: Colors.black, size: 20),
-                          const SizedBox(width: 8),
-                          Column(
-                             crossAxisAlignment: CrossAxisAlignment.start,
-                             children: [
-                                Text(isLogin ? 'Login' : 'Logout', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                Text(time, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                             ],
-                          )
-                       ],
-                    ),
-                 ],
-              ),
-              const SizedBox(height: 12),
-              
-              // Status Pill
-              Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                 decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20)
-                 ),
-                 child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                       Icon(Icons.access_time_filled, size: 16, color: statusColor),
-                       const SizedBox(width: 4),
-                       Text(statusText, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                    ],
-                 ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Location Dots
-              _buildLocationRow(Colors.red, b.pickupLocation ?? 'Unknown Pickup'),
-              Container(
-                 margin: const EdgeInsets.only(left: 7),
-                 height: 16,
-                 decoration: const BoxDecoration(
-                    border: Border(left: BorderSide(color: Colors.grey, width: 1)),
-                 ),
-              ),
-              _buildLocationRow(Colors.green, b.dropLocation ?? 'Unknown Drop'),
-              
-              const SizedBox(height: 16),
-              
-              // OTP Box
-              if (b.boardingOtp != null || b.deboardingOtp != null)
-              Container(
-                 padding: const EdgeInsets.all(12),
-                 decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FE), // Light blueish grey
-                    borderRadius: BorderRadius.circular(12)
-                 ),
-                 child: Column(
-                    children: [
-                       const Row(children: [Text('Trip OTPs', style: TextStyle(fontWeight: FontWeight.bold))]),
-                       const SizedBox(height: 8),
-                       Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                             if (b.boardingOtp != null)
-                             Column(
-                                children: [
-                                   const Text('Boarding', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                   Text(b.boardingOtp!, style: const TextStyle(color: Color(0xFF5B7FFF), fontWeight: FontWeight.bold, fontSize: 16)),
-                                ],
-                             ),
-                             if (b.deboardingOtp != null)
-                             Column(
-                                children: [
-                                   const Text('Deboarding', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                                   Text(b.deboardingOtp!, style: const TextStyle(color: Color(0xFF5B7FFF), fontWeight: FontWeight.bold, fontSize: 16)),
-                                ],
-                             ),
-                          ],
-                       )
-                    ],
-                 ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Actions
-              Row(
-                 children: [
-                    // Edit/Cancel not shown for active usually? User request implies showing edit/cancel even in "smaller version" UI.
-                    // But active ride usually can't be edited/cancelled.
-                    // We will just show Track button prominently for Active.
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: false))), // Active is theoretically "home" context but track is primary
-                        style: ElevatedButton.styleFrom(
-                           backgroundColor: Colors.white,
-                           foregroundColor: Colors.black,
-                           elevation: 0,
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.grey, width: 0.5)),
-                           padding: const EdgeInsets.symmetric(vertical: 12)
-                        ),
-                        icon: const Icon(Icons.map_outlined, size: 18),
-                        label: const Text('Track'),
-                      ),
-                    ),
-                 ],
-              )
-           ],
-         ),
-     );
+  Widget _historyDateBar() {
+    return FxTonalCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_rounded, color: FxColors.primary, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              DateFormat('EEEE, MMM d, yyyy').format(_selectedHistoryDate),
+              style: FxText.titleSm(),
+            ),
+          ),
+          FxSecondaryButton(
+            icon: Icons.edit_calendar_rounded,
+            label: 'Change',
+            background: FxColors.surfaceContainerLowest,
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _selectedHistoryDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+                builder: (ctx, child) => Theme(
+                  data: Theme.of(ctx).copyWith(
+                    colorScheme: const ColorScheme.light(primary: FxColors.primary),
+                  ),
+                  child: child!,
+                ),
+              );
+              if (picked != null) {
+                setState(() => _selectedHistoryDate = picked);
+                _fetchHistoryBookings(picked);
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildSimpleRideCard(Booking b, {bool isHistory = false}) {
-     final isLogin = b.logType == 'IN';
-     
-     // Safe Time Formatting
-     String time = '--:--';
-     if (b.shiftTime != null && b.shiftTime!.length >= 5) {
-       time = b.shiftTime!.substring(0, 5);
-     } else if (b.pickupTime != null && b.pickupTime!.length >= 5) {
-       time = b.pickupTime!.substring(0, 5);
-     } else {
-        time = b.shiftTime ?? b.pickupTime ?? '--:--';
-      }
-      if (time.length > 5) time = time.substring(0, 5);
+  // ------------------ HELPERS ------------------
 
-     final statusLower = b.status?.toLowerCase() ?? '';
-     Color statusColor = Colors.green;
-     if (statusLower == 'request') statusColor = Colors.orange;
-     if (statusLower == 'cancelled' || statusLower == 'rejected') statusColor = Colors.red;
-
-     return GestureDetector(
-       onTap: () async {
-          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
-          if (result == true && !isHistory) {
-             _refreshBookings();
-          } else if (result == true && isHistory) {
-             _fetchHistoryBookings(_selectedHistoryDate);
-          }
-       },
-       child: Container(
-         margin: const EdgeInsets.only(bottom: 16),
-         padding: const EdgeInsets.all(16),
-         decoration: BoxDecoration(
-           color: Colors.white,
-           borderRadius: BorderRadius.circular(16),
-           border: Border.all(color: Colors.grey.shade200),
-         ),
-         child: Column(
-           children: [
-             // Header
-             Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                   Row(
-                      children: [
-                         Icon(isLogin ? Icons.login : Icons.logout, color: Colors.black87, size: 20),
-                         const SizedBox(width: 8),
-                         Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                               Text(isLogin ? 'Login' : 'Logout', style: const TextStyle(fontWeight: FontWeight.bold)),
-                               Text(time, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                            ],
-                         ),
-                      ],
-                   ),
-                   Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(b.status ?? '', style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                   )
-                ],
-             ),
-             const SizedBox(height: 12),
-             
-             // Route
-             _buildLocationRow(Colors.red, b.pickupLocation ?? 'Unknown Pickup'),
-             Container(
-                 margin: const EdgeInsets.only(left: 7),
-                 height: 12,
-                 decoration: const BoxDecoration(
-                    border: Border(left: BorderSide(color: Colors.grey, width: 1)),
-                 ),
-             ),
-             _buildLocationRow(Colors.green, b.dropLocation ?? 'Unknown Drop'),
-             
-             const SizedBox(height: 16),
-             
-             // Actions (Cancel, Edit, Track)
-             Row(
-               children: [
-                  // Cancel
-                  if (!isHistory && statusLower != 'cancelled' && statusLower != 'rejected' && statusLower != 'completed' && statusLower != 'ongoing')
-                  SizedBox(
-                    width: 40, height: 40,
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red),
-                      style: IconButton.styleFrom(backgroundColor: Colors.red.withOpacity(0.1), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                      onPressed: () => _showCancelDialog(b),
-                    ),
-                  ),
-                  // Edit
-                  // Show for anything that is NOT completed/ongoing and is in the future/today
-                  if (!isHistory && statusLower != 'completed' && statusLower != 'ongoing' && (() {
-                      final now = DateTime.now();
-                      final today = DateTime(now.year, now.month, now.day);
-                      final bDate = DateTime.tryParse(b.date ?? '') ?? DateTime.now();
-                      return !bDate.isBefore(today);
-                  })()) ...[
-                     const SizedBox(width: 10),
-                     SizedBox(
-                       width: 40, height: 40,
-                       child: IconButton(
-                         icon: const Icon(Icons.edit, color: Colors.grey),
-                         style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                         onPressed: () async {
-                            final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditBookingScreen(bookingId: b.id!)));
-                            if (result == true) {
-                               _refreshBookings();
-                            }
-                         },
-                       ),
-                     ),
-                  ],
-               ],
-             ),
-             
-             // Actions
-             Row(
-               children: [
-                 Expanded(
-                   child: ElevatedButton.icon(
-                     onPressed: () async {
-                        final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => BookingDetailsScreen(bookingId: b.id!, isReadOnly: isHistory)));
-                         if (result == true && !isHistory) {
-                            _refreshBookings();
-                         }
-                     },
-                     style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
-                     ),
-                     icon: const Icon(Icons.remove_red_eye_outlined, size: 16),
-                     label: const Text('View'),
-                   ),
-                 ),
-                 if (statusLower == 'completed') ...[
-                   const SizedBox(width: 10),
-                   Expanded(
-                     child: ElevatedButton.icon(
-                       onPressed: () async {
-                          // Prevent N+1 queries by fetching review status just-in-time when they tap "Rate"
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (ctx) => const Center(child: CircularProgressIndicator()),
-                          );
-                          
-                          final reviewResult = await ReviewService().getBookingReview(b.id!);
-                          if (context.mounted) Navigator.pop(context); // pop loading indicator
-                          
-                          if (reviewResult['success']) {
-                             final existingReview = reviewResult['data'];
-                             if (context.mounted) {
-                                Navigator.push(context, MaterialPageRoute(builder: (_) => ReviewScreen(bookingId: b.id!, existingReview: existingReview)));
-                             }
-                          } else {
-                             if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reviewResult['error'] ?? 'Error fetching review')));
-                          }
-                       },
-                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber.shade600,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                       ),
-                       icon: const Icon(Icons.star, size: 16),
-                       label: const Text('Review'),
-                     ),
-                   ),
-                 ],
-               ],
-             ),
+  Widget _emptyState(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(icon, size: 56, color: FxColors.outline),
+            const SizedBox(height: 12),
+            Text(label, style: FxText.body(color: FxColors.onSurfaceVariant)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLocationRow(Color color, String text) {
-     return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-           Container(
-              margin: const EdgeInsets.only(top: 2),
-              width: 14, height: 14,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-           ),
-           const SizedBox(width: 10),
-           Expanded(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14))),
-        ],
-     );
+  String _formatTimeRange(Booking b) {
+    final raw = b.shiftTime ?? b.pickupTime ?? '';
+    if (raw.isEmpty) return '--:--';
+    final t = raw.length > 5 ? raw.substring(0, 5) : raw;
+    // Add a 45-minute "estimated arrival" upper bound for the time-range look.
+    final parts = t.split(':');
+    if (parts.length < 2) return t;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final total = h * 60 + m + 45;
+    final hh = (total ~/ 60) % 24;
+    final mm = total % 60;
+    return '$t - ${hh.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
+  }
+
+  String _humanDate(String? raw) {
+    if (raw == null) return '';
+    final d = DateTime.tryParse(raw);
+    if (d == null) return raw;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dOnly = DateTime(d.year, d.month, d.day);
+    if (dOnly == today) return 'TODAY';
+    if (dOnly == today.add(const Duration(days: 1))) return 'TOMORROW';
+    return DateFormat('EEE, MMM d').format(d).toUpperCase();
+  }
+
+  bool _canActOn(String status) {
+    final s = status.toLowerCase();
+    return s == 'request' || s == 'scheduled';
   }
 
   void _showCancelDialog(Booking b) {
-     showDialog(
-       context: context,
-       builder: (ctx) => AlertDialog(
-          title: const Text('Cancel Ride?'),
-          content: Text('Are you sure you want to cancel the ride for ${b.date ?? ''}?'),
-          actions: [
-             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
-                TextButton(
-                onPressed: () async {
-                   Navigator.pop(ctx);
-                   if (b.id == null) return;
-                   final provider = Provider.of<BookingProvider>(context, listen: false);
-                   final result = await provider.cancelBooking(b.id!);
-                   if (context.mounted) {
-                     if (result['success']) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ride cancelled successfully')));
-                        _refreshBookings();
-                     } else {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['error'] ?? 'Cancellation failed'), backgroundColor: Colors.red));
-                     }
-                   }
-                }, 
-               child: const Text('Yes, Cancel', style: TextStyle(color: Colors.red))
-             ),
-          ],
-       ),
-     );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Cancel ride?', style: FxText.headlineSm()),
+        content: Text(
+          'Cancel the ride for ${b.date ?? ''}?',
+          style: FxText.body(color: FxColors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Keep')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: FxColors.error),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              if (b.id == null) return;
+              final r = await Provider.of<BookingProvider>(context, listen: false)
+                  .cancelBooking(b.id!);
+              if (!mounted) return;
+              if (r['success']) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ride cancelled')),
+                );
+                _refreshBookings();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(r['error'] ?? 'Cancellation failed'),
+                    backgroundColor: FxColors.error,
+                  ),
+                );
+              }
+            },
+            child: const Text('Yes, cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
-  // ---------------- HISTORY TAB ----------------
-  int _historyToggleIndex = 0; // 0: Bookings, 1: SOS
-  List<dynamic> _sosHistory = [];
-  bool _isLoadingSOS = false;
-
-    void _fetchSOSHistory([DateTime? date]) async {
-    setState(() => _isLoadingSOS = true);
-    final service = AlertService();
-    
-    // Use provided date or fallback to selected date if currently in SOS tab context
-    final targetDate = date ?? _selectedHistoryDate;
-
-    // Use yyyy-MM-dd format to match Booking history behavior
-    final dateFormat = DateFormat('yyyy-MM-dd');
-    final formattedDate = dateFormat.format(targetDate);
-
-    final result = await service.fetchMyAlerts(
-       startDate: formattedDate, 
-       endDate: formattedDate,
+  Future<void> _openReview(Booking b) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator(color: FxColors.primary)),
     );
-    
-    if (mounted) {
-      if (result['success']) {
-         setState(() {
-           _sosHistory = result['data']['data']['alerts'] ?? []; 
-           _isLoadingSOS = false;
-         });
-      } else {
-         setState(() => _isLoadingSOS = false);
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['error'] ?? 'Failed to load SOS history')));
-      }
+    final result = await ReviewService().getBookingReview(b.id!);
+    if (!mounted) return;
+    Navigator.pop(context);
+    if (result['success']) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReviewScreen(bookingId: b.id!, existingReview: result['data']),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['error'] ?? 'Error fetching review')),
+      );
     }
   }
-
-  Widget _buildHistoryTab() {
-    return Column(
-      children: [
-        AppBar(
-          title: const Text('History', style: TextStyle(color: Colors.black)),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-        ),
-        
-        // Toggle (Bookings vs SOS)
-        Container(
-           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(child: _buildToggleBtn('Bookings', 0)),
-                        Expanded(child: _buildToggleBtn('SOS History', 1)),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                   decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200)
-                   ),
-                   child: IconButton(
-                     icon: const Icon(Icons.refresh, color: Color(0xFF0D47A1)),
-                     onPressed: () {
-                        if (_historyToggleIndex == 0) {
-                           _fetchHistoryBookings(_selectedHistoryDate);
-                        } else {
-                           _fetchSOSHistory(_selectedHistoryDate);
-                        }
-                     },
-                   ),
-                )
-              ],
-            ),
-         ),
-
-        // Date Selection (For Both Bookings and SOS)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          color: Colors.white,
-          child: Row(
-            children: [
-               const Icon(Icons.calendar_today, color: Color(0xFF0D47A1), size: 20),
-               const SizedBox(width: 10),
-               Text(
-                 DateFormat('EEE, MMM d, yyyy').format(_selectedHistoryDate),
-                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-               ),
-               const Spacer(),
-               OutlinedButton.icon(
-                 onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedHistoryDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(), 
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.light(primary: Color(0xFF0D47A1)),
-                          ),
-                          child: child!,
-                        );
-                      }
-                    );
-                    if (picked != null && picked != _selectedHistoryDate) {
-                       setState(() => _selectedHistoryDate = picked);
-                       if (_historyToggleIndex == 0) {
-                          _fetchHistoryBookings(picked);
-                       } else {
-                          _fetchSOSHistory(picked);
-                       }
-                    }
-                 },
-                 icon: const Icon(Icons.edit_calendar, size: 16),
-                 label: const Text('Select Date'),
-                 style: OutlinedButton.styleFrom(
-                   foregroundColor: const Color(0xFF0D47A1),
-                   side: const BorderSide(color: Color(0xFF0D47A1)),
-                 ),
-               )
-            ],
-          ),
-        ),
-        const Divider(height: 1),
-
-        Expanded(
-          child: _historyToggleIndex == 0 ? _buildBookingsHistoryList() : _buildSOSHistoryList(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleBtn(String label, int index) {
-     final isSelected = _historyToggleIndex == index;
-     return GestureDetector(
-       onTap: () {
-         setState(() => _historyToggleIndex = index);
-         if (index == 0) {
-            _fetchHistoryBookings(_selectedHistoryDate); // Refresh bookings when switching back too, or just reuse state
-         } else if (index == 1) {
-            _fetchSOSHistory(_selectedHistoryDate);
-         }
-       },
-       child: Container(
-         padding: const EdgeInsets.symmetric(vertical: 12),
-         decoration: BoxDecoration(
-           color: isSelected ? Colors.white : Colors.transparent,
-           borderRadius: BorderRadius.circular(10),
-           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : [],
-         ),
-         child: Center(
-           child: Text(label, style: TextStyle(
-             color: isSelected ? Colors.black : Colors.grey,
-             fontWeight: FontWeight.bold,
-           )),
-         ),
-       ),
-     );
-  }
-
-  Widget _buildBookingsHistoryList() {
-      return Consumer<BookingProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-             return const Center(child: CircularProgressIndicator(color: Color(0xFF0D47A1)));
-          }
-
-          final allHistory = List<Booking>.from(provider.historyBookings);
-          final selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedHistoryDate);
-          
-          final history = allHistory.where((b) {
-            if (b.date == null) return false;
-            try {
-              final bookingDate = DateTime.parse(b.date!);
-              return DateFormat('yyyy-MM-dd').format(bookingDate) == selectedDateStr;
-            } catch (e) {
-              return false;
-            }
-          }).toList();
-          
-          history.sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '').compareTo(a.shiftTime ?? a.pickupTime ?? ''));
-
-          if (history.isEmpty) {
-             return Center(
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.center,
-                 children: [
-                   Icon(Icons.history_toggle_off, size: 60, color: Colors.grey.shade300),
-                   const SizedBox(height: 10),
-                   Text('No rides found for ${DateFormat('MMM d').format(_selectedHistoryDate)}', style: TextStyle(color: Colors.grey.shade500)),
-                 ],
-               ),
-             );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: history.length,
-            itemBuilder: (context, index) => _buildSimpleRideCard(history[index], isHistory: true),
-          );
-        },
-      );
-  }
-
-  Widget _buildSOSHistoryList() {
-     if (_isLoadingSOS) return const Center(child: CircularProgressIndicator(color: Colors.red));
-     
-     if (_sosHistory.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-               Icon(Icons.history, size: 60, color: Colors.grey.shade300),
-               const SizedBox(height: 10),
-               Text('No SOS Alerts found', style: TextStyle(color: Colors.grey.shade500)),
-            ],
-          ),
-        );
-     }
-
-     return ListView.builder(
-       padding: const EdgeInsets.all(20),
-       itemCount: _sosHistory.length,
-       itemBuilder: (context, index) {
-          final alert = _sosHistory[index];
-          final dateStr = alert['triggered_at'];
-          DateTime? date;
-          if (dateStr != null) date = DateTime.tryParse(dateStr);
-          
-          final status = alert['status'] ?? 'UNKNOWN';
-          final severity = alert['severity'] ?? 'HIGH';
-          final isFalseAlarm = alert['is_false_alarm'] == true;
-          final notes = alert['resolution_notes'];
-          
-          Color statusColor = Colors.red;
-          if (status == 'CLOSED') statusColor = Colors.green;
-          if (status == 'TRIGGERED') statusColor = Colors.red;
-          if (status == 'ACKNOWLEDGED') statusColor = Colors.orange;
-
-          return InkWell(
-            onTap: () {
-               if (alert['alert_id'] != null) {
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(builder: (_) => SOSDetailsScreen(alertId: alert['alert_id'])),
-                 );
-               }
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                 color: Colors.white,
-                 borderRadius: BorderRadius.circular(16),
-                 border: Border.all(color: statusColor.withOpacity(0.3)),
-                 boxShadow: [BoxShadow(color: statusColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
-              ),
-            child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
-               children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.05),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                         Row(
-                           children: [
-                              Icon(Icons.warning_amber_rounded, color: statusColor),
-                              const SizedBox(width: 8),
-                              Column(
-                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                 children: [
-                                    const Text('SOS Alert', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                    if (date != null)
-                                      Text(DateFormat('h:mm a • MMM d, yyyy').format(date.toLocal()), style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                 ],
-                              )
-                           ],
-                         ),
-                         Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                               color: statusColor,
-                               borderRadius: BorderRadius.circular(8)
-                            ),
-                            child: Text(status, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                         )
-                      ],
-                    ),
-                  ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
-                       children: [
-                          // Badges Row
-                          Row(
-                            children: [
-                               Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                     color: Colors.red.shade50,
-                                     borderRadius: BorderRadius.circular(6),
-                                     border: Border.all(color: Colors.red.shade200)
-                                  ),
-                                  child: Row(
-                                    children: [
-                                       const Icon(Icons.priority_high, size: 12, color: Colors.red),
-                                       const SizedBox(width: 4),
-                                       Text('Severity: $severity', style: TextStyle(color: Colors.red.shade900, fontSize: 12, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                               ),
-                               if (isFalseAlarm) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(6),
-                                     ),
-                                     child: const Text('False Alarm', style: TextStyle(color: Colors.black54, fontSize: 12, fontWeight: FontWeight.bold)),
-                                  ),
-                               ]
-                            ],
-                          ),
-                          // Simplified View: Location and Notes removed as per user request. 
-                          // Full details are available in SOSDetailsScreen.
-                       ],
-                    ),
-                  )
-               ],
-            ),
-          ));
-       },
-     );
-  }
-
-  // ---------------- PROFILE TAB ----------------
-
 
   Future<void> _triggerSOS() async {
-    // 1. Identify if there is an active booking to link
     final provider = Provider.of<BookingProvider>(context, listen: false);
-    final allBookings = List<Booking>.from(provider.homeBookings); // Use home bookings copy for safety
-    
-    Booking? activeRide;
-    try {
-      final potentialActive = allBookings.where((b) => b.status == 'Ongoing' || (b.status == 'Scheduled' && b.routeDetails?['driver_details']?['driver_id'] != null)).toList();
-      if (potentialActive.isNotEmpty) {
-         // Sort same as Home Tab
-         potentialActive.sort((a, b) {
-             if (a.status == 'Ongoing' && b.status != 'Ongoing') return -1;
-             if (b.status == 'Ongoing' && a.status != 'Ongoing') return 1;
-             return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
-         });
-         activeRide = potentialActive.first;
-      }
-    } catch (e) {
-      // safe fallback
+    final bookings = List<Booking>.from(provider.homeBookings);
+    Booking? active;
+    final potential = bookings.where((b) {
+      final s = b.status?.toLowerCase();
+      return s == 'ongoing' ||
+          (s == 'scheduled' && b.routeDetails?['driver_details']?['driver_id'] != null);
+    }).toList();
+    if (potential.isNotEmpty) {
+      potential.sort((a, b) {
+        if (a.status == 'Ongoing' && b.status != 'Ongoing') return -1;
+        if (b.status == 'Ongoing' && a.status != 'Ongoing') return 1;
+        return (a.shiftTime ?? a.pickupTime ?? '').compareTo(b.shiftTime ?? b.pickupTime ?? '');
+      });
+      active = potential.first;
     }
 
-    // 2. Confirmation Dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(children: [Icon(Icons.warning_amber_rounded, color: Colors.red), SizedBox(width: 8), Text('Emergency Alert')]),
-        content: const Text('Are you sure you want to trigger an SOS alert? This will verify your location and notify the transport team immediately.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: FxColors.error),
+            const SizedBox(width: 8),
+            Text('Trigger SOS?', style: FxText.headlineSm(color: FxColors.error)),
+          ],
+        ),
+        content: Text(
+          'This sends your location to the transport team immediately.',
+          style: FxText.body(),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(ctx, true), 
-            child: const Text('TRIGGER SOS')
+            style: ElevatedButton.styleFrom(
+              backgroundColor: FxColors.error,
+              foregroundColor: FxColors.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('TRIGGER SOS'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true) {
-      // 3. Trigger
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Triggering SOS...'), duration: Duration(seconds: 1)));
-      
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final result = await authProvider.triggerGenericSOS(bookingId: activeRide?.id);
-
-      if (mounted) {
-        if (result['success']) {
-           showDialog(
-             context: context, 
-             builder: (_) => AlertDialog(
-               title: const Icon(Icons.check_circle, color: Colors.green, size: 50),
-               content: const Text('SOS Alert Sent Successfully. Help is on the way.', textAlign: TextAlign.center),
-               actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-             )
-           );
-        } else {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${result['error'] ?? 'Unknown Error'}'), backgroundColor: Colors.red));
-        }
-      }
+    if (confirmed != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Triggering SOS...'), duration: Duration(seconds: 1)),
+    );
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final result = await auth.triggerGenericSOS(bookingId: active?.id);
+    if (!mounted) return;
+    if (result['success']) {
+      // Try to extract alertId so we can push to SOSDetailsScreen
+      final alertId = result['data']?['data']?['alert_id'] ?? result['data']?['alert_id'];
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Icon(Icons.check_circle_rounded, color: Color(0xFF00B894), size: 56),
+          content: Text(
+            'SOS alert sent. Help is on the way.',
+            textAlign: TextAlign.center,
+            style: FxText.body(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (alertId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => SOSDetailsScreen(alertId: alertId)),
+                  );
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed: ${result['error'] ?? 'Unknown'}'),
+          backgroundColor: FxColors.error,
+        ),
+      );
     }
   }
 }
+
+/// We reference AlertService here only to keep an explicit import for the SOS
+/// history sub-flow. Suppress unused warning by exporting the alias.
+// ignore: unused_element
+typedef _AlertServiceTypedef = AlertService;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'constants/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/announcement_provider.dart';
@@ -76,16 +77,7 @@ class _MyAppState extends State<MyApp> {
       child: MaterialApp(
         title: 'Employee App',
         navigatorKey: navigatorKey,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          scaffoldBackgroundColor: const Color(0xFFF9F9F9),
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: ZoomPageTransitionsBuilder(),
-              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            },
-          ),
-        ),
+        theme: buildFxTheme(),
         scrollBehavior: const MaterialScrollBehavior().copyWith(
           physics: const BouncingScrollPhysics(),
         ),

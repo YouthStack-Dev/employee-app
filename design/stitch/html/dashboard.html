@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MLT Mobility - Schedules</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#610243",
+              "surface-tint": "#4c40df",
+              "on-surface": "#2c2f32",
+              "on-primary": "#f5f1ff",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#6448b1",
+              "primary-fixed": "#9995ff",
+              "error-dim": "#a70138",
+              "error": "#b41340",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "on-tertiary-fixed": "#360023",
+              "on-secondary-container": "#4f329b",
+              "primary-container": "#9995ff",
+              "on-error-container": "#510017",
+              "on-secondary-fixed": "#3b1a87",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "on-background": "#2c2f32",
+              "on-secondary-fixed-variant": "#583da5",
+              "surface": "#f5f7fa",
+              "on-secondary": "#f7f0ff",
+              "on-tertiary": "#ffeff4",
+              "secondary-container": "#d8caff",
+              "tertiary-container": "#fe8bc9",
+              "on-error": "#ffefef",
+              "outline": "#74777a",
+              "inverse-surface": "#0b0f11",
+              "on-primary-container": "#16007d",
+              "secondary-fixed": "#d8caff",
+              "surface-variant": "#d9dde1",
+              "primary": "#4c40df",
+              "on-primary-fixed": "#000000",
+              "inverse-on-surface": "#9a9da0",
+              "surface-bright": "#f5f7fa",
+              "surface-dim": "#d0d5d9",
+              "secondary-dim": "#573ca4",
+              "tertiary": "#983670",
+              "surface-container": "#e5e8ec",
+              "background": "#f5f7fa",
+              "surface-container-high": "#dfe3e7",
+              "surface-container-highest": "#d9dde1",
+              "error-container": "#f74b6d",
+              "primary-fixed-dim": "#8a85ff",
+              "tertiary-dim": "#892a64",
+              "tertiary-fixed": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "outline-variant": "#abadb0",
+              "secondary-fixed-dim": "#cbbaff",
+              "primary-dim": "#4030d3",
+              "on-surface-variant": "#595c5e",
+              "surface-container-low": "#eef1f4"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .soft-shadow {
+            box-shadow: 0 4px 20px rgba(76, 64, 223, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 glass-header flex justify-between items-center px-6 py-4 bg-gradient-to-b from-slate-50/50 to-transparent">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-primary-container flex items-center justify-center">
+<img alt="Employee Profile Photo" class="w-full h-full object-cover" data-alt="Professional corporate headshot of an employee" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPoWNz53Z-TurXCsT-Ba3QqD9r076u4uAdHBd6Gc5YSM7z3qJ41vbmt8-GAWF0lQ0myNPHgZvHHQx7uEeUohz-MYqa_laTvWBNjaNSrRrvFn5L8s7-NWSTNJf0E8XuQ34sn0dPFrMvS71tyZw4V2QgDirfRGW2F0dxq658HQTnDMJL8ehyzny4r2yTtQTw8Qck5rc2rhO7xNATfu7GiDGNkE2rZsb-h0uofURVKD9Na1EaAak2adre9vy0S_wtVRLlEbrU-5kVm-E"/>
+</div>
+<div class="flex flex-col">
+<span class="font-label text-xs uppercase tracking-wider text-on-surface-variant">Welcome back,</span>
+<h1 class="font-headline font-extrabold text-xl -tracking-[0.02em] text-slate-900">Alex Rivera</h1>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-white soft-shadow hover:bg-slate-100/50 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<button class="h-10 px-4 flex items-center gap-2 rounded-xl bg-error text-on-error font-headline font-bold text-sm shadow-[0_4px_12px_rgba(180,19,64,0.2)] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm filled-icon" data-icon="emergency">emergency</span>
+                SOS
+            </button>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-2xl mx-auto">
+<!-- Segmented Toggle -->
+<div class="bg-surface-container-low p-1 rounded-2xl flex mb-8">
+<button class="flex-1 py-2.5 rounded-xl font-headline font-bold text-sm bg-surface-container-lowest text-primary soft-shadow transition-all">
+                Upcoming Rides
+            </button>
+<button class="flex-1 py-2.5 rounded-xl font-headline font-bold text-sm text-on-surface-variant hover:text-on-surface transition-all">
+                Past Rides
+            </button>
+</div>
+<!-- Section Title -->
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline font-bold text-lg text-slate-900">Scheduled for Today</h2>
+<span class="font-label text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">3 Rides</span>
+</div>
+<!-- Ride Cards List -->
+<div class="space-y-6">
+<!-- Active/Ongoing Ride Card -->
+<div class="bg-surface-container-lowest p-5 rounded-[15px] soft-shadow border border-primary/5 relative overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-container"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Ongoing Journey</span>
+<span class="font-headline font-extrabold text-lg text-primary">14:30 - 15:15</span>
+</div>
+<div class="bg-primary-container/20 text-on-primary-container px-3 py-1 rounded-lg text-xs font-bold font-headline flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                        Ongoing
+                    </div>
+</div>
+<!-- Timeline Visual -->
+<div class="flex gap-4 mb-6 relative">
+<div class="flex flex-col items-center pt-1">
+<div class="w-2.5 h-2.5 rounded-full bg-primary border-2 border-primary-container"></div>
+<div class="w-0.5 h-12 bg-primary-dim opacity-20 my-1"></div>
+<div class="w-2.5 h-2.5 rounded-full border-2 border-primary"></div>
+</div>
+<div class="flex flex-col justify-between h-20 py-0.5">
+<div>
+<p class="font-headline font-bold text-sm text-on-surface leading-tight">Innovation Hub, Block C</p>
+<p class="font-body text-xs text-on-surface-variant">Pickup Point</p>
+</div>
+<div>
+<p class="font-headline font-bold text-sm text-on-surface leading-tight">North Campus Metro Station</p>
+<p class="font-body text-xs text-on-surface-variant">Drop-off Destination</p>
+</div>
+</div>
+</div>
+<!-- Footer Details -->
+<div class="pt-4 border-t border-surface-container-low flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<p class="font-headline font-bold text-xs text-on-surface">Toyota Camry • White</p>
+<p class="font-label text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">ABC 1234 • SHIFT A</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary hover:scale-105 active:scale-95 transition-transform">
+<span class="material-symbols-outlined filled-icon" data-icon="map">map</span>
+</button>
+</div>
+</div>
+<!-- Scheduled Ride Card -->
+<div class="bg-surface-container-low p-5 rounded-[15px] border border-transparent">
+<div class="flex justify-between items-start mb-4">
+<div class="flex flex-col">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Next Trip • Oct 24</span>
+<span class="font-headline font-extrabold text-lg text-on-surface">17:45 - 18:30</span>
+</div>
+<div class="bg-surface-container-highest text-on-surface-variant px-3 py-1 rounded-lg text-xs font-bold font-headline">
+                        Scheduled
+                    </div>
+</div>
+<!-- Timeline Visual -->
+<div class="flex gap-4 mb-6 relative">
+<div class="flex flex-col items-center pt-1">
+<div class="w-2.5 h-2.5 rounded-full border-2 border-on-surface-variant"></div>
+<div class="w-0.5 h-12 bg-on-surface-variant opacity-10 my-1"></div>
+<div class="w-2.5 h-2.5 rounded-full border-2 border-on-surface-variant"></div>
+</div>
+<div class="flex flex-col justify-between h-20 py-0.5">
+<div>
+<p class="font-headline font-bold text-sm text-on-surface leading-tight">North Campus Metro Station</p>
+<p class="font-body text-xs text-on-surface-variant">Pickup Point</p>
+</div>
+<div>
+<p class="font-headline font-bold text-sm text-on-surface leading-tight">Executive Suites, Sector 5</p>
+<p class="font-body text-xs text-on-surface-variant">Drop-off Destination</p>
+</div>
+</div>
+</div>
+<!-- Footer Details -->
+<div class="pt-4 flex justify-between items-center opacity-75">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="shuttle_bus">airport_shuttle</span>
+</div>
+<div>
+<p class="font-headline font-bold text-xs text-on-surface">Mercedes Sprinter • Silver</p>
+<p class="font-label text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">BUS 9901 • SHIFT B</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Bento Card - Tomorrow Preview -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-[15px] flex flex-col justify-between h-32">
+<span class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Tomorrow</span>
+<div>
+<p class="font-headline font-extrabold text-2xl text-on-surface">02</p>
+<p class="font-body text-xs text-on-surface-variant">Total Rides Scheduled</p>
+</div>
+</div>
+<div class="bg-indigo-50 p-4 rounded-[15px] flex flex-col justify-between h-32 border border-indigo-100">
+<span class="font-label text-[10px] uppercase tracking-widest text-indigo-400">Next Shift</span>
+<div>
+<p class="font-headline font-extrabold text-lg text-indigo-700">08:00 AM</p>
+<p class="font-body text-xs text-indigo-600">Innovation Hub Line</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-white rounded-t-3xl z-50 shadow-[0_-4px_20px_rgba(76,64,223,0.08)]">
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-indigo-500 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label font-medium text-[10px] tracking-tight mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-indigo-50 text-indigo-700 rounded-2xl px-4 py-2 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined filled-icon" data-icon="calendar_month">calendar_month</span>
+<span class="font-label font-medium text-[10px] tracking-tight mt-1">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-indigo-500 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-label font-medium text-[10px] tracking-tight mt-1">Tracking</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 px-4 py-2 hover:text-indigo-500 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label font-medium text-[10px] tracking-tight mt-1">Profile</span>
+</a>
+</nav>
+<!-- FAB (Suppressed as per rules for Details/Settings, but this is a Dashboard so it can be contextual) -->
+<button class="fixed right-6 bottom-24 w-14 h-14 bg-gradient-to-br from-primary to-primary-container rounded-2xl shadow-xl flex items-center justify-center text-on-primary hover:scale-105 active:scale-95 transition-transform z-40">
+<span class="material-symbols-outlined text-2xl font-bold" data-icon="add">add</span>
+</button>
+</body></html>

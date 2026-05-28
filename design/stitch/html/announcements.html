@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#610243",
+              "surface-tint": "#4c40df",
+              "on-surface": "#2c2f32",
+              "on-primary": "#f5f1ff",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#6448b1",
+              "primary-fixed": "#9995ff",
+              "error-dim": "#a70138",
+              "error": "#b41340",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "on-tertiary-fixed": "#360023",
+              "on-secondary-container": "#4f329b",
+              "primary-container": "#9995ff",
+              "on-error-container": "#510017",
+              "on-secondary-fixed": "#3b1a87",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "on-background": "#2c2f32",
+              "on-secondary-fixed-variant": "#583da5",
+              "surface": "#f5f7fa",
+              "on-secondary": "#f7f0ff",
+              "on-tertiary": "#ffeff4",
+              "secondary-container": "#d8caff",
+              "tertiary-container": "#fe8bc9",
+              "on-error": "#ffefef",
+              "outline": "#74777a",
+              "inverse-surface": "#0b0f11",
+              "on-primary-container": "#16007d",
+              "secondary-fixed": "#d8caff",
+              "surface-variant": "#d9dde1",
+              "primary": "#4c40df",
+              "on-primary-fixed": "#000000",
+              "inverse-on-surface": "#9a9da0",
+              "surface-bright": "#f5f7fa",
+              "surface-dim": "#d0d5d9",
+              "secondary-dim": "#573ca4",
+              "tertiary": "#983670",
+              "surface-container": "#e5e8ec",
+              "background": "#f5f7fa",
+              "surface-container-high": "#dfe3e7",
+              "surface-container-highest": "#d9dde1",
+              "error-container": "#f74b6d",
+              "primary-fixed-dim": "#8a85ff",
+              "tertiary-dim": "#892a64",
+              "tertiary-fixed": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "outline-variant": "#abadb0",
+              "secondary-fixed-dim": "#cbbaff",
+              "primary-dim": "#4030d3",
+              "on-surface-variant": "#595c5e",
+              "surface-container-low": "#eef1f4"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 glass-header flex justify-between items-center px-6 py-4 bg-gradient-to-b from-slate-50/50 to-transparent">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Corporate employee profile photo professional headshot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHGPClnq8vbJViz4Si5FVTdKIUrbvpJXrWj-Se3a8wN8dWysC4tYlFUYx6pw9h2a39TDd67kaL_D6T3QIz35as9be3o-JkMKtW9RlVzeGI7bI6PWnJtjg7H5kFo5qHNs1DIbLaZeUi7CRy8KNsMCb0I8UGeDYIextEF4MOr6vh5SZEIzIpNQra7-MdBDCBwofUmNED8eAJ2y2dd7g8fcjkrpcdF3rG0c7TI7JspwwNtYJLibcRXMGIO2Ojs1dsyPTvoHEpgtuJLGo"/>
+</div>
+<h1 class="text-xl font-extrabold text-slate-900 -tracking-[0.02em]">Announcements</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-100/50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-indigo-600">refresh</span>
+</button>
+<button class="p-2 rounded-full hover:bg-slate-100/50 transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-indigo-600">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 px-4 max-w-2xl mx-auto space-y-4">
+<!-- Tab Selector / Filter (Custom UI) -->
+<div class="flex p-1 bg-surface-container-low rounded-xl mb-6">
+<button class="flex-1 py-2 text-sm font-semibold rounded-lg bg-surface-container-lowest shadow-sm text-primary">All</button>
+<button class="flex-1 py-2 text-sm font-medium text-on-surface-variant">Unread</button>
+<button class="flex-1 py-2 text-sm font-medium text-on-surface-variant">Archived</button>
+</div>
+<!-- Announcement List -->
+<div class="space-y-3">
+<!-- Unread State -->
+<div class="bg-indigo-50/60 p-5 rounded-xl flex gap-4 relative transition-all hover:bg-indigo-100/40 cursor-pointer">
+<div class="absolute right-4 top-5 w-2 h-2 rounded-full bg-primary"></div>
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">image</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-bold text-slate-900 leading-tight pr-4">New Corporate Shuttle Route: North Campus</h3>
+<span class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant opacity-60">10:45 AM</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-2 leading-relaxed">Starting next Monday, we are introducing a direct shuttle service between the North Campus and the main transit hub...</p>
+<div class="mt-3 flex gap-2">
+<span class="text-[10px] bg-white px-2 py-1 rounded-full font-semibold text-primary uppercase tracking-wider border border-primary/10">Transport Update</span>
+</div>
+</div>
+</div>
+<!-- Read State -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex gap-4 transition-all hover:bg-surface-bright cursor-pointer">
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-slate-900 leading-tight">Quarterly Mobility Policy Update Q3</h3>
+<span class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant opacity-60">Yesterday</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 leading-relaxed">Please review the updated reimbursement guidelines for electric vehicle charging at corporate facilities.</p>
+</div>
+</div>
+<!-- Unread State (Video) -->
+<div class="bg-indigo-50/60 p-5 rounded-xl flex gap-4 relative transition-all hover:bg-indigo-100/40 cursor-pointer">
+<div class="absolute right-4 top-5 w-2 h-2 rounded-full bg-primary"></div>
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">videocam</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-bold text-slate-900 leading-tight pr-4">Message from the Fleet Operations Director</h3>
+<span class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant opacity-60">Jul 14</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-2 leading-relaxed">A short video highlighting our progress towards 100% electric fleet transition by 2025.</p>
+</div>
+</div>
+<!-- Read State (Link) -->
+<div class="bg-surface-container-lowest p-5 rounded-xl flex gap-4 transition-all hover:bg-surface-bright cursor-pointer">
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">link</span>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-slate-900 leading-tight">Register for the Summer Commuter Challenge</h3>
+<span class="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant opacity-60">Jul 12</span>
+</div>
+<p class="text-sm text-on-surface-variant line-clamp-1 leading-relaxed">Join your teammates in our annual biking and walking challenge to win prizes.</p>
+</div>
+</div>
+</div>
+<!-- Featured Detail Preview Section (As requested) -->
+<div class="mt-12 space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="text-lg font-extrabold text-slate-900 tracking-tight">Recent Broadcast</h2>
+<span class="text-xs font-bold text-primary uppercase tracking-widest">Read Now</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl p-0 overflow-hidden shadow-sm">
+<div class="h-48 w-full bg-slate-200 relative">
+<img alt="Fleet" class="w-full h-full object-cover" data-alt="Modern luxury corporate shuttle bus on road" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3XsGcXyOOeqhlW7oSiphpYVgQxOwszHwXGry-WGfHiVNhl2gRqbanCPzwD-0FSlKZ6DfOGYGfrKFIXyoz-SnVNxL6H1iLZT7Y_UYwTbQOlbAEb_rWad2SAYVDFtm757dVQlN6-aJerMdk6h5R6euu-q3TGHCpAXFThLyRp9PmAyz-LmobX5ubhXVJIHnN5JyJYts9POGz9qrAJW7AWTf_sjtAFuSE8BqNg8zYW2J0aBagKGeYw7H6K4rIx2RsnhaDRXIttGgIeN0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+<div class="absolute bottom-4 left-6">
+<span class="text-[10px] bg-primary text-white px-2 py-1 rounded-lg font-bold uppercase tracking-widest">Fleet News</span>
+</div>
+</div>
+<div class="p-6 space-y-4">
+<div class="space-y-2">
+<h3 class="text-xl font-bold text-slate-900">Expanding our Green Fleet: 50 New EVs Added</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                            We are thrilled to announce that MLT Mobility has officially added 50 high-performance electric vehicles to our regional shuttle network. This expansion marks a significant milestone in our sustainability journey.
+                        </p>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                            Starting today, employees can book these premium eco-friendly rides through the standard booking dashboard. Each vehicle is equipped with high-speed Wi-Fi and ergonomic seating for your comfort.
+                        </p>
+</div>
+<div class="flex flex-col sm:flex-row gap-3 pt-2">
+<button class="flex-1 bg-gradient-to-br from-primary to-primary-container text-white py-3 px-6 rounded-xl font-bold text-sm shadow-[0_4px_20px_rgba(76,64,223,0.15)] active:scale-95 duration-200">
+                            Book an EV Ride
+                        </button>
+<button class="flex-1 bg-surface-container-high text-primary py-3 px-6 rounded-xl font-bold text-sm hover:bg-surface-container-highest transition-colors active:scale-95 duration-200">
+                            View Specs
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-white dark:bg-slate-950 rounded-t-3xl z-50 shadow-[0_-4px_20px_rgba(76,64,223,0.08)]">
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-indigo-500 transition-all">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium tracking-tight mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-indigo-500 transition-all">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="text-[10px] font-medium tracking-tight mt-1">Bookings</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-2xl px-4 py-2 active:scale-90 duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mail</span>
+<span class="text-[10px] font-medium tracking-tight mt-1">Inbox</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-4 py-2 hover:text-indigo-500 transition-all">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium tracking-tight mt-1">Profile</span>
+</div>
+</nav>
+<!-- Contextual FAB - Since we are in the Inbox, we might want to Compose or Search, but per logic, it might be suppressed if it's not the primary "creation" screen. However, a "Mark all as read" FAB could fit. Let's stick to the minimal clean request. -->
+</body></html>

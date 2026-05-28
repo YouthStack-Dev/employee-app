@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SOS Activation Flow - Indigo Transit Pro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#f5f7fa",
+              "on-secondary-fixed-variant": "#583da5",
+              "primary-dim": "#4030d3",
+              "surface-tint": "#4c40df",
+              "outline": "#74777a",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-low": "#eef1f4",
+              "on-tertiary-container": "#610243",
+              "inverse-on-surface": "#9a9da0",
+              "error": "#b41340",
+              "on-tertiary": "#ffeff4",
+              "primary": "#4c40df",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "secondary-container": "#d8caff",
+              "tertiary-fixed": "#fe8bc9",
+              "primary-fixed": "#9995ff",
+              "on-surface-variant": "#595c5e",
+              "inverse-surface": "#0b0f11",
+              "error-dim": "#a70138",
+              "on-error": "#ffefef",
+              "surface-dim": "#d0d5d9",
+              "on-primary-fixed": "#000000",
+              "tertiary-dim": "#892a64",
+              "on-secondary": "#f7f0ff",
+              "secondary-dim": "#573ca4",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "error-container": "#f74b6d",
+              "on-background": "#2c2f32",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#8a85ff",
+              "on-tertiary-fixed": "#360023",
+              "on-primary-container": "#16007d",
+              "surface-container-high": "#dfe3e7",
+              "surface": "#f5f7fa",
+              "secondary-fixed": "#d8caff",
+              "surface-container-highest": "#d9dde1",
+              "secondary": "#6448b1",
+              "on-error-container": "#510017",
+              "tertiary": "#983670",
+              "on-surface": "#2c2f32",
+              "on-secondary-container": "#4f329b",
+              "surface-container": "#e5e8ec",
+              "secondary-fixed-dim": "#cbbaff",
+              "tertiary-container": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "surface-bright": "#f5f7fa",
+              "outline-variant": "#abadb0",
+              "primary-container": "#9995ff",
+              "on-secondary-fixed": "#3b1a87",
+              "on-primary": "#f5f1ff",
+              "surface-variant": "#d9dde1"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .urgent-pulse {
+            box-shadow: 0 0 0 0 rgba(180, 19, 64, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(180, 19, 64, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(180, 19, 64, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(180, 19, 64, 0); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl shadow-sm dark:shadow-none fixed top-0 w-full z-50">
+<div class="flex justify-between items-center px-6 py-3 w-full">
+<div class="flex items-center gap-4">
+<button class="text-indigo-600 dark:text-indigo-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors p-2 rounded-full Active: scale-95 duration-200 ease-in-out">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-manrope font-extrabold text-indigo-700 dark:text-indigo-400 tracking-tight">Indigo Transit Pro</h1>
+</div>
+<button class="text-indigo-700 dark:text-indigo-400 font-bold flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-1.5 rounded-full Active: scale-95 duration-200 ease-in-out">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sos</span>
+<span class="font-inter font-medium uppercase tracking-wider text-[11px]">Active SOS</span>
+</button>
+</div>
+</header>
+<main class="pt-20 px-4 max-w-lg mx-auto space-y-6">
+<!-- SOS Activation Modal Overlay (Simulated View) -->
+<section class="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_20px_50px_rgba(180,19,64,0.15)] border-2 border-error/10 relative overflow-hidden mb-8">
+<div class="absolute top-0 right-0 p-4">
+<span class="material-symbols-outlined text-error/20 scale-[4] rotate-12">warning</span>
+</div>
+<div class="relative z-10 space-y-6">
+<div class="flex flex-col items-center text-center space-y-4">
+<div class="w-16 h-16 bg-error rounded-full flex items-center justify-center urgent-pulse">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">emergency_home</span>
+</div>
+<h2 class="text-2xl font-headline font-extrabold text-on-surface tracking-tight">SOS Activation</h2>
+<p class="text-on-surface-variant font-medium leading-relaxed">
+                        Are you sure you want to trigger SOS? This will alert the <span class="text-error font-bold">security desk</span> and your <span class="text-error font-bold">emergency contacts</span> immediately.
+                    </p>
+</div>
+<!-- Swipe to Confirm Component -->
+<div class="relative bg-surface-container-low h-16 rounded-full flex items-center p-1.5 overflow-hidden">
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="text-on-surface-variant text-sm font-label font-medium uppercase tracking-widest opacity-40">Swipe to Confirm</span>
+</div>
+<div class="h-13 w-13 bg-error rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing z-20">
+<span class="material-symbols-outlined text-white">chevron_right</span>
+</div>
+</div>
+<button class="w-full py-4 bg-error text-white font-headline font-extrabold rounded-3xl tracking-tight shadow-lg shadow-error/20 hover:brightness-110 transition-all active:scale-95">
+                    CONFIRM SOS TRIGGER
+                </button>
+<button class="w-full py-2 text-on-surface-variant font-label font-medium uppercase tracking-wider text-xs">
+                    Cancel &amp; Return
+                </button>
+</div>
+</section>
+<!-- SOS Details Screen -->
+<div class="space-y-4">
+<!-- Header Card -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border-l-8 border-error shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-[10px] font-label font-medium uppercase tracking-widest text-on-surface-variant mb-1">Incident ID</p>
+<h3 class="text-xl font-headline font-extrabold text-on-surface">#SOS-99281</h3>
+</div>
+<span class="bg-error/10 text-error px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-1">
+<span class="w-2 h-2 bg-error rounded-full animate-pulse"></span> Active
+                    </span>
+</div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="text-xs font-medium">14:22:05 (Just now)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm">location_on</span>
+<span class="text-xs font-medium">40.7128° N, 74.0060° W</span>
+</div>
+</div>
+</div>
+<!-- Location Context -->
+<div class="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm">
+<div class="h-48 w-full bg-surface-container relative">
+<img alt="Map view of current location showing emergency beacon" class="w-full h-full object-cover grayscale opacity-60" data-location="New York City" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX4MgETCCaPL0RwSTpShxCulFT3Jy_jQ1m64qmx0IK91hyF8JFi9LYAAYNL64hGmN0JEb06o3YiXAaLSARFiNoEOj2oYA8UzaFp61C5lyszLfJ7Rv06My3n2kYLV0n1MJkQTWGOz6Wd2E3pkf-cAc3vD_7VE6A0bXETCGxKtGB3QDoGTrK5whLROuGMv1jgZ-YOJ5U9UwaduuuuL90tIqyu1RAnyL2H_j1NEAEuT08txnGlg1czN8DGgeZEUYlo-3qfEiRbdElcqg"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-12 h-12 bg-error/20 rounded-full flex items-center justify-center">
+<div class="w-6 h-6 bg-error rounded-full border-2 border-white urgent-pulse"></div>
+</div>
+</div>
+<div class="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-xl flex items-center justify-between shadow-lg">
+<span class="text-xs font-bold text-on-surface">Precision: ±5 meters</span>
+<span class="material-symbols-outlined text-error text-sm">my_location</span>
+</div>
+</div>
+</div>
+<!-- Employee Context -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 shadow-sm space-y-6">
+<div class="flex items-center gap-4">
+<div class="w-14 h-14 rounded-full overflow-hidden border-2 border-surface-container">
+<img alt="Profile of employee Sarah Jenkins" class="w-full h-full object-cover" data-alt="Profile photo of Sarah Jenkins" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA85wNFwsWRb0Dl0XEXw1Qb6jS6mMLWq_SGsoFeeMxQl2N8nobFkbgqo48u0izZGwt2OC_qV6v0wYDljeUFLhtNwODrD7W97qt99CXdI_Nd6wdns6qVQ-u9s9tgIYPVY9wr0o-uaOqZd11gfJi_IitpD_kLeqKg5HIsJZJbhWHZmBM_OPEYQfws7lvrqka8xWEGW-pE95AwFrtKsDg0NOCZZU-Iyt9GlawqYa0bAQKO_OMpHVSaTn5MCgSEng05b-SgF6syQlBtMk"/>
+</div>
+<div>
+<h4 class="text-lg font-headline font-extrabold text-on-surface">Sarah Jenkins</h4>
+<p class="text-sm text-on-surface-variant">Senior Field Executive • ID: 8829</p>
+</div>
+</div>
+<div class="space-y-4">
+<div class="bg-surface-container-low p-4 rounded-2xl flex items-center justify-between group hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-lowest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+<div>
+<p class="text-[10px] font-label font-medium uppercase tracking-widest text-on-surface-variant">Manager</p>
+<p class="font-bold text-on-surface">Robert Frost</p>
+</div>
+</div>
+<a class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white active:scale-90 transition-transform" href="tel:5550123">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">call</span>
+</a>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl flex items-center justify-between group hover:bg-surface-container transition-colors border-2 border-error/5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-lowest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-error">family_history</span>
+</div>
+<div>
+<p class="text-[10px] font-label font-medium uppercase tracking-widest text-on-surface-variant">Primary Contact</p>
+<p class="font-bold text-on-surface">David Jenkins (Spouse)</p>
+</div>
+</div>
+<a class="w-10 h-10 bg-error rounded-full flex items-center justify-center text-white active:scale-90 transition-transform" href="tel:5550199">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">call</span>
+</a>
+</div>
+<div class="bg-surface-container-low p-4 rounded-2xl flex items-center justify-between group hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-surface-container-lowest rounded-xl flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">security</span>
+</div>
+<div>
+<p class="text-[10px] font-label font-medium uppercase tracking-widest text-on-surface-variant">Corporate Security</p>
+<p class="font-bold text-on-surface">Central Security Desk</p>
+</div>
+</div>
+<a class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white active:scale-90 transition-transform" href="tel:5550911">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white dark:bg-slate-950 shadow-[0_-8px_30px_rgba(76,64,223,0.08)] rounded-t-[2rem] z-50">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-indigo-50 dark:hover:text-indigo-300 transition-all" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-inter text-[11px] font-medium tracking-wide">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-indigo-50 dark:hover:text-indigo-300 transition-all" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="font-inter text-[11px] font-medium tracking-wide">Bookings</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-2xl px-5 py-2 Active: scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">distance</span>
+<span class="font-inter text-[11px] font-medium tracking-wide">Tracking</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-indigo-50 dark:hover:text-indigo-300 transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-inter text-[11px] font-medium tracking-wide">Profile</span>
+</a>
+</nav>
+</body></html>

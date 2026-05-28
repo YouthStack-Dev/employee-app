@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MLT Mobility - Splash</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@800;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#610243",
+              "surface-tint": "#4c40df",
+              "on-surface": "#2c2f32",
+              "on-primary": "#f5f1ff",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-lowest": "#ffffff",
+              "secondary": "#6448b1",
+              "primary-fixed": "#9995ff",
+              "error-dim": "#a70138",
+              "error": "#b41340",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "on-tertiary-fixed": "#360023",
+              "on-secondary-container": "#4f329b",
+              "primary-container": "#9995ff",
+              "on-error-container": "#510017",
+              "on-secondary-fixed": "#3b1a87",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "on-background": "#2c2f32",
+              "on-secondary-fixed-variant": "#583da5",
+              "surface": "#f5f7fa",
+              "on-secondary": "#f7f0ff",
+              "on-tertiary": "#ffeff4",
+              "secondary-container": "#d8caff",
+              "tertiary-container": "#fe8bc9",
+              "on-error": "#ffefef",
+              "outline": "#74777a",
+              "inverse-surface": "#0b0f11",
+              "on-primary-container": "#16007d",
+              "secondary-fixed": "#d8caff",
+              "surface-variant": "#d9dde1",
+              "primary": "#4c40df",
+              "on-primary-fixed": "#000000",
+              "inverse-on-surface": "#9a9da0",
+              "surface-bright": "#f5f7fa",
+              "surface-dim": "#d0d5d9",
+              "secondary-dim": "#573ca4",
+              "tertiary": "#983670",
+              "surface-container": "#e5e8ec",
+              "background": "#f5f7fa",
+              "surface-container-high": "#dfe3e7",
+              "surface-container-highest": "#d9dde1",
+              "error-container": "#f74b6d",
+              "primary-fixed-dim": "#8a85ff",
+              "tertiary-dim": "#892a64",
+              "tertiary-fixed": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "outline-variant": "#abadb0",
+              "secondary-fixed-dim": "#cbbaff",
+              "primary-dim": "#4030d3",
+              "on-surface-variant": "#595c5e",
+              "surface-container-low": "#eef1f4"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      @keyframes spin-slow {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .animate-spin-slow {
+        animation: spin-slow 1.5s linear infinite;
+      }
+      .shadow-subtle-grey {
+        text-shadow: 0 4px 12px rgba(44, 47, 50, 0.15);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-container-lowest text-on-surface font-body min-h-screen flex flex-col justify-center items-center">
+<!-- Splash Content Wrapper -->
+<main class="relative flex flex-col items-center justify-between h-full w-full max-w-md py-24">
+<!-- Center Logo Section -->
+<div class="flex-grow flex items-center justify-center">
+<div class="flex flex-col items-center">
+<!-- Branding Anchor - The Logo -->
+<h1 class="font-headline font-[900] text-[64px] tracking-[6px] text-on-surface shadow-subtle-grey">
+                    MLT
+                </h1>
+<!-- Tagline using Design System Typography (Label Small) -->
+<p class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant mt-4">
+                    Mobility Reimagined
+                </p>
+</div>
+</div>
+<!-- Bottom Element: Loading Indicator -->
+<div class="mt-auto flex flex-col items-center gap-6">
+<!-- Spinner using Primary Indigo from Design System -->
+<div class="relative w-12 h-12">
+<div class="absolute inset-0 rounded-full border-[3px] border-surface-container-high"></div>
+<div class="absolute inset-0 rounded-full border-[3px] border-primary border-t-transparent animate-spin-slow"></div>
+</div>
+<!-- Contextual Note -->
+<span class="font-label text-xs font-medium text-outline tracking-tight">
+                Initializing Secure Session
+            </span>
+</div>
+</main>
+<!-- Visual Texture Layers (The "Fluid Executive" Tonal Depth) -->
+<div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+<!-- Subtle Tonal Shift Gradient in the corner to break the flat white without using borders -->
+<div class="absolute -top-[10%] -right-[10%] w-[50%] h-[50%] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-[100px]"></div>
+<div class="absolute -bottom-[10%] -left-[10%] w-[40%] h-[40%] bg-gradient-to-tr from-secondary/5 to-transparent rounded-full blur-[80px]"></div>
+</div>
+</body></html>

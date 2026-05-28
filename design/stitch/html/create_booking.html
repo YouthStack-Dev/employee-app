@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Booking - MLT Mobility</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#f5f7fa",
+              "on-secondary-fixed-variant": "#583da5",
+              "primary-dim": "#4030d3",
+              "surface-tint": "#4c40df",
+              "outline": "#74777a",
+              "on-primary-fixed-variant": "#1d0098",
+              "surface-container-low": "#eef1f4",
+              "on-tertiary-container": "#610243",
+              "inverse-on-surface": "#9a9da0",
+              "error": "#b41340",
+              "on-tertiary": "#ffeff4",
+              "primary": "#4c40df",
+              "tertiary-fixed-dim": "#ee7ebb",
+              "secondary-container": "#d8caff",
+              "tertiary-fixed": "#fe8bc9",
+              "primary-fixed": "#9995ff",
+              "on-surface-variant": "#595c5e",
+              "inverse-surface": "#0b0f11",
+              "error-dim": "#a70138",
+              "on-error": "#ffefef",
+              "surface-dim": "#d0d5d9",
+              "on-primary-fixed": "#000000",
+              "tertiary-dim": "#892a64",
+              "on-secondary": "#f7f0ff",
+              "secondary-dim": "#573ca4",
+              "on-tertiary-fixed-variant": "#6d104c",
+              "error-container": "#f74b6d",
+              "on-background": "#2c2f32",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#8a85ff",
+              "on-tertiary-fixed": "#360023",
+              "on-primary-container": "#16007d",
+              "surface-container-high": "#dfe3e7",
+              "surface": "#f5f7fa",
+              "secondary-fixed": "#d8caff",
+              "surface-container-highest": "#d9dde1",
+              "secondary": "#6448b1",
+              "on-error-container": "#510017",
+              "tertiary": "#983670",
+              "on-surface": "#2c2f32",
+              "on-secondary-container": "#4f329b",
+              "surface-container": "#e5e8ec",
+              "secondary-fixed-dim": "#cbbaff",
+              "tertiary-container": "#fe8bc9",
+              "inverse-primary": "#8781ff",
+              "surface-bright": "#f5f7fa",
+              "outline-variant": "#abadb0",
+              "primary-container": "#9995ff",
+              "on-secondary-fixed": "#3b1a87",
+              "on-primary": "#f5f1ff",
+              "surface-variant": "#d9dde1"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #4c40df 0%, #9995ff 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface min-h-screen pb-32">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 glass-header shadow-sm flex justify-between items-center px-6 py-4">
+<div class="flex items-center gap-4">
+<button class="text-indigo-600 dark:text-indigo-400 p-2 hover:bg-slate-100/80 rounded-full transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline font-extrabold tracking-tight text-xl text-indigo-700">Create Booking</h1>
+</div>
+<button class="text-slate-500 hover:bg-slate-100/80 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</header>
+<main class="mt-20 px-4 space-y-6 max-w-2xl mx-auto">
+<!-- Section 1: Trip Type & Shift -->
+<section class="glass-card p-6 rounded-[2rem] space-y-6">
+<div class="space-y-3">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Trip Type</label>
+<div class="flex p-1 bg-surface-container-low rounded-2xl gap-1">
+<button class="flex-1 py-3 px-4 rounded-xl font-headline font-bold text-sm bg-white text-indigo-700 shadow-sm flex items-center justify-center gap-2 transition-all">
+<span class="material-symbols-outlined text-lg">home</span>
+                        Login
+                    </button>
+<button class="flex-1 py-3 px-4 rounded-xl font-headline font-bold text-sm text-slate-500 hover:bg-surface-container-high transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">work</span>
+                        Logout
+                    </button>
+</div>
+</div>
+<div class="space-y-3">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Shift Selection</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-low border-none rounded-2xl px-5 py-4 font-body font-medium focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all text-on-surface">
+<option>09:00 AM - 06:00 PM</option>
+<option>11:00 AM - 08:00 PM</option>
+<option>02:00 PM - 11:00 PM</option>
+<option>Night Shift (10 PM - 7 AM)</option>
+</select>
+<div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Locations -->
+<section class="glass-card p-6 rounded-[2rem] space-y-6 relative overflow-hidden">
+<div class="absolute right-[-20px] top-[-20px] opacity-10">
+<span class="material-symbols-outlined text-9xl text-primary">route</span>
+</div>
+<div class="space-y-6 relative z-10">
+<div class="flex gap-4">
+<div class="flex flex-col items-center py-2">
+<span class="material-symbols-outlined text-primary text-xl">location_on</span>
+<div class="w-0.5 h-12 bg-indigo-100 my-1"></div>
+<span class="material-symbols-outlined text-slate-300 text-xl">radio_button_checked</span>
+</div>
+<div class="flex-1 space-y-4">
+<div class="space-y-2">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-slate-500">Pickup Location</label>
+<div class="flex items-center bg-surface-container-low rounded-2xl px-4 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+<input class="w-full bg-transparent border-none py-4 px-0 font-body font-semibold text-on-surface focus:ring-0 placeholder:text-slate-400" placeholder="Enter pickup address" type="text" value="123 Maple St"/>
+<span class="material-symbols-outlined text-slate-400">my_location</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-slate-500">Drop-off Location</label>
+<div class="flex items-center bg-surface-container-low rounded-2xl px-4 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+<input class="w-full bg-transparent border-none py-4 px-0 font-body font-semibold text-on-surface focus:ring-0 placeholder:text-slate-400" placeholder="Enter destination" type="text" value="MLT HQ"/>
+<span class="material-symbols-outlined text-slate-400">apartment</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Date Picker -->
+<section class="glass-card p-6 rounded-[2rem] space-y-4">
+<label class="font-label text-xs font-bold uppercase tracking-wider text-slate-500 ml-1">Ride Date</label>
+<div class="grid grid-cols-4 gap-3">
+<button class="flex flex-col items-center p-3 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700">
+<span class="text-[10px] font-bold uppercase mb-1">Mon</span>
+<span class="font-headline font-extrabold text-lg">12</span>
+</button>
+<button class="flex flex-col items-center p-3 rounded-2xl bg-surface-container-low text-slate-500 hover:bg-surface-container-high transition-colors">
+<span class="text-[10px] font-bold uppercase mb-1">Tue</span>
+<span class="font-headline font-extrabold text-lg">13</span>
+</button>
+<button class="flex flex-col items-center p-3 rounded-2xl bg-surface-container-low text-slate-500 hover:bg-surface-container-high transition-colors">
+<span class="text-[10px] font-bold uppercase mb-1">Wed</span>
+<span class="font-headline font-extrabold text-lg">14</span>
+</button>
+<button class="flex flex-col items-center p-3 rounded-2xl bg-surface-container-low text-slate-500 hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="text-[10px] font-bold uppercase">More</span>
+</button>
+</div>
+<div class="flex items-center gap-3 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-50 mt-2">
+<span class="material-symbols-outlined text-indigo-500" data-weight="fill">info</span>
+<p class="text-xs text-indigo-700 font-medium">Bookings must be made at least 4 hours before shift start.</p>
+</div>
+</section>
+<!-- Summary Insight (Asymmetric Layout element) -->
+<div class="relative overflow-hidden bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl flex items-center justify-between group">
+<div class="space-y-1 relative z-10">
+<p class="text-slate-400 text-xs font-bold uppercase tracking-widest">Estimated Arrival</p>
+<h3 class="font-headline font-extrabold text-2xl">08:45 AM</h3>
+<p class="text-slate-400 text-xs">Standard Traffic Conditions</p>
+</div>
+<div class="relative z-10 p-3 bg-white/10 rounded-full backdrop-blur-md">
+<span class="material-symbols-outlined text-4xl text-indigo-400">schedule</span>
+</div>
+<!-- Decorative gradient -->
+<div class="absolute bottom-[-50px] left-[-50px] w-48 h-48 bg-indigo-600/20 blur-3xl rounded-full"></div>
+</div>
+</main>
+<!-- Sticky Bottom Container -->
+<div class="fixed bottom-0 left-0 w-full p-6 z-50">
+<div class="max-w-2xl mx-auto glass-card rounded-[2.5rem] p-3 shadow-[0_-8px_30px_rgba(76,64,223,0.08)]">
+<button class="w-full primary-gradient text-white py-5 px-8 rounded-full font-headline font-extrabold text-lg tracking-tight flex items-center justify-center gap-3 shadow-lg active:scale-95 transition-all duration-200">
+                Confirm Booking
+                <span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Hidden Image Data Anchors (System Requirements) -->
+<div class="hidden">
+<img data-alt="Sophisticated indigo and white abstract mesh gradient background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIZS2kr1fPU6CWA6-ipJBWq-TrYmV62lsSGYSuQjyCmTfQFg9snTJ3DjzwEku0ILCP9E1VEEGkX0omjzAwgSxBtTsDTdqfd6x6u4bWTovabK7SG6SMq9kJpbB29yhVOvNYTL1WSDE5mOV_KjijeDkMaHfkBxt509uAj1VQOhtHZD8YuHS9QHi8ZjmSHG6UkeJIIS5YUiOCiNtHZuHoE9WQrSuHW-HGNVez57HFzKj8UkVDoFqOznqr4RpdMjDCckdZ69wXqxhe5YA"/>
+<div data-alt="Corporate mobility map route view" data-location="New York" style=""></div>
+</div>
+</body></html>
