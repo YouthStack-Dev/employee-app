@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../constants/app_colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_theme.dart';
 import '../services/weekoff_service.dart';
 import '../widgets/calendar_widget.dart';
+import '../widgets/fx_widgets.dart';
 import 'select_shift_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateBookingScreen extends StatefulWidget {
   const CreateBookingScreen({super.key});
@@ -15,12 +16,10 @@ class CreateBookingScreen extends StatefulWidget {
 
 class _CreateBookingScreenState extends State<CreateBookingScreen> {
   final WeekoffService _weekoffService = WeekoffService();
-  
   bool _isLoading = true;
   String? _error;
   List<String> _weekoffDays = [];
-  
-  String _selectionMode = 'single'; // 'single' or 'range'
+  String _selectionMode = 'single';
   List<DateTime> _selectedDates = [];
   DateTime? _startDate;
   DateTime? _endDate;
@@ -33,289 +32,229 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
 
   Future<void> _loadWeekoffConfig() async {
     final result = await _weekoffService.getWeekoffConfig();
-    if (mounted) {
-      if (result['success']) {
-        setState(() {
-          _weekoffDays = List<String>.from(result['weekoffDays']);
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = result['error'];
-          _isLoading = false;
-        });
-      }
+    if (!mounted) return;
+    if (result['success']) {
+      setState(() {
+        _weekoffDays = List<String>.from(result['weekoffDays']);
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = result['error'];
+        _isLoading = false;
+      });
     }
   }
 
-  void _handleSelectionChanged(List<DateTime> singleDates, DateTime? start, DateTime? end) {
+  void _onSelectionChanged(List<DateTime> single, DateTime? start, DateTime? end) {
     setState(() {
-      _selectedDates = singleDates;
+      _selectedDates = single;
       _startDate = start;
       _endDate = end;
     });
   }
 
-  int _getWorkingDaysCount() {
-    if (_selectionMode == 'single') {
-      return _selectedDates.length;
-    } else {
-      if (_startDate == null || _endDate == null) return _startDate != null ? 1 : 0;
-      
-      int count = 0;
-      DateTime current = _startDate!;
-      while (!current.isAfter(_endDate!)) {
-        String dayName = DateFormat('EEEE').format(current).toUpperCase();
-        if (!_weekoffDays.contains(dayName)) {
-           count++;
-        }
-        current = current.add(const Duration(days: 1));
-      }
-      return count;
+  int _workingDayCount() {
+    if (_selectionMode == 'single') return _selectedDates.length;
+    if (_startDate == null || _endDate == null) return _startDate != null ? 1 : 0;
+    int n = 0;
+    DateTime c = _startDate!;
+    while (!c.isAfter(_endDate!)) {
+      final day = DateFormat('EEEE').format(c).toUpperCase();
+      if (!_weekoffDays.contains(day)) n++;
+      c = c.add(const Duration(days: 1));
     }
+    return n;
   }
 
-  void _continueToShiftSelection() {
-    // Prepare args similar to structure passed in RN
-    // RN passed: { selectionMode, selectedDates, startDate, endDate, daysCount }
-    // We navigate to SelectShiftScreen. Note: SelectShiftScreen needs update to handle this data.
-    // For now, we will assume SelectShiftScreen will be updated to handle a DATE LIST or RANGE.
-    // But currently SelectShiftScreen takes `date` (Validation step -> I need to update SelectShiftScreen too).
-    // Let's pass the first date or range start to keep it working for now, or update SelectShiftScreen immediately after.
-    
-    // I will pass the map of data as arguments if I were using named routes with arguments, 
-    // but here I am using direct constructor. I will update SelectShiftScreen to accept this data object.
-    
-    // Constructing complex object to pass
-    final bookingData = {
-        'selectionMode': _selectionMode,
-        'selectedDates': _selectedDates,
-        'startDate': _startDate,
-        'endDate': _endDate,
-        'daysCount': _getWorkingDaysCount(),
-        // 'type': 'Login' // Type selection removed as per RN analysis
-    };
-
-    // Note: SelectShiftScreen constructor signature needs change. 
-    // For now, I'll push a modified version of it or update it in next step.
-    // Let's temporarily pass "dummy" date to standard screen if not updated, 
-    // but better to fix SelectShiftScreen.
-    
+  void _continueToShift() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SelectShiftScreen(
-           // passing entire object via a new constructor or modified one. 
-           // I will update SelectShiftScreen in next step to accept `bookingData`.
-           // For this file to compile, I will temporarily comment out validation or cast.
-           bookingData: bookingData, 
-        ),
+        builder: (_) => SelectShiftScreen(bookingData: {
+          'selectionMode': _selectionMode,
+          'selectedDates': _selectedDates,
+          'startDate': _startDate,
+          'endDate': _endDate,
+          'daysCount': _workingDayCount(),
+        }),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    int count = _getWorkingDaysCount();
-    bool hasValidSelection = _selectionMode == 'single' 
-        ? _selectedDates.isNotEmpty 
-        : (_startDate != null && _endDate != null);
-
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: FxColors.background,
+        body: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+      );
     }
+    final count = _workingDayCount();
+    final hasValid = _selectionMode == 'single' ? _selectedDates.isNotEmpty : (_startDate != null && _endDate != null);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Booking', style: TextStyle(color: Colors.white)),
-        backgroundColor: AppColors.primary,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
+      backgroundColor: FxColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _topBar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('New Booking', style: FxText.headlineLg()),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Pick the days you need transport — multi-select or a continuous range.',
+                            style: FxText.body(color: FxColors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      FxCard(
+                        color: FxColors.onError,
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: FxColors.error),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(_error!, style: FxText.body(color: FxColors.error))),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    FxCard(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FxMetaLabel('Selection Mode'),
+                          const SizedBox(height: 10),
+                          FxSegmented(
+                            labels: const ['Specific Dates', 'Date Range'],
+                            selectedIndex: _selectionMode == 'single' ? 0 : 1,
+                            onChanged: (i) => setState(() {
+                              _selectionMode = i == 0 ? 'single' : 'range';
+                              _selectedDates = [];
+                              _startDate = null;
+                              _endDate = null;
+                            }),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: FxColors.primary.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border(left: BorderSide(color: FxColors.primary, width: 3)),
+                            ),
+                            child: Text(
+                              _selectionMode == 'single'
+                                  ? 'Tap multiple dates (e.g., 12th, 18th).'
+                                  : 'Tap to set start and end dates.',
+                              style: FxText.bodySm(color: FxColors.onPrimaryContainer),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FxCard(
+                      padding: const EdgeInsets.all(16),
+                      child: CalendarWidget(
+                        selectionMode: _selectionMode,
+                        weekoffDays: _weekoffDays,
+                        onSelectionChanged: _onSelectionChanged,
+                      ),
+                    ),
+                    if (hasValid) ...[
+                      const SizedBox(height: 16),
+                      _selectionSummary(count),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: FxPrimaryButton(
+            label: hasValid ? 'Continue ($count ${count == 1 ? 'day' : 'days'})' : 'Select date(s)',
+            trailingIcon: Icons.arrow_forward_rounded,
+            onPressed: hasValid ? _continueToShift : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 4),
+      child: Row(
+        children: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.arrow_back_rounded, color: FxColors.primary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 4),
+          Text('Create Booking', style: FxText.headlineSm(color: FxColors.primary)),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: FxColors.onSurfaceVariant),
             onPressed: () async {
-               // Quick logout logic here since we might not have AuthProvider context accessible or similar
-               // Actually we need to verify if we can access AuthProvider
-               // Importing AuthProvider first? Or just SharedPreferences clearing directly to be safe?
-               // Let's use SharedPreferences directly to force clear
-               final prefs = await SharedPreferences.getInstance();
-               await prefs.clear();
-               if (context.mounted) {
-                   Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-               }
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+              }
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_error != null) 
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
-                ),
-                
-              _buildModeTabs(),
-              const SizedBox(height: 15),
-              _buildModeDescription(),
-              const SizedBox(height: 15),
-              CalendarWidget(
-                selectionMode: _selectionMode,
-                weekoffDays: _weekoffDays,
-                onSelectionChanged: _handleSelectionChanged,
-              ),
-              const SizedBox(height: 20),
-              if (hasValidSelection) _buildSelectionInfo(count),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: hasValidSelection ? _continueToShiftSelection : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: Colors.grey.shade300,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  child: Text(
-                     hasValidSelection ? 'Continue ($count days)' : 'Select Date(s)',
-                     style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildModeTabs() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(4),
+  Widget _selectionSummary(int count) {
+    final summary = _selectionMode == 'single'
+        ? '${_selectedDates.length} specific date${_selectedDates.length == 1 ? '' : 's'} selected'
+        : 'Range: ${_startDate != null ? DateFormat('MMM d').format(_startDate!) : '—'} → ${_endDate != null ? DateFormat('MMM d').format(_endDate!) : '—'}';
+    return FxCard(
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          _buildTab('Specific Dates', 'single'),
-          _buildTab('Date Range', 'range'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(String label, String mode) {
-    final isSelected = _selectionMode == mode;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectionMode = mode;
-            _selectedDates = [];
-            _startDate = null;
-            _endDate = null;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: FxColors.primaryContainer.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.event_available_rounded, color: FxColors.primary),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey.shade700,
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(summary, style: FxText.titleSm()),
+                Text('$count working ${count == 1 ? 'day' : 'days'} (weekoffs excluded)', style: FxText.bodySm()),
+              ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModeDescription() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
-        borderRadius: BorderRadius.circular(4),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
-      ),
-      child: Text(
-        _selectionMode == 'single'
-            ? 'Tap multiple date to select specific days (e.g., 12th, 18th)'
-            : 'Tap to select start and end dates for continuous booking',
-        style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildSelectionInfo(int count) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-         color: const Color(0xFFF0EFFF),
-         borderRadius: BorderRadius.circular(12),
-         border: Border(left: BorderSide(color: AppColors.primary, width: 4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               Text(
-                 _selectionMode == 'single' ? 'Selected Dates:' : 'Selected Range:',
-                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-               ),
-               GestureDetector(
-                 onTap: () {
-                    // Trigger clear in widget? 
-                    // Need to trigger state update to clear. 
-                    setState(() {
-                       _selectedDates = [];
-                       _startDate = null;
-                       _endDate = null;
-                    }); 
-                    // Note: Widget needs to react to this. 
-                    // Currently widget only clears on Mode change.
-                    // Ideally we pass key to force rebuild or controller.
-                    // For simplicity, switching mode back and forth clears it, or just leave it.
-                 },
-                 child: const Text('Clear', style: TextStyle(color: Colors.red, fontSize: 12)),
-               )
-             ],
-           ),
-           const SizedBox(height: 8),
-           if (_selectionMode == 'single')
-             ..._selectedDates.map((d) => Text('• ${DateFormat('EEE, MMM d, yyyy').format(d)}')),
-           if (_selectionMode == 'range') ...[
-              Text('From: ${DateFormat('EEE, MMM d, yyyy').format(_startDate!)}'),
-              if (_endDate != null)
-                 Text('To: ${DateFormat('EEE, MMM d, yyyy').format(_endDate!)}'),
-           ],
-           const SizedBox(height: 10),
-           Container(
-             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-             decoration: BoxDecoration(
-               color: AppColors.primary,
-               borderRadius: BorderRadius.circular(15),
-             ),
-             child: Text(
-               '$count working day${count != 1 ? 's' : ''}',
-               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-             ),
-           )
         ],
       ),
     );

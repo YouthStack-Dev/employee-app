@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../constants/app_colors.dart';
+import '../constants/app_theme.dart';
+import '../widgets/fx_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -277,21 +278,44 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-       appBar: AppBar(
-        title: const Text('Track Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-        actions: [
-           IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                 _initTracking(); // Wrap in closure to avoid any issue
-               },
-              tooltip: 'Retry Connection',
-           )
-        ],
+      backgroundColor: FxColors.background,
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: FxGlassHeader(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Material(
+                color: FxColors.surfaceContainerLowest,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => Navigator.pop(context),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Track Driver', style: FxText.headlineSm()),
+              const Spacer(),
+              Material(
+                color: FxColors.surfaceContainerLowest,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _initTracking(),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(Icons.refresh_rounded, color: FxColors.primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
       body: Stack(
          children: [
@@ -315,15 +339,15 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
              // 2. Loading View
              if (_isLoading)
                 Container(
-                   color: Colors.white,
+                   color: FxColors.background,
                    width: double.infinity,
                    height: double.infinity,
                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                         const CircularProgressIndicator(color: AppColors.primary),
+                         const CircularProgressIndicator(color: FxColors.primary),
                          const SizedBox(height: 20),
-                         const Text('Locating Driver...', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+                         Text('Locating Driver...', style: FxText.headlineSm()),
                       ],
                    ),
                 ),
@@ -331,31 +355,26 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
              // 3. Error / Debug View
              if (!_isLoading && (_driverLocation == null || _error != null))
                 Container(
-                   color: Colors.white,
+                   color: FxColors.background,
                    width: double.infinity,
                    height: double.infinity,
                    padding: const EdgeInsets.all(24),
                    child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                         const Icon(Icons.signal_wifi_off, size: 64, color: Colors.orange),
+                         const Icon(Icons.signal_wifi_off_rounded, size: 64, color: FxColors.amber),
                          const SizedBox(height: 24),
-                         Text(_error ?? 'Driver location not available', textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                         const SizedBox(height: 32),
-                         
+                         Text(_error ?? 'Driver location not available',
+                             textAlign: TextAlign.center, style: FxText.headlineSm()),
                          const SizedBox(height: 24),
-                         ElevatedButton.icon(
-                            onPressed: () {
-                               _initTracking();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Try Again'),
-                            style: ElevatedButton.styleFrom(
-                               backgroundColor: AppColors.primary,
-                               foregroundColor: Colors.white,
-                               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)
-                            ),
-                         )
+                         SizedBox(
+                           width: 200,
+                           child: FxPrimaryButton(
+                             label: 'Try again',
+                             leadingIcon: Icons.refresh_rounded,
+                             onPressed: () => _initTracking(),
+                           ),
+                         ),
                       ],
                    ),
                 ),
@@ -430,16 +449,23 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
 
   Widget _buildControlButton(String label, VoidCallback? onTap) {
       return Expanded(
-         child: ElevatedButton(
-            onPressed: onTap,
-            style: ElevatedButton.styleFrom(
-               backgroundColor: Colors.white,
-               foregroundColor: const Color(0xFF2D3436),
-               padding: const EdgeInsets.symmetric(vertical: 12),
-               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-               elevation: 4,
-            ),
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+         child: Material(
+           color: FxColors.surfaceContainerLowest,
+           borderRadius: BorderRadius.circular(14),
+           elevation: 0,
+           child: InkWell(
+             borderRadius: BorderRadius.circular(14),
+             onTap: onTap,
+             child: Container(
+               padding: const EdgeInsets.symmetric(vertical: 14),
+               decoration: BoxDecoration(
+                 borderRadius: BorderRadius.circular(14),
+                 boxShadow: FxShadows.soft,
+               ),
+               alignment: Alignment.center,
+               child: Text(label, style: FxText.titleSm()),
+             ),
+           ),
          ),
       );
   }
@@ -458,95 +484,117 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
          timeString = '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
       }
 
-      return Container(
-         padding: const EdgeInsets.all(16),
-         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-               BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))
-            ]
-         ),
+      return FxCard(
+         padding: const EdgeInsets.all(18),
          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
                 Row(
                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                    children: [
-                      const Text('Driver Information', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2D3436))),
-                      Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                         decoration: BoxDecoration(
-                            color: const Color(0xFFD1F2EB),
-                            borderRadius: BorderRadius.circular(12),
-                         ),
-                         child: const Text('🟢 Active', style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600)),
-                      )
+                      Text('Driver Information', style: FxText.headlineSm()),
+                      FxPill(
+                        text: 'LIVE',
+                        color: const Color(0xFF00B894),
+                        background: const Color(0xFFE7F8EE),
+                        pulse: true,
+                      ),
                    ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Row(
                    children: [
+                       Container(
+                         width: 48,
+                         height: 48,
+                         decoration: BoxDecoration(
+                           gradient: FxGradients.indigo,
+                           borderRadius: BorderRadius.circular(14),
+                         ),
+                         child: const Icon(Icons.person_rounded, color: FxColors.onPrimary),
+                       ),
+                       const SizedBox(width: 12),
                        Expanded(
                           child: Column(
                              crossAxisAlignment: CrossAxisAlignment.start,
                              children: [
-                                Text(driverDetails['driver_name'] ?? 'Unknown Driver', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2D3436))),
-                                const SizedBox(height: 4),
+                                Text(driverDetails['driver_name'] ?? 'Unknown Driver',
+                                    style: FxText.title()),
+                                const SizedBox(height: 2),
                                 Row(
                                    children: [
-                                      const Icon(Icons.phone, size: 14, color: AppColors.primary),
+                                      const Icon(Icons.phone_rounded, size: 14, color: FxColors.primary),
                                       const SizedBox(width: 4),
-                                      Text(driverDetails['driver_phone'] ?? '', style: const TextStyle(color: AppColors.primary, fontSize: 14)),
+                                      Text(driverDetails['driver_phone'] ?? '',
+                                          style: FxText.bodySm(color: FxColors.primary)),
                                    ],
                                 ),
                              ],
                           ),
                        ),
-                       ElevatedButton(
-                          onPressed: _callDriver,
-                          style: ElevatedButton.styleFrom(
-                             backgroundColor: const Color(0xFF10B981),
-                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
-                          ),
-                          child: const Text('Call Driver', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                       )
+                       Material(
+                         color: const Color(0xFF00B894),
+                         borderRadius: BorderRadius.circular(20),
+                         child: InkWell(
+                           borderRadius: BorderRadius.circular(20),
+                           onTap: _callDriver,
+                           child: Container(
+                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                             child: Row(
+                               mainAxisSize: MainAxisSize.min,
+                               children: [
+                                 const Icon(Icons.call_rounded, color: Colors.white, size: 14),
+                                 const SizedBox(width: 6),
+                                 Text('Call', style: FxText.titleSm(color: FxColors.onPrimary)),
+                               ],
+                             ),
+                           ),
+                         ),
+                       ),
                    ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Container(
                    width: double.infinity,
-                   padding: const EdgeInsets.all(10),
+                   padding: const EdgeInsets.all(12),
                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(8),
+                      color: FxColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
                    ),
-                   child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                         Text('🚗 ${vehicleDetails?['vehicle_number'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D3436))),
-                         if (vehicleDetails?['model'] != null)
-                            Text(vehicleDetails!['model'], style: const TextStyle(color: Color(0xFF636E72), fontSize: 12)),
-                      ],
+                   child: Row(
+                     children: [
+                       const Icon(Icons.directions_car_rounded, color: FxColors.onSurfaceVariant, size: 18),
+                       const SizedBox(width: 8),
+                       Expanded(
+                         child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                               Text(vehicleDetails?['vehicle_number']?.toString() ?? 'N/A', style: FxText.titleSm()),
+                               if (vehicleDetails?['model'] != null)
+                                  Text(vehicleDetails!['model'].toString(), style: FxText.bodySm()),
+                            ],
+                         ),
+                       ),
+                     ],
                    ),
                 ),
                 const SizedBox(height: 12),
-                const Divider(),
                 Row(
                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                    children: [
                       Column(
                          children: [
-                            const Text('Speed', style: TextStyle(color: Color(0xFF636E72), fontSize: 11)),
-                            Text('$speed km/h', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436), fontSize: 14)),
+                            FxMetaLabel('Speed'),
+                            const SizedBox(height: 2),
+                            Text('$speed km/h', style: FxText.title()),
                          ],
                       ),
-                      Container(width: 1, height: 30, color: const Color(0xFFE9ECEF)),
+                      Container(width: 1, height: 30, color: FxColors.surfaceContainerHigh),
                       Column(
                          children: [
-                            const Text('Last Updated', style: TextStyle(color: Color(0xFF636E72), fontSize: 11)),
-                            Text(timeString, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D3436), fontSize: 14)),
+                            FxMetaLabel('Last Updated'),
+                            const SizedBox(height: 2),
+                            Text(timeString, style: FxText.title()),
                          ],
                       ),
                    ],

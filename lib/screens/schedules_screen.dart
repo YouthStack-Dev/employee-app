@@ -6,7 +6,6 @@ import '../models/booking_model.dart';
 import '../providers/announcement_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
-import '../services/alert_service.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
 import 'announcements_screen.dart';
@@ -905,7 +904,3 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 }
 
-/// We reference AlertService here only to keep an explicit import for the SOS
-/// history sub-flow. Suppress unused warning by exporting the alias.
-// ignore: unused_element
-typedef _AlertServiceTypedef = AlertService;

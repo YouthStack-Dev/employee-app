@@ -198,11 +198,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   Widget _buildBody() {
     final b = _booking!;
     final bookingDate = DateTime.tryParse(b.date ?? '');
+    final timeParts = (b.shiftTime ?? b.pickupTime ?? '00:00').split(':');
     final dateLabel = bookingDate != null
-        ? DateFormat('MMM d, yyyy • HH:mm').format(bookingDate.copyWith(
-            hour: int.tryParse((b.shiftTime ?? b.pickupTime ?? '00:00').split(':').first) ?? 0,
-            minute: int.tryParse((b.shiftTime ?? b.pickupTime ?? '00:00').split(':').elementAtOrNull(1) ?? '0') ?? 0,
-          ))
+        ? '${DateFormat('MMM d, yyyy').format(bookingDate)} • ${timeParts.isNotEmpty ? timeParts[0] : '00'}:${timeParts.length > 1 ? timeParts[1] : '00'}'
         : (b.date ?? '');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -556,12 +554,3 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 }
 
-extension on DateTime {
-  DateTime copyWith({int? hour, int? minute}) =>
-      DateTime(year, month, day, hour ?? this.hour, minute ?? this.minute);
-}
-
-extension on Iterable<String> {
-  String? elementAtOrNull(int i) =>
-      length > i ? elementAt(i) : null;
-}
