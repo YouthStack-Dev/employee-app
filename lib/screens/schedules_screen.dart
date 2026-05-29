@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_theme.dart';
 import '../models/booking_model.dart';
 import '../providers/announcement_provider.dart';
@@ -15,6 +16,7 @@ import 'edit_booking_screen.dart';
 import 'review_screen.dart';
 import 'sos_details_screen.dart';
 import 'sos_history_screen.dart';
+import 'track_driver_screen.dart';
 
 class SchedulesScreen extends StatefulWidget {
   const SchedulesScreen({super.key});
@@ -70,10 +72,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       body: SafeArea(bottom: false, child: _segmentIndex == 0 ? _buildUpcoming() : _buildPast()),
       bottomNavigationBar: FxBottomNav(
         currentIndex: _bottomIndex,
-        onTap: (i) {
-          setState(() => _bottomIndex = i);
-          if (i == 0) _refreshBookings();
-        },
+        onTap: _onBottomNavTap,
         items: const [
           FxBottomNavItem(Icons.dashboard_rounded, 'Dashboard'),
           FxBottomNavItem(Icons.calendar_month_rounded, 'Bookings'),
@@ -299,6 +298,216 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           ),
           const SizedBox(width: 8),
           FxSosButton(onPressed: _triggerSOS),
+        ],
+      ),
+    );
+  }
+
+  void _onBottomNavTap(int i) {
+    switch (i) {
+      case 2:
+        _openTracking();
+        return;
+      case 3:
+        _openProfileSheet();
+        return;
+      case 0:
+        setState(() {
+          _bottomIndex = 0;
+          _segmentIndex = 0; // Dashboard shows Upcoming
+        });
+        _refreshBookings();
+        return;
+      case 1:
+      default:
+        setState(() => _bottomIndex = 1);
+        return;
+    }
+  }
+
+  Booking? _findActiveRide() {
+    final provider = Provider.of<BookingProvider>(context, listen: false);
+    final candidates = List<Booking>.from(provider.homeBookings).where((b) {
+      final s = b.status?.toLowerCase();
+      if (s == 'ongoing') return true;
+      if (s == 'scheduled') {
+        return b.routeDetails?['driver_details']?['driver_id'] != null;
+      }
+      return false;
+    }).toList()
+      ..sort((a, b) {
+        if (a.status == 'Ongoing' && b.status != 'Ongoing') return -1;
+        if (b.status == 'Ongoing' && a.status != 'Ongoing') return 1;
+        return (a.shiftTime ?? a.pickupTime ?? '')
+            .compareTo(b.shiftTime ?? b.pickupTime ?? '');
+      });
+    return candidates.isEmpty ? null : candidates.first;
+  }
+
+  Future<String> _resolveTenantId(Booking b) async {
+    final prefs = await SharedPreferences.getInstance();
+    final prefsTenantId = prefs.getString('tenant_id');
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    String resolved = b.tenantId?.toString() ??
+        prefsTenantId ??
+        auth.user?.tenantId ??
+        'SAM001';
+    if (resolved == '1' &&
+        (prefsTenantId != null || auth.user?.tenantId != null)) {
+      resolved = prefsTenantId ?? auth.user!.tenantId!;
+    }
+    return resolved;
+  }
+
+  Future<void> _openTracking() async {
+    final active = _findActiveRide();
+    if (active == null || active.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No active ride to track right now',
+              style: FxText.body(color: FxColors.onPrimary)),
+          backgroundColor: FxColors.onSurfaceVariant,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+        ),
+      );
+      return;
+    }
+    final tenantId = await _resolveTenantId(active);
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TrackDriverScreen(
+          booking: {
+            'booking_id': active.id,
+            'status': active.status,
+            'pickup_latitude': active.pickupLatitude,
+            'pickup_longitude': active.pickupLongitude,
+            'drop_latitude': active.dropLatitude,
+            'drop_longitude': active.dropLongitude,
+            'pickup_location': active.pickupLocation,
+            'drop_location': active.dropLocation,
+            'route_details': active.routeDetails,
+            'tenant_id': tenantId,
+          },
+          tenantId: tenantId,
+        ),
+      ),
+    );
+  }
+
+  void _openProfileSheet() {
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    final name = user?.name ?? 'Welcome';
+    final email = user?.email ?? 'No email on file';
+    final tenant = user?.tenantId ?? '';
+    final empId = user?.employeeId;
+    final initials = (user?.name ?? 'E')
+        .trim()
+        .split(' ')
+        .where((s) => s.isNotEmpty)
+        .take(2)
+        .map((s) => s[0].toUpperCase())
+        .join();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              decoration: BoxDecoration(
+                color: FxColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: FxShadows.soft,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: FxColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 72,
+                    height: 72,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: FxGradients.indigo,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Text(
+                      initials.isEmpty ? 'E' : initials,
+                      style: FxText.headlineLg(color: FxColors.onPrimary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(name, style: FxText.headlineMd()),
+                  const SizedBox(height: 2),
+                  Text(email, style: FxText.body(color: FxColors.onSurfaceVariant)),
+                  const SizedBox(height: 20),
+                  if (tenant.isNotEmpty) _profileRow(Icons.business_rounded, 'Tenant', tenant),
+                  if (empId != null) _profileRow(Icons.badge_outlined, 'Employee ID', '$empId'),
+                  const SizedBox(height: 20),
+                  FxPrimaryButton(
+                    label: 'Sign out',
+                    leadingIcon: Icons.logout_rounded,
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _handleLogout();
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Close', style: FxText.titleSm(color: FxColors.onSurfaceVariant)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _profileRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: FxColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: FxColors.primary, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FxMetaLabel(label),
+                Text(value, style: FxText.titleSm()),
+              ],
+            ),
+          ),
         ],
       ),
     );
