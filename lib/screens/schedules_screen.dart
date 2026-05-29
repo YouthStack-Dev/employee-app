@@ -292,13 +292,45 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             ),
           ),
           const SizedBox(width: 8),
+          _iconButton(
+            Icons.logout_rounded,
+            color: FxColors.error,
+            onTap: _handleLogout,
+          ),
+          const SizedBox(width: 8),
           FxSosButton(onPressed: _triggerSOS),
         ],
       ),
     );
   }
 
-  Widget _iconButton(IconData icon, {VoidCallback? onTap}) {
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Sign out?', style: FxText.headlineSm()),
+        content: Text(
+          'You will be returned to the login screen.',
+          style: FxText.body(color: FxColors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: FxColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await Provider.of<AuthProvider>(context, listen: false).logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+  }
+
+  Widget _iconButton(IconData icon, {VoidCallback? onTap, Color? color}) {
     return Material(
       color: FxColors.surfaceContainerLowest,
       borderRadius: BorderRadius.circular(14),
@@ -313,7 +345,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             borderRadius: BorderRadius.circular(14),
             boxShadow: FxShadows.soft,
           ),
-          child: Icon(icon, color: FxColors.onSurfaceVariant, size: 22),
+          child: Icon(icon, color: color ?? FxColors.onSurfaceVariant, size: 22),
         ),
       ),
     );
