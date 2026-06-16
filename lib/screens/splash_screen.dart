@@ -69,9 +69,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
           // Main content
           SafeArea(
-            child: Column(
-              children: [
-                const Spacer(),
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                children: [
+                  const Spacer(),
                 // Brand anchor — MLT logotype
                 Text('MLT', style: FxText.displayLg()),
                 const SizedBox(height: 12),
@@ -108,6 +110,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 const SizedBox(height: 64),
               ],
             ),
+          ),
           ),
         ],
       ),

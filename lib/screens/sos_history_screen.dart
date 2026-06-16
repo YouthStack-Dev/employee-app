@@ -235,75 +235,78 @@ class _SosHistoryScreenState extends State<SosHistoryScreen> {
   }
 
   Widget _statsBento({required int totalCount, required int activeCount}) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 120,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: FxColors.error.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: FxColors.error.withOpacity(0.15)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: FxColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(10),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: FxColors.error.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: FxColors.error.withOpacity(0.15)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: FxColors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.emergency_share_rounded, color: FxColors.error, size: 18),
                   ),
-                  child: const Icon(Icons.emergency_share_rounded, color: FxColors.error, size: 18),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FxMetaLabel('Total Alerts', color: FxColors.error.withOpacity(0.8)),
-                    Text('$totalCount', style: FxText.displaySm(color: FxColors.errorDim)),
-                  ],
-                ),
-              ],
+                  const Spacer(),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FxMetaLabel('Total Alerts', color: FxColors.error.withOpacity(0.8)),
+                      Text('$totalCount', style: FxText.displaySm(color: FxColors.errorDim)),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            height: 120,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: FxColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: FxColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(10),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: FxColors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: FxColors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.timer_rounded, color: FxColors.onSurfaceVariant, size: 18),
                   ),
-                  child: const Icon(Icons.timer_rounded, color: FxColors.onSurfaceVariant, size: 18),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FxMetaLabel('Open / Active'),
-                    Text('$activeCount', style: FxText.displaySm()),
-                  ],
-                ),
-              ],
+                  const Spacer(),
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FxMetaLabel('Open / Active'),
+                      Text('$activeCount', style: FxText.displaySm()),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -320,9 +323,18 @@ class _SosHistoryScreenState extends State<SosHistoryScreen> {
 
     final lat = alert['trigger_latitude'];
     final lng = alert['trigger_longitude'];
-    final coords = (lat != null && lng != null)
-        ? '${lat.toString()}°N, ${lng.toString()}°E'
-        : '—';
+    // Try to use location_name from API if available
+    final locationName = alert['location_name'] ?? alert['address'] ?? alert['location'];
+    String locationDisplay;
+    if (locationName != null && locationName.toString().isNotEmpty) {
+      locationDisplay = locationName.toString();
+    } else if (lat != null && lng != null) {
+      final latVal = lat is String ? double.tryParse(lat) ?? 0.0 : (lat as num).toDouble();
+      final lngVal = lng is String ? double.tryParse(lng) ?? 0.0 : (lng as num).toDouble();
+      locationDisplay = '${latVal.toStringAsFixed(4)}° ${latVal >= 0 ? 'N' : 'S'}, ${lngVal.toStringAsFixed(4)}° ${lngVal >= 0 ? 'E' : 'W'}';
+    } else {
+      locationDisplay = 'Location unavailable';
+    }
 
     return FxCard(
       padding: const EdgeInsets.all(16),
@@ -380,10 +392,12 @@ class _SosHistoryScreenState extends State<SosHistoryScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    coords,
-                    style: FxText.bodySm().copyWith(fontFamily: 'monospace'),
+                    locationDisplay,
+                    style: FxText.bodySm(),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Text('Details →', style: FxText.labelSm(color: FxColors.primary)),
               ],
             ),
           ),

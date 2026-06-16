@@ -50,6 +50,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
           'booking_date': bookingObj.date,
           'shift_id': bookingObj.shiftId,
           'status': bookingObj.status,
+          'pickup_location': bookingObj.pickupLocation,
+          'drop_location': bookingObj.dropLocation,
+          'log_type': bookingObj.logType,
         };
         _shifts = [...inShifts, ...outShifts];
         _selectedShiftId = bookingObj.shiftId;
@@ -185,6 +188,45 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // Route Information (read-only from booking)
+                    if (_booking!['pickup_location'] != null || _booking!['drop_location'] != null)
+                      FxCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: FxColors.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.route_rounded, color: FxColors.primary, size: 16),
+                                ),
+                                const SizedBox(width: 10),
+                                Text('Route Information', style: FxText.headlineSm()),
+                                const Spacer(),
+                                FxPill(
+                                  text: (_booking!['log_type'] ?? 'IN') == 'IN' ? 'LOGIN' : 'LOGOUT',
+                                  color: FxColors.primary,
+                                  background: FxColors.primary.withOpacity(0.1),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            FxRouteTimeline(
+                              pickup: _booking!['pickup_location'] ?? 'Not specified',
+                              drop: _booking!['drop_location'] ?? 'Not specified',
+                              pickupLabel: 'PICKUP LOCATION',
+                              dropLabel: 'DROP-OFF LOCATION',
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (_booking!['pickup_location'] != null || _booking!['drop_location'] != null)
+                      const SizedBox(height: 16),
                     FxCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

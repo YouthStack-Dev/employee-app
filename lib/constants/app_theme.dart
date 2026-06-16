@@ -182,35 +182,35 @@ class FxText {
 
   // Headlines — Manrope ExtraBold/Black with tight tracking
   static TextStyle displayLg({Color color = FxColors.onSurface}) =>
-      _manrope(size: 64, weight: FontWeight.w900, color: color, letterSpacing: 6);
+      _manrope(size: 56, weight: FontWeight.w900, color: color, letterSpacing: 6);
   static TextStyle displaySm({Color color = FxColors.onSurface}) =>
-      _manrope(size: 32, weight: FontWeight.w800, color: color, letterSpacing: -0.6);
+      _manrope(size: 28, weight: FontWeight.w800, color: color, letterSpacing: -0.6);
   static TextStyle headlineLg({Color color = FxColors.onSurface}) =>
-      _manrope(size: 24, weight: FontWeight.w800, color: color, letterSpacing: -0.48);
+      _manrope(size: 22, weight: FontWeight.w800, color: color, letterSpacing: -0.48);
   static TextStyle headlineMd({Color color = FxColors.onSurface}) =>
-      _manrope(size: 20, weight: FontWeight.w800, color: color, letterSpacing: -0.4);
+      _manrope(size: 18, weight: FontWeight.w800, color: color, letterSpacing: -0.4);
   static TextStyle headlineSm({Color color = FxColors.onSurface}) =>
-      _manrope(size: 18, weight: FontWeight.w700, color: color, letterSpacing: -0.36);
+      _manrope(size: 16, weight: FontWeight.w700, color: color, letterSpacing: -0.36);
   static TextStyle title({Color color = FxColors.onSurface}) =>
-      _manrope(size: 16, weight: FontWeight.w700, color: color, letterSpacing: -0.32);
+      _manrope(size: 15, weight: FontWeight.w700, color: color, letterSpacing: -0.32);
   static TextStyle titleSm({Color color = FxColors.onSurface}) =>
-      _manrope(size: 14, weight: FontWeight.w700, color: color);
+      _manrope(size: 13, weight: FontWeight.w700, color: color);
 
   // Body — Inter regular/medium
   static TextStyle bodyLg({Color color = FxColors.onSurface}) =>
-      _inter(size: 16, weight: FontWeight.w500, color: color, height: 1.4);
+      _inter(size: 15, weight: FontWeight.w500, color: color, height: 1.4);
   static TextStyle body({Color color = FxColors.onSurface}) =>
-      _inter(size: 14, weight: FontWeight.w400, color: color, height: 1.4);
+      _inter(size: 13, weight: FontWeight.w400, color: color, height: 1.4);
   static TextStyle bodySm({Color color = FxColors.onSurfaceVariant}) =>
-      _inter(size: 12, weight: FontWeight.w400, color: color, height: 1.4);
+      _inter(size: 11, weight: FontWeight.w400, color: color, height: 1.4);
 
   // Labels — Inter all-caps with wide tracking for metadata
   static TextStyle label({Color color = FxColors.onSurfaceVariant}) =>
-      _inter(size: 12, weight: FontWeight.w500, color: color, letterSpacing: 0.8);
+      _inter(size: 11, weight: FontWeight.w500, color: color, letterSpacing: 0.8);
   static TextStyle labelSm({Color color = FxColors.onSurfaceVariant}) =>
-      _inter(size: 10, weight: FontWeight.w500, color: color, letterSpacing: 1.5);
+      _inter(size: 9, weight: FontWeight.w500, color: color, letterSpacing: 1.5);
   static TextStyle labelXs({Color color = FxColors.outline}) =>
-      _inter(size: 9, weight: FontWeight.w500, color: color, letterSpacing: 1.8);
+      _inter(size: 8, weight: FontWeight.w500, color: color, letterSpacing: 1.8);
 }
 
 /// MaterialApp ThemeData tuned to the Fluid Executive system.

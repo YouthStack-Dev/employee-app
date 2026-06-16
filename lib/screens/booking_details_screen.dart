@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../constants/app_theme.dart';
 import '../models/booking_model.dart';
 import '../models/review_model.dart';
@@ -351,21 +352,61 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           ),
           const SizedBox(height: 16),
           if ((b.pickupLatitude ?? 0) != 0 && (b.dropLatitude ?? 0) != 0)
-            Container(
-              height: 120,
-              decoration: BoxDecoration(
-                color: FxColors.surfaceContainer,
-                borderRadius: FxRadii.card,
+            ClipRRect(
+              borderRadius: FxRadii.card,
+              child: SizedBox(
+                height: 160,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: LatLng(
+                      ((b.pickupLatitude! + b.dropLatitude!) / 2),
+                      ((b.pickupLongitude! + b.dropLongitude!) / 2),
+                    ),
+                    zoom: 12,
+                  ),
+                  markers: {
+                    Marker(
+                      markerId: const MarkerId('pickup'),
+                      position: LatLng(b.pickupLatitude!, b.pickupLongitude!),
+                      infoWindow: InfoWindow(title: 'Pickup', snippet: b.pickupLocation),
+                    ),
+                    Marker(
+                      markerId: const MarkerId('drop'),
+                      position: LatLng(b.dropLatitude!, b.dropLongitude!),
+                      infoWindow: InfoWindow(title: 'Drop-off', snippet: b.dropLocation),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+                    ),
+                  },
+                  polylines: {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      points: [
+                        LatLng(b.pickupLatitude!, b.pickupLongitude!),
+                        LatLng(b.dropLatitude!, b.dropLongitude!),
+                      ],
+                      color: FxColors.primary,
+                      width: 4,
+                    ),
+                  },
+                  liteModeEnabled: true,
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
+                  mapToolbarEnabled: false,
+                ),
               ),
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+          if ((b.pickupLatitude ?? 0) != 0 && (b.dropLatitude ?? 0) != 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
                 children: [
-                  const Icon(Icons.location_on_rounded, color: FxColors.primary, size: 36),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${b.pickupLatitude!.toStringAsFixed(4)}, ${b.pickupLongitude!.toStringAsFixed(4)}',
-                    style: FxText.bodySm(),
+                  const Icon(Icons.location_on_rounded, color: FxColors.primary, size: 14),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${b.pickupLatitude!.toStringAsFixed(4)}, ${b.pickupLongitude!.toStringAsFixed(4)}  →  ${b.dropLatitude!.toStringAsFixed(4)}, ${b.dropLongitude!.toStringAsFixed(4)}',
+                      style: FxText.bodySm().copyWith(fontFamily: 'monospace', fontSize: 11),
+                    ),
                   ),
                 ],
               ),

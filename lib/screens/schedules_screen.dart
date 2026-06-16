@@ -26,8 +26,9 @@ class SchedulesScreen extends StatefulWidget {
 }
 
 class _SchedulesScreenState extends State<SchedulesScreen> {
-  int _bottomIndex = 1; // 0 dashboard, 1 bookings (default), 2 tracking, 3 profile
+  int _bottomIndex = 0; // 0 bookings (default), 1 profile
   int _segmentIndex = 0; // 0 upcoming, 1 past
+  bool _isActiveCardExpanded = true;
   DateTime _selectedHistoryDate = DateTime.now();
 
   @override
@@ -69,19 +70,25 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     return Scaffold(
       backgroundColor: FxColors.background,
       extendBody: true,
-      body: SafeArea(bottom: false, child: _segmentIndex == 0 ? _buildUpcoming() : _buildPast()),
+      body: SafeArea(bottom: false, child: _bottomIndex == 1 ? _buildProfilePage() : (_segmentIndex == 0 ? _buildUpcoming() : _buildPast())),
       bottomNavigationBar: FxBottomNav(
         currentIndex: _bottomIndex,
         onTap: _onBottomNavTap,
         items: const [
-          FxBottomNavItem(Icons.dashboard_rounded, 'Dashboard'),
           FxBottomNavItem(Icons.calendar_month_rounded, 'Bookings'),
-          FxBottomNavItem(Icons.explore_rounded, 'Tracking'),
           FxBottomNavItem(Icons.person_rounded, 'Profile'),
         ],
       ),
-      floatingActionButton: _segmentIndex == 0
-          ? Container(
+      floatingActionButton: _bottomIndex == 1 ? null : Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            margin: EdgeInsets.only(bottom: _segmentIndex == 0 ? 16 : 70),
+            child: FxSosButton(onPressed: _triggerSOS),
+          ),
+          if (_segmentIndex == 0)
+            Container(
               margin: const EdgeInsets.only(bottom: 70),
               child: GestureDetector(
                 onTap: () => Navigator.push(context,
@@ -97,8 +104,9 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                   child: const Icon(Icons.add_rounded, color: FxColors.onPrimary, size: 28),
                 ),
               ),
-            )
-          : null,
+            ),
+        ],
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
@@ -147,6 +155,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
         final todayStr = DateFormat('yyyy-MM-dd').format(now);
         final today = scheduled.where((b) => b.date == todayStr).toList();
+        final todayActiveCount = activeList.where((b) => b.date == todayStr).length;
+        final int todayCount = today.length + todayActiveCount;
         final laterCount = scheduled.length - today.length;
 
         return RefreshIndicator(
@@ -172,7 +182,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Scheduled for Today', style: FxText.headlineSm()),
-                        FxPill(text: '${today.length} Rides'),
+                        FxPill(text: '$todayCount Ride${todayCount == 1 ? '' : 's'}'),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -296,33 +306,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             color: FxColors.error,
             onTap: _handleLogout,
           ),
-          const SizedBox(width: 8),
-          FxSosButton(onPressed: _triggerSOS),
         ],
       ),
     );
   }
 
   void _onBottomNavTap(int i) {
-    switch (i) {
-      case 2:
-        _openTracking();
-        return;
-      case 3:
-        _openProfileSheet();
-        return;
-      case 0:
-        setState(() {
-          _bottomIndex = 0;
-          _segmentIndex = 0; // Dashboard shows Upcoming
-        });
-        _refreshBookings();
-        return;
-      case 1:
-      default:
-        setState(() => _bottomIndex = 1);
-        return;
-    }
+    setState(() => _bottomIndex = i);
   }
 
   Booking? _findActiveRide() {
@@ -398,7 +388,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     );
   }
 
-  void _openProfileSheet() {
+  Widget _buildProfilePage() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     final name = user?.name ?? 'Welcome';
     final email = user?.email ?? 'No email on file';
@@ -412,74 +402,47 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         .map((s) => s[0].toUpperCase())
         .join();
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 100),
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: FxColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: FxShadows.soft,
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: FxColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: FxShadows.soft,
+                gradient: FxGradients.indigo,
+                borderRadius: BorderRadius.circular(30),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: FxColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: 72,
-                    height: 72,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      gradient: FxGradients.indigo,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Text(
-                      initials.isEmpty ? 'E' : initials,
-                      style: FxText.headlineLg(color: FxColors.onPrimary),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(name, style: FxText.headlineMd()),
-                  const SizedBox(height: 2),
-                  Text(email, style: FxText.body(color: FxColors.onSurfaceVariant)),
-                  const SizedBox(height: 20),
-                  if (tenant.isNotEmpty) _profileRow(Icons.business_rounded, 'Tenant', tenant),
-                  if (empId != null) _profileRow(Icons.badge_outlined, 'Employee ID', '$empId'),
-                  const SizedBox(height: 20),
-                  FxPrimaryButton(
-                    label: 'Sign out',
-                    leadingIcon: Icons.logout_rounded,
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _handleLogout();
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text('Close', style: FxText.titleSm(color: FxColors.onSurfaceVariant)),
-                  ),
-                ],
+              child: Text(
+                initials.isEmpty ? 'E' : initials,
+                style: FxText.displaySm(color: FxColors.onPrimary),
               ),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 24),
+            Text(name, style: FxText.headlineLg()),
+            const SizedBox(height: 4),
+            Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
+            const SizedBox(height: 40),
+            if (tenant.isNotEmpty) _profileRow(Icons.business_rounded, 'Tenant', tenant),
+            if (empId != null) _profileRow(Icons.badge_outlined, 'Employee ID', '$empId'),
+            const SizedBox(height: 40),
+            FxPrimaryButton(
+              label: 'Sign out',
+              leadingIcon: Icons.logout_rounded,
+              onPressed: _handleLogout,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -602,19 +565,41 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       background: FxColors.primaryContainer.withOpacity(0.25),
                       pulse: true,
                     ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isActiveCardExpanded = !_isActiveCardExpanded;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: FxColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _isActiveCardExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          color: FxColors.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                FxRouteTimeline(
-                  pickup: b.pickupLocation ?? 'Pickup point',
-                  drop: b.dropLocation ?? 'Drop-off',
-                  isActive: true,
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  height: 1,
-                  color: FxColors.surfaceContainerLow,
-                ),
+                if (_isActiveCardExpanded) ...[
+                  const SizedBox(height: 20),
+                  FxRouteTimeline(
+                    pickup: b.pickupLocation ?? 'Pickup point',
+                    drop: b.dropLocation ?? 'Drop-off',
+                    isActive: true,
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    height: 1,
+                    color: FxColors.surfaceContainerLow,
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -640,13 +625,31 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       ),
                     ),
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: FxColors.surfaceContainerHigh,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, color: FxColors.onSurfaceVariant, size: 20),
+                        onPressed: () {
+                          // Handle chat action
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 44,
+                      height: 44,
                       decoration: const BoxDecoration(
                         color: FxColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.map_rounded, color: FxColors.onPrimary, size: 20),
+                      child: IconButton(
+                        icon: const Icon(Icons.map_rounded, color: FxColors.onPrimary, size: 20),
+                        onPressed: _openTracking,
+                      ),
                     ),
                   ],
                 ),
@@ -764,56 +767,58 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           (a.shiftTime ?? '').compareTo(b.shiftTime ?? ''));
       nextShift = tomorrowList.first;
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: FxTonalCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                FxMetaLabel('Tomorrow'),
-                const SizedBox(height: 28),
-                Text('${tomorrowList.length.toString().padLeft(2, '0')}',
-                    style: FxText.displaySm()),
-                const SizedBox(height: 2),
-                Text('Total rides scheduled', style: FxText.bodySm()),
-              ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: FxTonalCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FxMetaLabel('Tomorrow'),
+                  const SizedBox(height: 28),
+                  Text('${tomorrowList.length.toString().padLeft(2, '0')}',
+                      style: FxText.displaySm()),
+                  const SizedBox(height: 2),
+                  Text('Total rides scheduled', style: FxText.bodySm()),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: FxColors.primaryContainer.withOpacity(0.15),
-              borderRadius: FxRadii.card,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                FxMetaLabel('Next Shift', color: FxColors.primary),
-                const SizedBox(height: 24),
-                Text(
-                  nextShift?.shiftTime?.substring(0, 5) ?? '—',
-                  style: FxText.headlineLg(color: FxColors.onPrimaryContainer),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  nextShift?.pickupLocation ?? 'No shift assigned',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: FxText.bodySm(color: FxColors.onPrimaryContainer),
-                ),
-              ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: FxColors.primaryContainer.withOpacity(0.15),
+                borderRadius: FxRadii.card,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  FxMetaLabel('Next Shift', color: FxColors.primary),
+                  const SizedBox(height: 24),
+                  Text(
+                    nextShift?.shiftTime?.substring(0, 5) ?? '—',
+                    style: FxText.headlineLg(color: FxColors.onPrimaryContainer),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    nextShift?.pickupLocation ?? 'No shift assigned',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: FxText.bodySm(color: FxColors.onPrimaryContainer),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

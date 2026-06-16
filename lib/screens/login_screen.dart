@@ -106,90 +106,49 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: FxColors.background,
       body: Stack(
         children: [
-          Column(
-            children: [
-              // Decorative geometric header (dot grid + fade)
-              _BrandHeader(),
-              // Card body
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  child: Transform.translate(
+          // Background footer strip anchored to bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 4,
+              decoration: const BoxDecoration(gradient: FxGradients.indigoFooter),
+            ),
+          ),
+          // Scrollable content
+          Positioned.fill(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: Column(
+                children: [
+                  // Decorative geometric header (dot grid + fade)
+                  _BrandHeader(),
+                  // Card body overlapping the header slightly
+                  Transform.translate(
                     offset: const Offset(0, -40),
-                    child: FxCard(
-                      padding: const EdgeInsets.all(24),
-                      borderRadius: BorderRadius.circular(28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Welcome Back', style: FxText.headlineMd()),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Secure access to your enterprise mobility suite',
-                            style: FxText.body(color: FxColors.onSurfaceVariant),
-                          ),
-                          const SizedBox(height: 24),
-                          if (_isPhoneLogin)
-                            _buildPhoneForm()
-                          else
-                            _buildEmailForm(),
-                          const SizedBox(height: 24),
-                          const _Divider(),
-                          const SizedBox(height: 20),
-                          Center(
-                            child: RichText(
-                              text: TextSpan(
-                                style: FxText.bodySm(),
-                                children: [
-                                  const TextSpan(text: "Don't have an account?  "),
-                                  TextSpan(
-                                    text: 'Contact HR',
-                                    style: FxText.titleSm(color: FxColors.primary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: FxColors.surfaceContainerLow,
-                                borderRadius: FxRadii.pill,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: FxColors.emeraldDot,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'SYSTEM STATUS: OPERATIONAL',
-                                    style: FxText.labelSm(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: FxCard(
+                        padding: const EdgeInsets.all(24),
+                        borderRadius: BorderRadius.circular(28),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Welcome Back', style: FxText.headlineMd()),
+                            const SizedBox(height: 24),
+                            if (_isPhoneLogin)
+                              _buildPhoneForm()
+                            else
+                              _buildEmailForm(),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-              // Footer strip
-              Container(
-                height: 4,
-                decoration: const BoxDecoration(gradient: FxGradients.indigoFooter),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -208,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 16),
         FxTextField(
           controller: _usernameController,
-          label: 'Employee ID / Email',
+          label: 'Business Email',
           hint: 'ID or business email',
           prefixIcon: Icons.badge_outlined,
         ),
@@ -288,16 +247,8 @@ class _LoginScreenState extends State<LoginScreen> {
 class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 280,
-      decoration: BoxDecoration(
-        color: FxColors.surfaceContainerLowest,
-        image: const DecorationImage(
-          alignment: Alignment.center,
-          image: AssetImage('assets/images/logo.png'),
-          opacity: 0.0, // placeholder so the asset path is referenced
-        ),
-      ),
       child: Stack(
         children: [
           // Dot-grid geometric pattern via CustomPaint
@@ -307,11 +258,11 @@ class _BrandHeader extends StatelessWidget {
           // Soft fade to background
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, FxColors.background],
+                  colors: [FxColors.background.withOpacity(0.0), FxColors.background],
                 ),
               ),
             ),
