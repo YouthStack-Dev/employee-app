@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../constants/app_theme.dart';
 import '../models/booking_model.dart';
@@ -33,6 +34,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   bool _isLoading = true;
   bool _isCancelling = false;
   String? _error;
+  GoogleMapController? _mapController;
+  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
@@ -68,10 +71,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       setState(() {
         _booking = b;
         _tenantId = resolvedId;
-        _existingReview = reviewData;
-        _hasReview = reviewExists;
+        if (reviewExists) {
+          _existingReview = reviewData;
+          _hasReview = true;
+        }
         _isLoading = false;
       });
+      _setPolylines();
     } else {
       setState(() {
         _error = result['error'];
@@ -176,6 +182,88 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     : _buildBody(),
       ),
     );
+  }
+
+  Future<void> _setPolylines() async {
+    final b = _booking;
+    if (b == null || b.pickupLatitude == null || b.dropLatitude == null) return;
+    
+    PolylinePoints polylinePoints = PolylinePoints();
+    try {
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        googleApiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4',
+        request: PolylineRequest(
+          origin: PointLatLng(b.pickupLatitude!, b.pickupLongitude!),
+          destination: PointLatLng(b.dropLatitude!, b.dropLongitude!),
+          mode: TravelMode.driving,
+        ),
+      );
+
+      if (result.points.isNotEmpty) {
+        List<LatLng> polylineCoordinates = [];
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+        if (mounted) {
+          setState(() {
+            _polylines.add(Polyline(
+              polylineId: const PolylineId('route'),
+              color: FxColors.primary,
+              width: 4,
+              points: polylineCoordinates,
+            ));
+          });
+          _frameMap();
+        }
+      } else {
+        _fallbackStraightLine(b);
+      }
+    } catch (e) {
+      _fallbackStraightLine(b);
+    }
+  }
+
+  void _fallbackStraightLine(Booking b) {
+    if (mounted) {
+      setState(() {
+        _polylines.add(Polyline(
+          polylineId: const PolylineId('route_fallback'),
+          color: FxColors.primary,
+          width: 4,
+          points: [
+            LatLng(b.pickupLatitude!, b.pickupLongitude!),
+            LatLng(b.dropLatitude!, b.dropLongitude!),
+          ],
+        ));
+      });
+      _frameMap();
+    }
+  }
+
+  void _frameMap() {
+    if (_mapController == null || _booking == null) return;
+    final b = _booking!;
+    if (b.pickupLatitude == null || b.dropLatitude == null) return;
+
+    final LatLng pickup = LatLng(b.pickupLatitude!, b.pickupLongitude!);
+    final LatLng drop = LatLng(b.dropLatitude!, b.dropLongitude!);
+
+    LatLngBounds bounds;
+    if (pickup.latitude > drop.latitude && pickup.longitude > drop.longitude) {
+      bounds = LatLngBounds(southwest: drop, northeast: pickup);
+    } else if (pickup.longitude > drop.longitude) {
+      bounds = LatLngBounds(
+          southwest: LatLng(pickup.latitude, drop.longitude),
+          northeast: LatLng(drop.latitude, pickup.longitude));
+    } else if (pickup.latitude > drop.latitude) {
+      bounds = LatLngBounds(
+          southwest: LatLng(drop.latitude, pickup.longitude),
+          northeast: LatLng(pickup.latitude, drop.longitude));
+    } else {
+      bounds = LatLngBounds(southwest: pickup, northeast: drop);
+    }
+
+    _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 40));
   }
 
   Widget _errorView() {
@@ -357,6 +445,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               child: SizedBox(
                 height: 160,
                 child: GoogleMap(
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    _frameMap();
+                  },
                   initialCameraPosition: CameraPosition(
                     target: LatLng(
                       ((b.pickupLatitude! + b.dropLatitude!) / 2),
@@ -377,18 +469,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
                     ),
                   },
-                  polylines: {
-                    Polyline(
-                      polylineId: const PolylineId('route'),
-                      points: [
-                        LatLng(b.pickupLatitude!, b.pickupLongitude!),
-                        LatLng(b.dropLatitude!, b.dropLongitude!),
-                      ],
-                      color: FxColors.primary,
-                      width: 4,
-                    ),
-                  },
-                  liteModeEnabled: true,
+                  polylines: _polylines,
+                  liteModeEnabled: false,
                   zoomControlsEnabled: false,
                   myLocationButtonEnabled: false,
                   mapToolbarEnabled: false,

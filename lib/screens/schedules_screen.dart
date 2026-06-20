@@ -84,12 +84,24 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Container(
-            margin: EdgeInsets.only(bottom: _segmentIndex == 0 ? 16 : 70),
-            child: FxSosButton(onPressed: _triggerSOS),
+            margin: EdgeInsets.only(bottom: _segmentIndex == 0 ? 8 : 24),
+            child: GestureDetector(
+              onTap: _triggerSOS,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: FxColors.error,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: FxShadows.button,
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: FxColors.onError, size: 28),
+              ),
+            ),
           ),
           if (_segmentIndex == 0)
             Container(
-              margin: const EdgeInsets.only(bottom: 70),
+              margin: const EdgeInsets.only(bottom: 24),
               child: GestureDetector(
                 onTap: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const CreateBookingScreen())),
@@ -394,6 +406,29 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     final email = user?.email ?? 'No email on file';
     final tenant = user?.tenantId ?? '';
     final empId = user?.employeeId;
+    final rawData = user?.rawEmployeeData ?? {};
+    final ignoredKeys = ['id', 'employee_id', 'tenant_id', 'user_id', 'created_at', 'updated_at', 'name', 'email', 'roles', 'password', 'token'];
+
+    List<Widget> dynamicFields = [];
+    for (var entry in rawData.entries) {
+      if (ignoredKeys.contains(entry.key.toLowerCase()) || entry.value == null || entry.value.toString().isEmpty) continue;
+      
+      String keyLabel = entry.key.split('_').map((word) {
+        if (word.isEmpty) return '';
+        return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
+      }).join(' ');
+      
+      IconData icon = Icons.info_outline_rounded;
+      String lowerKey = entry.key.toLowerCase();
+      if (lowerKey.contains('phone') || lowerKey.contains('contact')) icon = Icons.phone_outlined;
+      else if (lowerKey.contains('department')) icon = Icons.domain_rounded;
+      else if (lowerKey.contains('designation') || lowerKey.contains('role')) icon = Icons.work_outline_rounded;
+      else if (lowerKey.contains('address') || lowerKey.contains('location')) icon = Icons.location_on_outlined;
+      else if (lowerKey.contains('date') || lowerKey.contains('dob')) icon = Icons.calendar_today_rounded;
+
+      dynamicFields.add(_profileRow(icon, keyLabel, entry.value.toString()));
+    }
+
     final initials = (user?.name ?? 'E')
         .trim()
         .split(' ')
@@ -432,8 +467,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             const SizedBox(height: 4),
             Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
             const SizedBox(height: 40),
+            
+            // Fixed Fields
             if (tenant.isNotEmpty) _profileRow(Icons.business_rounded, 'Tenant', tenant),
             if (empId != null) _profileRow(Icons.badge_outlined, 'Employee ID', '$empId'),
+            
+            // Dynamic Fields from Backend
+            ...dynamicFields,
+
             const SizedBox(height: 40),
             FxPrimaryButton(
               label: 'Sign out',
