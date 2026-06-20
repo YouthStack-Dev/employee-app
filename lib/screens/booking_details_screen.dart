@@ -188,10 +188,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final b = _booking;
     if (b == null || b.pickupLatitude == null || b.dropLatitude == null) return;
     
-    PolylinePoints polylinePoints = PolylinePoints();
+    PolylinePoints polylinePoints = PolylinePoints(apiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4');
     try {
       PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4',
         request: PolylineRequest(
           origin: PointLatLng(b.pickupLatitude!, b.pickupLongitude!),
           destination: PointLatLng(b.dropLatitude!, b.dropLongitude!),
