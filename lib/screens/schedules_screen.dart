@@ -11,6 +11,7 @@ import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
 import 'announcements_screen.dart';
 import 'booking_details_screen.dart';
+import 'chat_screen.dart';
 import 'create_booking_screen.dart';
 import 'edit_booking_screen.dart';
 import 'review_screen.dart';
@@ -674,9 +675,17 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.chat_bubble_outline_rounded, color: FxColors.onSurfaceVariant, size: 20),
-                        onPressed: () {
-                          // Handle chat action
-                        },
+                        onPressed: b.id == null
+                            ? null
+                            : () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatScreen(
+                                      bookingId: b.id!,
+                                      driverName: b.routeDetails?['driver_details']?['driver_name']?.toString(),
+                                    ),
+                                  ),
+                                ),
                       ),
                     ),
                     const SizedBox(width: 8),
