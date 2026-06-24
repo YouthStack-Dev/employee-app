@@ -1,3 +1,7 @@
+/// Max characters per chat message. Mirrors the backend's
+/// `CHAT_MAX_MESSAGE_LENGTH` (app/config.py) — keep these in sync.
+const int kChatMaxMessageLength = 500;
+
 class ChatMessage {
   final int? id;
   final int? bookingId;

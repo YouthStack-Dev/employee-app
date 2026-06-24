@@ -161,8 +161,8 @@ class ChatProvider with ChangeNotifier {
     final bookingId = _activeBookingId;
     if (bookingId == null) return false;
     final trimmed = text.trim();
-    if (trimmed.isEmpty || trimmed.length > 2000) {
-      _error = trimmed.isEmpty ? 'Message cannot be empty' : 'Message exceeds 2000 characters';
+    if (trimmed.isEmpty || trimmed.length > kChatMaxMessageLength) {
+      _error = trimmed.isEmpty ? 'Message cannot be empty' : 'Message exceeds $kChatMaxMessageLength characters';
       _safeNotify();
       return false;
     }

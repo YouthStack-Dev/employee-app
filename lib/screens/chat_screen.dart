@@ -454,7 +454,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     enabled: !disabled,
                     minLines: 1,
                     maxLines: 4,
-                    maxLength: 2000,
+                    maxLength: kChatMaxMessageLength,
                     textInputAction: TextInputAction.newline,
                     style: FxText.body(),
                     decoration: const InputDecoration(
@@ -491,11 +491,11 @@ class _ChatScreenState extends State<ChatScreen> {
             Padding(
               padding: const EdgeInsets.only(top: 4, right: 4),
               child: Text(
-                '$length / 2000',
+                '$length / $kChatMaxMessageLength',
                 style: FxText.labelSm(
-                  color: length > 2000
+                  color: length > kChatMaxMessageLength
                       ? FxColors.error
-                      : (length > 1800 ? FxColors.amber : FxColors.outline),
+                      : (length > (kChatMaxMessageLength * 0.9).round() ? FxColors.amber : FxColors.outline),
                 ),
               ),
             ),
