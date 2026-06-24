@@ -14,6 +14,7 @@ import 'booking_details_screen.dart';
 import 'chat_screen.dart';
 import 'create_booking_screen.dart';
 import 'edit_booking_screen.dart';
+import 'nodal_scan_screen.dart';
 import 'review_screen.dart';
 import 'sos_details_screen.dart';
 import 'sos_history_screen.dart';
@@ -674,6 +675,24 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
+                        tooltip: 'Scan QR to board',
+                        icon: const Icon(Icons.qr_code_scanner_rounded, color: FxColors.onSurfaceVariant, size: 20),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const NodalScanScreen()),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: FxColors.surfaceContainerHigh,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        tooltip: 'Chat with driver',
                         icon: const Icon(Icons.chat_bubble_outline_rounded, color: FxColors.onSurfaceVariant, size: 20),
                         onPressed: b.id == null
                             ? null

@@ -31,4 +31,8 @@ class ApiConstants {
   // Chat endpoints (Employee ↔ Driver real-time messaging)
   static const String employeeChat = '/api/v1/employee/chat';
   static const String chatSupportedLanguages = '/api/v1/chat/supported-languages';
+
+  // Nodal (QR onboarding) endpoints
+  static const String nodalScan = '/api/v1/employee/nodal/scan';
+  static const String nodalAssignment = '/api/v1/employee/nodal/assignment';
 }

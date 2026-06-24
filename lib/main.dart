@@ -5,6 +5,7 @@ import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/announcement_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/nodal_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/splash_screen.dart';
@@ -75,6 +76,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => NodalProvider()),
       ],
       child: MaterialApp(
         title: 'Employee App',

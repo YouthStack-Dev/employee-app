@@ -30,6 +30,8 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan the vehicle QR code for nodal-point boarding.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>This app needs access to location for SOS and Tracking.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
