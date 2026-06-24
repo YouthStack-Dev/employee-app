@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/api_constants.dart';
+import '../screens/chat_screen.dart';
 import 'api_service.dart';
 
 // Top-level function for background handling
@@ -25,8 +27,10 @@ class NotificationService {
   NotificationService._internal();
 
   bool _isInitialized = false;
+  GlobalKey<NavigatorState>? _navigatorKey;
 
   Future<void> initialize(GlobalKey<NavigatorState> navigatorKey) async {
+    _navigatorKey = navigatorKey;
     if (_isInitialized) return;
 
     // Request permissions
@@ -93,7 +97,7 @@ class NotificationService {
                 icon: '@mipmap/ic_launcher',
               ),
             ),
-            payload: message.data.toString(), // Simplify for now
+            payload: jsonEncode(message.data), // JSON so the tap handler can route
           );
         }
       });
@@ -101,16 +105,20 @@ class NotificationService {
       // Background Handler Registration
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
       
-      // Handle when app is opened from terminated state
+      // Handle when app is opened from a terminated state. The home screen
+      // isn't in place yet (SplashScreen is still resolving auth), so defer
+      // the deep-link push until after splash has navigated.
       FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
         if (message != null) {
-           // TODO: Handle initial navigation
+          Future.delayed(const Duration(milliseconds: 2600), () {
+            _routeFromData(message.data);
+          });
         }
       });
-      
-      // Handle open from background
+
+      // Handle open from background (app alive, home already in place).
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-         // TODO: Handle navigation
+        _routeFromData(message.data);
       });
 
       _isInitialized = true;
@@ -126,11 +134,38 @@ class NotificationService {
     }
   }
   
+  /// Tap handler for the foreground local notification — the payload is the
+  /// JSON-encoded FCM `data` map.
   void _handleNavigation(String? payload, GlobalKey<NavigatorState> navigatorKey) {
-     if (payload == null) return;
-     // Add parsing logic here if complex payload
-     print('Notification Payload: $payload');
-     // Example: navigatorKey.currentState?.pushNamed('/schedules');
+    if (payload == null || payload.isEmpty) return;
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is Map) _routeFromData(decoded);
+    } catch (e) {
+      print('Notification payload parse error: $e');
+    }
+  }
+
+  /// Deep-link from an FCM data payload. Currently handles chat messages:
+  ///   data: { type: "chat_message", booking_id: "42", firebase_path: "...", ... }
+  /// Navigates to the chat screen for that booking when the user is logged in.
+  Future<void> _routeFromData(Map<dynamic, dynamic>? data) async {
+    if (data == null) return;
+    if (data['type']?.toString() != 'chat_message') return;
+
+    final rawBookingId = data['booking_id'];
+    final bookingId = rawBookingId is int ? rawBookingId : int.tryParse(rawBookingId?.toString() ?? '');
+    if (bookingId == null) return;
+
+    // Only deep-link when authenticated — otherwise the user is on /login.
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('access_token') == null) return;
+
+    final nav = _navigatorKey?.currentState;
+    if (nav == null) return;
+    nav.push(
+      MaterialPageRoute(builder: (_) => ChatScreen(bookingId: bookingId)),
+    );
   }
 
   Future<void> registerToken() async {
