@@ -12,10 +12,12 @@ class AuthProvider with ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
+  String? _passwordSetToken; // held in memory between forgot-verify and set-password
 
   User? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get passwordSetToken => _passwordSetToken;
 
   Future<bool> login(String tenantId, String username, String password) async {
     _isLoading = true;
@@ -39,6 +41,72 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // ---------------- Forgot password flow ----------------
+
+  /// Step 1: request a reset OTP for {tenantId, email}.
+  Future<bool> forgotPassword(String tenantId, String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    final result = await _authService.forgotPassword(tenantId, email);
+    _isLoading = false;
+    if (result['success'] == true) {
+      notifyListeners();
+      return true;
+    }
+    _error = result['error'];
+    notifyListeners();
+    return false;
+  }
+
+  /// Step 2: verify the reset OTP. On success the session is established
+  /// (tokens persisted by the service) and a one-time password_set_token is
+  /// held for step 3.
+  Future<bool> verifyForgotPassword(String tenantId, String email, String otp) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    final result = await _authService.verifyForgotPassword(tenantId, email, otp);
+    _isLoading = false;
+    if (result['success'] == true) {
+      _user = result['user'];
+      _passwordSetToken = result['password_set_token']?.toString();
+      notifyListeners();
+      return true;
+    }
+    _error = result['error'];
+    notifyListeners();
+    return false;
+  }
+
+  /// Step 3: set the new password. On success the user is fully logged in;
+  /// registers the push token like a normal login.
+  Future<bool> setNewPassword(String newPassword, String confirmPassword) async {
+    if (_passwordSetToken == null) {
+      _error = 'Your reset session expired. Please start again.';
+      notifyListeners();
+      return false;
+    }
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    final result = await _authService.setNewPassword(
+      passwordSetToken: _passwordSetToken!,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+    _isLoading = false;
+    if (result['success'] == true) {
+      _passwordSetToken = null;
+      await NotificationService().registerToken();
+      notifyListeners();
+      return true;
+    }
+    _error = result['error'];
+    notifyListeners();
+    return false;
   }
 
   Future<void> logout() async {

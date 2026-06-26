@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/auth_provider.dart';
 import '../constants/app_theme.dart';
 import '../widgets/fx_widgets.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -181,7 +182,24 @@ class _LoginScreenState extends State<LoginScreen> {
           onSuffixTap: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
           obscure: !_isPasswordVisible,
         ),
-        const SizedBox(height: 24),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ForgotPasswordScreen(
+                  initialTenantId: _tenantController.text.trim().isEmpty ? null : _tenantController.text.trim(),
+                  initialEmail: _usernameController.text.trim().contains('@')
+                      ? _usernameController.text.trim()
+                      : null,
+                ),
+              ),
+            ),
+            child: Text('Forgot password?', style: FxText.titleSm(color: FxColors.primary)),
+          ),
+        ),
+        const SizedBox(height: 12),
         Consumer<AuthProvider>(
           builder: (_, auth, __) => FxPrimaryButton(
             label: 'Login',

@@ -198,6 +198,116 @@ class AuthService {
     }
   }
 
+  // ---------------- Forgot password flow ----------------
+
+  /// Step 1 — POST /api/v1/auth/employee/forgot-password
+  /// Body: {tenant_id, email}. Always returns a generic message (enum-safe).
+  Future<Map<String, dynamic>> forgotPassword(String tenantId, String email) async {
+    try {
+      final response = await _apiService.dio.post(ApiConstants.forgotPassword, data: {
+        'tenant_id': tenantId,
+        'email': email,
+      });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': response.data is Map ? response.data['message'] : null};
+      }
+      return {'success': false, 'error': 'Failed to send reset OTP'};
+    } on DioException catch (e) {
+      return {'success': false, 'error': _parseError(e, 'Failed to send reset OTP')};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Step 2 — POST /api/v1/auth/employee/forgot-password/verify
+  /// Body: {tenant_id, email, otp}. On success the backend issues a session
+  /// (tokens) with password_change_required + a one-time password_set_token.
+  /// We persist the tokens so the subsequent PUT /password is authenticated.
+  Future<Map<String, dynamic>> verifyForgotPassword(String tenantId, String email, String otp) async {
+    try {
+      final response = await _apiService.dio.post(ApiConstants.forgotPasswordVerify, data: {
+        'tenant_id': tenantId,
+        'email': email,
+        'otp': otp,
+      });
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data == null) return {'success': false, 'error': 'Empty response from server'};
+
+        final accessToken = data['access_token'];
+        final refreshToken = data['refresh_token'];
+        final passwordSetToken = data['password_set_token'];
+
+        final prefs = await SharedPreferences.getInstance();
+        if (accessToken != null) await prefs.setString('access_token', accessToken);
+        if (refreshToken != null) await prefs.setString('refresh_token', refreshToken);
+        await prefs.setString('tenant_id', tenantId);
+
+        final user = data['user'];
+        if (user != null) {
+          final employee = user['employee'];
+          if (employee != null && employee['employee_id'] != null) {
+            await prefs.setString('employee_id', employee['employee_id'].toString());
+          }
+        }
+
+        return {
+          'success': true,
+          'user': User.fromJson(data),
+          'password_set_token': passwordSetToken?.toString(),
+        };
+      }
+      return {'success': false, 'error': 'Invalid OTP'};
+    } on DioException catch (e) {
+      return {'success': false, 'error': _parseError(e, 'Invalid OTP')};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Step 3 — PUT /api/v1/auth/employee/password (Bearer)
+  /// Body: {password_set_token, new_password, confirm_password}. The Bearer
+  /// token is attached automatically by ApiService from the tokens persisted
+  /// in step 2.
+  Future<Map<String, dynamic>> setNewPassword({
+    required String passwordSetToken,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _apiService.dio.put(ApiConstants.setPassword, data: {
+        'password_set_token': passwordSetToken,
+        'new_password': newPassword,
+        'confirm_password': confirmPassword,
+      });
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {'success': true, 'message': response.data is Map ? response.data['message'] : null};
+      }
+      return {'success': false, 'error': 'Failed to set password'};
+    } on DioException catch (e) {
+      return {'success': false, 'error': _parseError(e, 'Failed to set password')};
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Shared error extractor for the fleet-manager response envelope.
+  String _parseError(DioException e, String fallback) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final detail = data['detail'];
+      if (detail is String && detail.isNotEmpty) return detail;
+      if (detail is Map && detail['message'] != null) return detail['message'].toString();
+      if (data['message'] is String && (data['message'] as String).isNotEmpty) return data['message'];
+    } else if (data is String && data.isNotEmpty) {
+      return data;
+    }
+    if (e.response?.statusCode == 401) return 'Invalid or expired OTP. Please try again.';
+    if (e.response?.statusCode == 400) return 'Reset link expired. Please restart the reset.';
+    if (e.response?.statusCode == 429) return 'Too many attempts. Please wait a minute and retry.';
+    return e.message ?? fallback;
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

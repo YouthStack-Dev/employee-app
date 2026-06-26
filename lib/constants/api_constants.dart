@@ -6,6 +6,11 @@ class ApiConstants {
   static const String verifyOtp = '/api/v1/auth/employee/verify-otp';
   static const String selectTenant = '/api/v1/auth/employee/select-tenant';
   static const String refreshToken = '/api/v1/auth/refresh-token';
+
+  // Forgot-password flow (employee)
+  static const String forgotPassword = '/api/v1/auth/employee/forgot-password';
+  static const String forgotPasswordVerify = '/api/v1/auth/employee/forgot-password/verify';
+  static const String setPassword = '/api/v1/auth/employee/password';
   static const String bookings = '/api/v1/bookings/employee';
   static const String weekoffConfig = '/api/v1/weekoff-configs';
   static const String shifts = '/api/v1/shifts';
