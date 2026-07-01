@@ -227,14 +227,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         FxTextField(
           controller: _tenantController,
           label: 'Tenant ID',
-          hint: 'e.g. CORP_GLOBAL',
+          hint: 'Tenant ID',
           prefixIcon: Icons.domain_rounded,
         ),
         const SizedBox(height: 16),
         FxTextField(
           controller: _emailController,
           label: 'Email',
-          hint: 'your business email',
+          hint: 'Email',
           prefixIcon: Icons.alternate_email_rounded,
           keyboardType: TextInputType.emailAddress,
           onChanged: (_) => setState(() {}),

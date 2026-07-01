@@ -159,7 +159,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         final scheduled = inWindow.where((b) {
           if (b.id == activeRide?.id) return false;
           final s = b.status?.toLowerCase() ?? '';
-          return s != 'ongoing' && s != 'completed';
+          return s != 'ongoing' && s != 'completed' && s != 'cancelled' && s != 'no-show';
         }).toList()
           ..sort((a, b) {
             final c = (a.date ?? '').compareTo(b.date ?? '');
