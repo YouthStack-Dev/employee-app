@@ -10,6 +10,7 @@ import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class TrackDriverScreen extends StatefulWidget {
   final Map<String, dynamic> booking;
@@ -40,6 +41,8 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
   
   BitmapDescriptor? _driverIcon;
   BitmapDescriptor? _destinationIcon;
+  Set<Polyline> _polylines = {};
+  bool _hasFetchedRoute = false;
 
   @override
   void initState() {
@@ -102,6 +105,8 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _hasFetchedRoute = false;
+      _polylines.clear();
     });
 
     // Start 10s Timeout
@@ -211,7 +216,10 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
                  }
                  
                  if (_destinationLocation != null && _driverLocation != null && _driverData != null) {
-                     // logic to fit checks
+                     if (!_hasFetchedRoute) {
+                         _hasFetchedRoute = true;
+                         _fetchRoute(_driverLocation!, _destinationLocation!);
+                     }
                  }
                  
                  _updateCamera();
@@ -221,6 +229,53 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
           print('Firebase Error: $e');
           // Don't fail immediately on stream error, let timeout handle it or user retry
       });
+  }
+
+  Future<void> _fetchRoute(LatLng start, LatLng end) async {
+    PolylinePoints polylinePoints = PolylinePoints(apiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4');
+    try {
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        request: PolylineRequest(
+          origin: PointLatLng(start.latitude, start.longitude),
+          destination: PointLatLng(end.latitude, end.longitude),
+          mode: TravelMode.driving,
+        ),
+      );
+
+      if (result.points.isNotEmpty) {
+        List<LatLng> polylineCoordinates = [];
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+        if (mounted) {
+          setState(() {
+            _polylines.add(Polyline(
+              polylineId: const PolylineId('driver_route'),
+              color: FxColors.primary,
+              width: 4,
+              points: polylineCoordinates,
+            ));
+          });
+        }
+      } else {
+        _fallbackStraightLine(start, end);
+      }
+    } catch (e) {
+      _fallbackStraightLine(start, end);
+    }
+  }
+
+  void _fallbackStraightLine(LatLng start, LatLng end) {
+    if (mounted) {
+      setState(() {
+        _polylines.add(Polyline(
+          polylineId: const PolylineId('driver_route_fallback'),
+          color: FxColors.primary,
+          width: 4,
+          points: [start, end],
+        ));
+      });
+    }
   }
 
   Future<void> _updateCamera() async {
@@ -332,6 +387,7 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
                        Future.delayed(const Duration(milliseconds: 500), () => _fitBounds());
                     },
                     markers: _createMarkers(),
+                    polylines: _polylines,
                     zoomControlsEnabled: false,
                     myLocationButtonEnabled: false,
                  ),

@@ -413,7 +413,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
     List<Widget> dynamicFields = [];
     for (var entry in rawData.entries) {
-      if (ignoredKeys.contains(entry.key.toLowerCase()) || entry.value == null || entry.value.toString().isEmpty) continue;
+      if (entry.value == null || entry.value.toString().isEmpty) continue;
+      
+      String lowerKey = entry.key.toLowerCase();
+      
+      // Only include phone/number and address fields as requested
+      if (!lowerKey.contains('phone') && !lowerKey.contains('number') && !lowerKey.contains('contact') && !lowerKey.contains('address') && !lowerKey.contains('location')) {
+        continue;
+      }
       
       String keyLabel = entry.key.split('_').map((word) {
         if (word.isEmpty) return '';
@@ -421,12 +428,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       }).join(' ');
       
       IconData icon = Icons.info_outline_rounded;
-      String lowerKey = entry.key.toLowerCase();
-      if (lowerKey.contains('phone') || lowerKey.contains('contact')) icon = Icons.phone_outlined;
-      else if (lowerKey.contains('department')) icon = Icons.domain_rounded;
-      else if (lowerKey.contains('designation') || lowerKey.contains('role')) icon = Icons.work_outline_rounded;
+      if (lowerKey.contains('phone') || lowerKey.contains('contact') || lowerKey.contains('number')) icon = Icons.phone_outlined;
       else if (lowerKey.contains('address') || lowerKey.contains('location')) icon = Icons.location_on_outlined;
-      else if (lowerKey.contains('date') || lowerKey.contains('dob')) icon = Icons.calendar_today_rounded;
 
       dynamicFields.add(_profileRow(icon, keyLabel, entry.value.toString()));
     }
@@ -470,11 +473,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
             const SizedBox(height: 40),
             
-            // Fixed Fields
-            if (tenant.isNotEmpty) _profileRow(Icons.business_rounded, 'Tenant', tenant),
-            if (empId != null) _profileRow(Icons.badge_outlined, 'Employee ID', '$empId'),
-            
-            // Dynamic Fields from Backend
+            // Dynamic Fields (Filtered to Phone & Address)
             ...dynamicFields,
 
             const SizedBox(height: 40),

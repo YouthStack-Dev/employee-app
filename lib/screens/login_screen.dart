@@ -136,8 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Welcome Back', style: FxText.headlineMd()),
-                            const SizedBox(height: 24),
                             if (_isPhoneLogin)
                               _buildPhoneForm()
                             else
@@ -162,14 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
         FxTextField(
           controller: _tenantController,
           label: 'Tenant ID',
-          hint: 'e.g. CORP_GLOBAL',
+          hint: 'Tenant ID',
           prefixIcon: Icons.domain_rounded,
         ),
         const SizedBox(height: 16),
         FxTextField(
           controller: _usernameController,
-          label: 'Business Email',
-          hint: 'ID or business email',
+          label: 'Mail',
+          hint: 'ID or mail',
           prefixIcon: Icons.badge_outlined,
         ),
         const SizedBox(height: 16),
@@ -308,12 +306,6 @@ class _BrandHeader extends StatelessWidget {
                   child: const Icon(Icons.directions_car_rounded,
                       color: FxColors.primary, size: 32),
                 ),
-                const SizedBox(height: 16),
-                Text('MLT Mobility', style: FxText.headlineLg()),
-                const SizedBox(height: 4),
-                Text('CORPORATE TRANSPORT PORTAL',
-                    style: FxText.labelXs(color: FxColors.onSurfaceVariant)
-                        .copyWith(letterSpacing: 2.4)),
               ],
             ),
           ),

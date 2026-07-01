@@ -492,11 +492,8 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ],
               ),
             ),
-          const SizedBox(height: 12),
-          _kv('Shift ID', '${b.shiftId ?? "N/A"}'),
           _kv('Shift Time', (b.shiftTime ?? '').substring(0, (b.shiftTime ?? '').length.clamp(0, 5))),
-          _kv('Tenant', _tenantId ?? 'N/A'),
-          _kv('Type', b.logType ?? 'N/A'),
+          _kv('Type', b.logType?.toUpperCase() == 'IN' ? 'Login' : b.logType?.toUpperCase() == 'OUT' ? 'Logout' : (b.logType ?? 'N/A')),
         ],
       ),
     );

@@ -364,56 +364,78 @@ class FxRouteTimeline extends StatelessWidget {
     super.key,
     required this.pickup,
     required this.drop,
-    this.pickupLabel = 'Pickup Point',
-    this.dropLabel = 'Drop-off Destination',
+    this.pickupLabel = 'Pickup',
+    this.dropLabel = 'Drop-off',
     this.isActive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final activeColor = isActive ? FxColors.primary : FxColors.onSurfaceVariant;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
+        Positioned(
+          left: 5,
+          top: 16,
+          bottom: 36,
+          child: Container(
+            width: 2,
+            color: activeColor.withOpacity(isActive ? 0.3 : 0.12),
+          ),
+        ),
         Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isActive ? FxColors.primary : Colors.transparent,
-                border: Border.all(color: activeColor, width: 2),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 4, right: 14),
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isActive ? FxColors.primary : Colors.transparent,
+                    border: Border.all(color: activeColor, width: 2),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(pickup, style: FxText.titleSm()),
+                      Text(pickupLabel, style: FxText.bodySm()),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Container(
-              width: 2,
-              height: 38,
-              margin: const EdgeInsets.symmetric(vertical: 4),
-              color: activeColor.withOpacity(isActive ? 0.3 : 0.12),
-            ),
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: activeColor, width: 2),
-              ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 4, right: 14),
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: activeColor, width: 2),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(drop, style: FxText.titleSm()),
+                      Text(dropLabel, style: FxText.bodySm()),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(pickup, style: FxText.titleSm()),
-              Text(pickupLabel, style: FxText.bodySm()),
-              const SizedBox(height: 18),
-              Text(drop, style: FxText.titleSm()),
-              Text(dropLabel, style: FxText.bodySm()),
-            ],
-          ),
         ),
       ],
     );
