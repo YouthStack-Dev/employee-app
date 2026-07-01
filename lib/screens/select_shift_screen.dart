@@ -56,9 +56,18 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
 
       // Handle Shifts
       if (shiftResult['success']) {
+        // Gender-based shift visibility (strict split): a female employee sees
+        // only female-only shifts; everyone else sees all EXCEPT female-only.
+        // Gender comes from the login profile (persisted to prefs at login).
+        final prefs = await SharedPreferences.getInstance();
+        final viewerIsFemale = Shift.genderIsFemale(prefs.getString('gender'));
+
+        final inAll = (shiftResult['shifts']['in'] as List).cast<Shift>();
+        final outAll = (shiftResult['shifts']['out'] as List).cast<Shift>();
+
         setState(() {
-          _inShifts = (shiftResult['shifts']['in'] as List).cast<Shift>();
-          _outShifts = (shiftResult['shifts']['out'] as List).cast<Shift>();
+          _inShifts = Shift.visibleFor(inAll, viewerIsFemale: viewerIsFemale);
+          _outShifts = Shift.visibleFor(outAll, viewerIsFemale: viewerIsFemale);
           _weekoffDays = weekoffDays;
           _isLoading = false;
         });

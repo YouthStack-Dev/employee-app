@@ -8,20 +8,25 @@ class User {
   final String? phone;
   final String? department;
   final String? designation;
+  final String? gender;
   final Map<String, dynamic>? rawEmployeeData;
 
   User({
-    this.employeeId, 
-    this.username, 
-    this.tenantId, 
-    this.role, 
-    this.name, 
+    this.employeeId,
+    this.username,
+    this.tenantId,
+    this.role,
+    this.name,
     this.email,
     this.phone,
     this.department,
     this.designation,
+    this.gender,
     this.rawEmployeeData,
   });
+
+  /// True when the employee's profile gender is female (case-insensitive).
+  bool get isFemale => (gender ?? '').trim().toLowerCase() == 'female';
 
   factory User.fromJson(Map<String, dynamic> json) {
     // Navigate nested structure if needed based on API response
@@ -38,6 +43,7 @@ class User {
       phone: employee?['contact_number'] ?? employee?['phone_number'] ?? employee?['phone'],
       department: employee?['department'],
       designation: employee?['designation'],
+      gender: employee?['gender']?.toString(),
       rawEmployeeData: employee is Map<String, dynamic> ? employee : null,
     );
   }

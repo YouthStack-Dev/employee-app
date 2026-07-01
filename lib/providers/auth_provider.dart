@@ -134,6 +134,7 @@ class AuthProvider with ChangeNotifier {
       _user = User(
         employeeId: int.tryParse(employeeId),
         tenantId: tenantId,
+        gender: prefs.getString('gender'),
         // Add other fields if necessary or fetch full profile from API later
       );
       notifyListeners();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_theme.dart';
 import '../models/shift_model.dart';
 import '../services/booking_service.dart';
@@ -44,6 +45,20 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       final bookingObj = bookingRes['data'];
       List<Shift> inShifts = (shiftRes['shifts']['in'] as List).cast<Shift>();
       List<Shift> outShifts = (shiftRes['shifts']['out'] as List).cast<Shift>();
+
+      // Gender-based visibility (strict split), same rule as create-booking.
+      final prefs = await SharedPreferences.getInstance();
+      final viewerIsFemale = Shift.genderIsFemale(prefs.getString('gender'));
+      final all = [...inShifts, ...outShifts];
+      var selectable = Shift.visibleFor(all, viewerIsFemale: viewerIsFemale);
+      // Always keep the booking's current shift visible for context, even if
+      // the gender filter would otherwise hide it.
+      final currentId = bookingObj.shiftId;
+      if (currentId != null && !selectable.any((s) => s.shiftId == currentId)) {
+        final current = all.where((s) => s.shiftId == currentId).toList();
+        selectable = [...current, ...selectable];
+      }
+
       setState(() {
         _booking = {
           'id': bookingObj.id,
@@ -54,7 +69,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
           'drop_location': bookingObj.dropLocation,
           'log_type': bookingObj.logType,
         };
-        _shifts = [...inShifts, ...outShifts];
+        _shifts = selectable;
         _selectedShiftId = bookingObj.shiftId;
         _isLoading = false;
       });

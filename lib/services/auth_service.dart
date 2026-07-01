@@ -44,6 +44,9 @@ class AuthService {
              
              if (employee != null && employee['employee_id'] != null) {
                  await prefs.setString('employee_id', employee['employee_id'].toString());
+                 if (employee['gender'] != null) {
+                   await prefs.setString('gender', employee['gender'].toString());
+                 }
              }
         }
         
@@ -170,6 +173,9 @@ class AuthService {
              final employee = user['employee'];
              if (employee != null && employee['employee_id'] != null) {
                  await prefs.setString('employee_id', employee['employee_id'].toString());
+                 if (employee['gender'] != null) {
+                   await prefs.setString('gender', employee['gender'].toString());
+                 }
              }
         }
         
@@ -248,6 +254,9 @@ class AuthService {
           final employee = user['employee'];
           if (employee != null && employee['employee_id'] != null) {
             await prefs.setString('employee_id', employee['employee_id'].toString());
+            if (employee['gender'] != null) {
+              await prefs.setString('gender', employee['gender'].toString());
+            }
           }
         }
 
