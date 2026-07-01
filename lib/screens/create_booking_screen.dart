@@ -111,11 +111,6 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('New Booking', style: FxText.headlineLg()),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Pick the days you need transport — multi-select or a continuous range.',
-                            style: FxText.body(color: FxColors.onSurfaceVariant),
-                          ),
                         ],
                       ),
                     ),
@@ -149,21 +144,6 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                               _startDate = null;
                               _endDate = null;
                             }),
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: FxColors.primary.withOpacity(0.06),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border(left: BorderSide(color: FxColors.primary, width: 3)),
-                            ),
-                            child: Text(
-                              _selectionMode == 'single'
-                                  ? 'Tap multiple dates (e.g., 12th, 18th).'
-                                  : 'Tap to set start and end dates.',
-                              style: FxText.bodySm(color: FxColors.onPrimaryContainer),
-                            ),
                           ),
                         ],
                       ),
