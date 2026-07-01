@@ -37,8 +37,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       _bookingService.getBookingDetails(widget.bookingId),
       _shiftService.fetchShifts(),
     ]);
-    final bookingRes = results[0] as Map<String, dynamic>;
-    final shiftRes = results[1] as Map<String, dynamic>;
+    final bookingRes = results[0];
+    final shiftRes = results[1];
     if (!mounted) return;
     if (bookingRes['success'] && shiftRes['success']) {
       final bookingObj = bookingRes['data'];
@@ -75,31 +75,60 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       );
       return;
     }
+    final actionLabel = isCancelled ? 'Rebook' : 'Update';
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Update booking?', style: FxText.headlineSm()),
-        content: Text('Switch to the selected shift?', style: FxText.body()),
+        title: Text(
+          isCancelled ? 'Rebook cancelled booking?' : 'Update booking?',
+          style: FxText.headlineSm(),
+        ),
+        content: Text(
+          isCancelled
+              ? 'This will rebook the cancelled ride with the selected shift.'
+              : 'Switch to the selected shift?',
+          style: FxText.body(),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Update')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(actionLabel),
+          ),
         ],
       ),
     );
     if (confirm != true) return;
     setState(() => _isUpdating = true);
-    final result = await _bookingService.updateBooking(widget.bookingId, {'shift_id': _selectedShiftId});
+    final updatePayload = <String, dynamic>{'shift_id': _selectedShiftId};
+    if (isCancelled) {
+      updatePayload['rebook'] = true;
+      updatePayload['booking_date'] = _booking!['booking_date'];
+    }
+    final result = await _bookingService.updateBooking(
+      widget.bookingId,
+      updatePayload,
+    );
     if (!mounted) return;
     setState(() => _isUpdating = false);
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking updated'), backgroundColor: FxColors.primary),
+        SnackBar(
+          content: Text(isCancelled ? 'Booking rebooked' : 'Booking updated'),
+          backgroundColor: FxColors.primary,
+        ),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'] ?? 'Update failed'), backgroundColor: FxColors.error),
+        SnackBar(
+          content: Text(result['error'] ?? 'Update failed'),
+          backgroundColor: FxColors.error,
+        ),
       );
     }
   }
@@ -116,15 +145,20 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       return Scaffold(
         backgroundColor: FxColors.background,
         appBar: AppBar(),
-        body: Center(child: Text(_error!, style: FxText.body(color: FxColors.error))),
+        body: Center(
+          child: Text(_error!, style: FxText.body(color: FxColors.error)),
+        ),
       );
     }
 
+    final isCancelled = _booking!['status'] == 'Cancelled';
     final dateStr = _booking!['booking_date'];
     final date = DateTime.tryParse(dateStr) ?? DateTime.now();
     final formattedDate = DateFormat('EEEE, MMM d, yyyy').format(date);
-    final currentShift =
-        _shifts.firstWhere((s) => s.shiftId == _booking!['shift_id'], orElse: () => Shift(name: 'Unknown'));
+    final currentShift = _shifts.firstWhere(
+      (s) => s.shiftId == _booking!['shift_id'],
+      orElse: () => Shift(name: 'Unknown'),
+    );
 
     return Scaffold(
       backgroundColor: FxColors.background,
@@ -145,8 +179,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                         children: [
                           Text('Edit Booking', style: FxText.headlineLg()),
                           const SizedBox(height: 4),
-                          Text('Modify your scheduled shift transport details.',
-                              style: FxText.body(color: FxColors.onSurfaceVariant)),
+                          Text(
+                            'Modify your scheduled shift transport details.',
+                            style: FxText.body(
+                              color: FxColors.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -157,7 +195,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                         children: [
                           FxMetaLabel('Booking ID'),
                           const SizedBox(height: 4),
-                          Text('#MLT-${_booking!['id']}', style: FxText.headlineMd()),
+                          Text(
+                            '#MLT-${_booking!['id']}',
+                            style: FxText.headlineMd(),
+                          ),
                         ],
                       ),
                     ),
@@ -170,7 +211,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Booking Date', style: FxText.headlineSm()),
-                              FxPill(text: 'READ ONLY', color: FxColors.outline, background: FxColors.surfaceContainerLow),
+                              FxPill(
+                                text: 'READ ONLY',
+                                color: FxColors.outline,
+                                background: FxColors.surfaceContainerLow,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -180,7 +225,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             decoration: BoxDecoration(
                               color: FxColors.surfaceContainerLow,
                               borderRadius: BorderRadius.circular(12),
-                              border: const Border(left: BorderSide(color: FxColors.primary, width: 3)),
+                              border: const Border(
+                                left: BorderSide(
+                                  color: FxColors.primary,
+                                  width: 3,
+                                ),
+                              ),
                             ),
                             child: Text(formattedDate, style: FxText.title()),
                           ),
@@ -189,7 +239,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                     ),
                     const SizedBox(height: 16),
                     // Route Information (read-only from booking)
-                    if (_booking!['pickup_location'] != null || _booking!['drop_location'] != null)
+                    if (_booking!['pickup_location'] != null ||
+                        _booking!['drop_location'] != null)
                       FxCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,13 +254,22 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                                     color: FxColors.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Icons.route_rounded, color: FxColors.primary, size: 16),
+                                  child: const Icon(
+                                    Icons.route_rounded,
+                                    color: FxColors.primary,
+                                    size: 16,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
-                                Text('Route Information', style: FxText.headlineSm()),
+                                Text(
+                                  'Route Information',
+                                  style: FxText.headlineSm(),
+                                ),
                                 const Spacer(),
                                 FxPill(
-                                  text: (_booking!['log_type'] ?? 'IN') == 'IN' ? 'LOGIN' : 'LOGOUT',
+                                  text: (_booking!['log_type'] ?? 'IN') == 'IN'
+                                      ? 'LOGIN'
+                                      : 'LOGOUT',
                                   color: FxColors.primary,
                                   background: FxColors.primary.withOpacity(0.1),
                                 ),
@@ -217,15 +277,19 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             ),
                             const SizedBox(height: 14),
                             FxRouteTimeline(
-                              pickup: _booking!['pickup_location'] ?? 'Not specified',
-                              drop: _booking!['drop_location'] ?? 'Not specified',
+                              pickup:
+                                  _booking!['pickup_location'] ??
+                                  'Not specified',
+                              drop:
+                                  _booking!['drop_location'] ?? 'Not specified',
                               pickupLabel: 'PICKUP LOCATION',
                               dropLabel: 'DROP-OFF LOCATION',
                             ),
                           ],
                         ),
                       ),
-                    if (_booking!['pickup_location'] != null || _booking!['drop_location'] != null)
+                    if (_booking!['pickup_location'] != null ||
+                        _booking!['drop_location'] != null)
                       const SizedBox(height: 16),
                     FxCard(
                       child: Column(
@@ -238,15 +302,27 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFE7F8EE),
                               borderRadius: BorderRadius.circular(12),
-                              border: const Border(left: BorderSide(color: Color(0xFF00B894), width: 3)),
+                              border: const Border(
+                                left: BorderSide(
+                                  color: Color(0xFF00B894),
+                                  width: 3,
+                                ),
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(currentShift.shiftTime ?? '-', style: FxText.headlineMd()),
                                 Text(
-                                  currentShift.logType == 'IN' ? 'Login' : 'Logout',
-                                  style: FxText.titleSm(color: const Color(0xFF00B894)),
+                                  currentShift.shiftTime ?? '-',
+                                  style: FxText.headlineMd(),
+                                ),
+                                Text(
+                                  currentShift.logType == 'IN'
+                                      ? 'Login'
+                                      : 'Logout',
+                                  style: FxText.titleSm(
+                                    color: const Color(0xFF00B894),
+                                  ),
                                 ),
                               ],
                             ),
@@ -259,7 +335,12 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Choose New Shift', style: FxText.headlineSm()),
+                          Text(
+                            isCancelled
+                                ? 'Choose Rebook Shift'
+                                : 'Choose New Shift',
+                            style: FxText.headlineSm(),
+                          ),
                           const SizedBox(height: 12),
                           ..._shifts.map((s) => _shiftRow(s)),
                         ],
@@ -276,7 +357,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
           child: FxPrimaryButton(
-            label: _isUpdating ? 'Updating...' : 'Update booking',
+            label: _isUpdating
+                ? (isCancelled ? 'Rebooking...' : 'Updating...')
+                : (isCancelled ? 'Rebook booking' : 'Update booking'),
             trailingIcon: Icons.check_rounded,
             onPressed: _isUpdating ? null : _handleUpdate,
             loading: _isUpdating,
@@ -311,7 +394,9 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? FxColors.primary.withOpacity(0.08) : FxColors.surfaceContainerLow,
+          color: isSelected
+              ? FxColors.primary.withOpacity(0.08)
+              : FxColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? FxColors.primary : Colors.transparent,
@@ -348,8 +433,16 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.shiftTime ?? '-', style: FxText.title(color: isSelected ? FxColors.primary : FxColors.onSurface)),
-                  Text(s.logType == 'IN' ? 'Login' : 'Logout', style: FxText.bodySm()),
+                  Text(
+                    s.shiftTime ?? '-',
+                    style: FxText.title(
+                      color: isSelected ? FxColors.primary : FxColors.onSurface,
+                    ),
+                  ),
+                  Text(
+                    s.logType == 'IN' ? 'Login' : 'Logout',
+                    style: FxText.bodySm(),
+                  ),
                 ],
               ),
             ),

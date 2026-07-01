@@ -18,7 +18,11 @@ import 'track_driver_screen.dart';
 class BookingDetailsScreen extends StatefulWidget {
   final int bookingId;
   final bool isReadOnly;
-  const BookingDetailsScreen({super.key, required this.bookingId, this.isReadOnly = false});
+  const BookingDetailsScreen({
+    super.key,
+    required this.bookingId,
+    this.isReadOnly = false,
+  });
 
   @override
   State<BookingDetailsScreen> createState() => _BookingDetailsScreenState();
@@ -52,8 +56,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     if (result['success']) {
       final b = result['data'] as Booking;
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      String resolvedId = b.tenantId?.toString() ?? prefsTenantId ?? auth.user?.tenantId ?? 'SAM001';
-      if (resolvedId == '1' && (prefsTenantId != null || auth.user?.tenantId != null)) {
+      String resolvedId =
+          b.tenantId?.toString() ??
+          prefsTenantId ??
+          auth.user?.tenantId ??
+          'SAM001';
+      if (resolvedId == '1' &&
+          (prefsTenantId != null || auth.user?.tenantId != null)) {
         resolvedId = prefsTenantId ?? auth.user!.tenantId!;
       }
       RideReview? reviewData;
@@ -97,7 +106,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           style: FxText.body(color: FxColors.onSurfaceVariant),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep'),
+          ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: FxColors.error),
             onPressed: () => Navigator.pop(ctx, true),
@@ -113,12 +125,18 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     setState(() => _isCancelling = false);
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking cancelled'), backgroundColor: FxColors.primary),
+        const SnackBar(
+          content: Text('Booking cancelled'),
+          backgroundColor: FxColors.primary,
+        ),
       );
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['error'] ?? 'Failed'), backgroundColor: FxColors.error),
+        SnackBar(
+          content: Text(result['error'] ?? 'Failed'),
+          backgroundColor: FxColors.error,
+        ),
       );
     }
   }
@@ -126,7 +144,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   Future<void> _handleEdit() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => EditBookingScreen(bookingId: widget.bookingId)),
+      MaterialPageRoute(
+        builder: (_) => EditBookingScreen(bookingId: widget.bookingId),
+      ),
     );
     if (result == true) _fetchBookingDetails();
   }
@@ -160,10 +180,11 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (_) => ReviewScreen(
-                bookingId: widget.bookingId,
-                existingReview: _existingReview,
-              )),
+        builder: (_) => ReviewScreen(
+          bookingId: widget.bookingId,
+          existingReview: _existingReview,
+        ),
+      ),
     );
     if (result == true) _fetchBookingDetails();
   }
@@ -174,12 +195,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       backgroundColor: FxColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: FxColors.primary))
+            ? const Center(
+                child: CircularProgressIndicator(color: FxColors.primary),
+              )
             : _error != null
-                ? _errorView()
-                : _booking == null
-                    ? Center(child: Text('Booking not found', style: FxText.body()))
-                    : _buildBody(),
+            ? _errorView()
+            : _booking == null
+            ? Center(child: Text('Booking not found', style: FxText.body()))
+            : _buildBody(),
       ),
     );
   }
@@ -187,8 +210,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   Future<void> _setPolylines() async {
     final b = _booking;
     if (b == null || b.pickupLatitude == null || b.dropLatitude == null) return;
-    
-    PolylinePoints polylinePoints = PolylinePoints(apiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4');
+
+    PolylinePoints polylinePoints = PolylinePoints(
+      apiKey: 'AIzaSyDKZXT8Yc26YuBRUHIsd7gbaxkzbwUH3r4',
+    );
     try {
       PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
         request: PolylineRequest(
@@ -205,12 +230,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         }
         if (mounted) {
           setState(() {
-            _polylines.add(Polyline(
-              polylineId: const PolylineId('route'),
-              color: FxColors.primary,
-              width: 4,
-              points: polylineCoordinates,
-            ));
+            _polylines.add(
+              Polyline(
+                polylineId: const PolylineId('route'),
+                color: FxColors.primary,
+                width: 4,
+                points: polylineCoordinates,
+              ),
+            );
           });
           _frameMap();
         }
@@ -225,15 +252,17 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   void _fallbackStraightLine(Booking b) {
     if (mounted) {
       setState(() {
-        _polylines.add(Polyline(
-          polylineId: const PolylineId('route_fallback'),
-          color: FxColors.primary,
-          width: 4,
-          points: [
-            LatLng(b.pickupLatitude!, b.pickupLongitude!),
-            LatLng(b.dropLatitude!, b.dropLongitude!),
-          ],
-        ));
+        _polylines.add(
+          Polyline(
+            polylineId: const PolylineId('route_fallback'),
+            color: FxColors.primary,
+            width: 4,
+            points: [
+              LatLng(b.pickupLatitude!, b.pickupLongitude!),
+              LatLng(b.dropLatitude!, b.dropLongitude!),
+            ],
+          ),
+        );
       });
       _frameMap();
     }
@@ -252,12 +281,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       bounds = LatLngBounds(southwest: drop, northeast: pickup);
     } else if (pickup.longitude > drop.longitude) {
       bounds = LatLngBounds(
-          southwest: LatLng(pickup.latitude, drop.longitude),
-          northeast: LatLng(drop.latitude, pickup.longitude));
+        southwest: LatLng(pickup.latitude, drop.longitude),
+        northeast: LatLng(drop.latitude, pickup.longitude),
+      );
     } else if (pickup.latitude > drop.latitude) {
       bounds = LatLngBounds(
-          southwest: LatLng(drop.latitude, pickup.longitude),
-          northeast: LatLng(pickup.latitude, drop.longitude));
+        southwest: LatLng(drop.latitude, pickup.longitude),
+        northeast: LatLng(pickup.latitude, drop.longitude),
+      );
     } else {
       bounds = LatLngBounds(southwest: pickup, northeast: drop);
     }
@@ -272,9 +303,17 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, color: FxColors.error, size: 56),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: FxColors.error,
+              size: 56,
+            ),
             const SizedBox(height: 12),
-            Text(_error ?? '', textAlign: TextAlign.center, style: FxText.body(color: FxColors.error)),
+            Text(
+              _error ?? '',
+              textAlign: TextAlign.center,
+              style: FxText.body(color: FxColors.error),
+            ),
             const SizedBox(height: 16),
             FxPrimaryButton(label: 'Retry', onPressed: _fetchBookingDetails),
           ],
@@ -293,10 +332,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final isFutureOrToday = bookingDate != null && !bookingDate.isBefore(today);
-    final isRequestOrScheduled = b.status == 'Request' || b.status == 'Scheduled';
+    final isRequestOrScheduled =
+        b.status == 'Request' || b.status == 'Scheduled';
     final isCancelled = b.status == 'Cancelled';
     final canCancel = !widget.isReadOnly && isRequestOrScheduled;
-    final canEdit = !widget.isReadOnly && (isRequestOrScheduled || (isCancelled && isFutureOrToday));
+    final canEdit =
+        !widget.isReadOnly &&
+        (isRequestOrScheduled || (isCancelled && isFutureOrToday));
     final hasDriver = b.routeDetails?['driver_details'] != null;
     final canTrack = ['Scheduled', 'Ongoing'].contains(b.status) && hasDriver;
 
@@ -329,7 +371,10 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: FxColors.onSurface,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),
@@ -361,21 +406,32 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FxMetaLabel('Booking ID', color: FxColors.onPrimary.withOpacity(0.8)),
+                        FxMetaLabel(
+                          'Booking ID',
+                          color: FxColors.onPrimary.withOpacity(0.8),
+                        ),
                         const SizedBox(height: 4),
-                        Text('#MLT-${b.id ?? '------'}', style: FxText.headlineLg(color: FxColors.onPrimary)),
+                        Text(
+                          '#MLT-${b.id ?? '------'}',
+                          style: FxText.headlineLg(color: FxColors.onPrimary),
+                        ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.18),
                       borderRadius: FxRadii.pill,
                     ),
                     child: Text(
                       (b.status ?? 'Unknown').toUpperCase(),
-                      style: FxText.labelSm(color: FxColors.onPrimary).copyWith(fontWeight: FontWeight.w700),
+                      style: FxText.labelSm(
+                        color: FxColors.onPrimary,
+                      ).copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -383,12 +439,17 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Icon(Icons.calendar_month_rounded,
-                      color: FxColors.onPrimary.withOpacity(0.9), size: 18),
+                  Icon(
+                    Icons.calendar_month_rounded,
+                    color: FxColors.onPrimary.withOpacity(0.9),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     dateLabel.toString(),
-                    style: FxText.body(color: FxColors.onPrimary.withOpacity(0.95)),
+                    style: FxText.body(
+                      color: FxColors.onPrimary.withOpacity(0.95),
+                    ),
                   ),
                 ],
               ),
@@ -459,13 +520,21 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                     Marker(
                       markerId: const MarkerId('pickup'),
                       position: LatLng(b.pickupLatitude!, b.pickupLongitude!),
-                      infoWindow: InfoWindow(title: 'Pickup', snippet: b.pickupLocation),
+                      infoWindow: InfoWindow(
+                        title: 'Pickup',
+                        snippet: b.pickupLocation,
+                      ),
                     ),
                     Marker(
                       markerId: const MarkerId('drop'),
                       position: LatLng(b.dropLatitude!, b.dropLongitude!),
-                      infoWindow: InfoWindow(title: 'Drop-off', snippet: b.dropLocation),
-                      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+                      infoWindow: InfoWindow(
+                        title: 'Drop-off',
+                        snippet: b.dropLocation,
+                      ),
+                      icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueViolet,
+                      ),
                     ),
                   },
                   polylines: _polylines,
@@ -481,19 +550,42 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on_rounded, color: FxColors.primary, size: 14),
+                  const Icon(
+                    Icons.location_on_rounded,
+                    color: FxColors.primary,
+                    size: 14,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       '${b.pickupLatitude!.toStringAsFixed(4)}, ${b.pickupLongitude!.toStringAsFixed(4)}  →  ${b.dropLatitude!.toStringAsFixed(4)}, ${b.dropLongitude!.toStringAsFixed(4)}',
-                      style: FxText.bodySm().copyWith(fontFamily: 'monospace', fontSize: 11),
+                      style: FxText.bodySm().copyWith(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          _kv('Shift Time', (b.shiftTime ?? '').substring(0, (b.shiftTime ?? '').length.clamp(0, 5))),
-          _kv('Type', b.logType?.toUpperCase() == 'IN' ? 'Login' : b.logType?.toUpperCase() == 'OUT' ? 'Logout' : (b.logType ?? 'N/A')),
+          const SizedBox(height: 12),
+          _kv('Shift ID', '${b.shiftId ?? "N/A"}'),
+          _kv(
+            'Shift Time',
+            (b.shiftTime ?? '').substring(
+              0,
+              (b.shiftTime ?? '').length.clamp(0, 5),
+            ),
+          ),
+          _kv('Tenant', _tenantId ?? 'N/A'),
+          _kv(
+            'Type',
+            b.logType?.toUpperCase() == 'IN'
+                ? 'Login'
+                : b.logType?.toUpperCase() == 'OUT'
+                ? 'Logout'
+                : (b.logType ?? 'N/A'),
+          ),
         ],
       ),
     );
@@ -526,16 +618,22 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ride Verification', style: FxText.headlineSm(color: FxColors.onPrimaryContainer)),
+              Text(
+                'Ride Verification',
+                style: FxText.headlineSm(color: FxColors.onPrimaryContainer),
+              ),
               const Icon(Icons.verified_user_rounded, color: FxColors.primary),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              if (b.boardingOtp != null) Expanded(child: _otpBox('Boarding OTP', b.boardingOtp!)),
-              if (b.boardingOtp != null && b.deboardingOtp != null) const SizedBox(width: 12),
-              if (b.deboardingOtp != null) Expanded(child: _otpBox('Deboarding OTP', b.deboardingOtp!)),
+              if (b.boardingOtp != null)
+                Expanded(child: _otpBox('Boarding OTP', b.boardingOtp!)),
+              if (b.boardingOtp != null && b.deboardingOtp != null)
+                const SizedBox(width: 12),
+              if (b.deboardingOtp != null)
+                Expanded(child: _otpBox('Deboarding OTP', b.deboardingOtp!)),
             ],
           ),
           const SizedBox(height: 12),
@@ -560,30 +658,41 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         children: [
           FxMetaLabel(label, color: FxColors.primary.withOpacity(0.7)),
           const SizedBox(height: 8),
-          Text(value, style: FxText.headlineLg(color: FxColors.onPrimaryContainer)),
+          Text(
+            value,
+            style: FxText.headlineLg(color: FxColors.onPrimaryContainer),
+          ),
         ],
       ),
     );
   }
 
-  Widget _actionsGrid(Booking b, {required bool canCancel, required bool canEdit}) {
+  Widget _actionsGrid(
+    Booking b, {
+    required bool canCancel,
+    required bool canEdit,
+  }) {
     final children = <Widget>[];
 
     if (canEdit) {
-      children.add(_bentoAction(
-        Icons.edit_calendar_rounded,
-        b.status == 'Cancelled' ? 'Reactivate Booking' : 'Edit Booking',
-        FxColors.primary,
-        _handleEdit,
-      ));
+      children.add(
+        _bentoAction(
+          Icons.edit_calendar_rounded,
+          b.status == 'Cancelled' ? 'Rebook Booking' : 'Edit Booking',
+          FxColors.primary,
+          _handleEdit,
+        ),
+      );
     }
     if (canCancel) {
-      children.add(_bentoAction(
-        Icons.cancel_outlined,
-        _isCancelling ? 'Cancelling...' : 'Cancel Ride',
-        FxColors.error,
-        _isCancelling ? null : _handleCancel,
-      ));
+      children.add(
+        _bentoAction(
+          Icons.cancel_outlined,
+          _isCancelling ? 'Cancelling...' : 'Cancel Ride',
+          FxColors.error,
+          _isCancelling ? null : _handleCancel,
+        ),
+      );
     }
 
     return Column(
@@ -606,7 +715,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
-  Widget _bentoAction(IconData icon, String label, Color color, VoidCallback? onTap) {
+  Widget _bentoAction(
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback? onTap,
+  ) {
     return Material(
       color: FxColors.surfaceContainerLowest,
       borderRadius: FxRadii.card,
@@ -647,14 +761,20 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   color: FxColors.secondaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.star_rounded, color: FxColors.secondary),
+                child: const Icon(
+                  Icons.star_rounded,
+                  color: FxColors.secondary,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_hasReview ? 'View Your Review' : 'Rate this Ride', style: FxText.title()),
+                    Text(
+                      _hasReview ? 'View Your Review' : 'Rate this Ride',
+                      style: FxText.title(),
+                    ),
                     Text(
                       _hasReview
                           ? 'See what you said about this ride'
@@ -672,4 +792,3 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 }
-

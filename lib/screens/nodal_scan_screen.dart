@@ -365,7 +365,7 @@ class _NodalScanScreenState extends State<NodalScanScreen> {
               MobileScanner(
                 controller: _scannerController!,
                 onDetect: _onDetect,
-                errorBuilder: (context, error, child) => _scannerFallback(
+                errorBuilder: (context, error) => _scannerFallback(
                   icon: Icons.videocam_off_rounded,
                   text: 'Camera unavailable on this device.\nEnter the number below instead.',
                 ),
