@@ -32,6 +32,10 @@ class AnnouncementService {
         ),
       );
 
+      if (response.statusCode == 404) {
+        return {'success': true, 'data': <Announcement>[]};
+      }
+
       return _parseResponse(response, (data) {
         if (data == null) return [];
         return (data as List).map((json) => Announcement.fromJson(json)).toList();
