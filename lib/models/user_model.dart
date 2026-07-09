@@ -6,6 +6,7 @@ class User {
   final String? name;
   final String? email;
   final String? phone;
+  final String? address;
   final String? department;
   final String? designation;
   final String? gender;
@@ -19,6 +20,7 @@ class User {
     this.name,
     this.email,
     this.phone,
+    this.address,
     this.department,
     this.designation,
     this.gender,
@@ -41,6 +43,7 @@ class User {
       name: employee?['name'],
       email: employee?['email'],
       phone: employee?['contact_number'] ?? employee?['phone_number'] ?? employee?['phone'],
+      address: employee?['address'] ?? employee?['home_address'],
       department: employee?['department'],
       designation: employee?['designation'],
       gender: employee?['gender']?.toString(),

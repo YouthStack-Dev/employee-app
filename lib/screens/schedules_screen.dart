@@ -491,6 +491,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Text(name, style: FxText.headlineLg()),
             const SizedBox(height: 4),
             Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
+            if (user?.phone != null && user!.phone!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(user.phone!, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
+            ],
+            if (user?.address != null && user!.address!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(user.address!, style: FxText.bodyLg(color: FxColors.onSurfaceVariant), textAlign: TextAlign.center),
+            ],
             const SizedBox(height: 40),
             
             // Dynamic Fields (Filtered to Phone & Address)

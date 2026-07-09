@@ -57,6 +57,10 @@ class AuthService {
                  if (phone != null) {
                    await prefs.setString('phone', phone.toString());
                  }
+                 final address = employee['address'] ?? employee['home_address'];
+                 if (address != null) {
+                   await prefs.setString('address', address.toString());
+                 }
              }
         }
         

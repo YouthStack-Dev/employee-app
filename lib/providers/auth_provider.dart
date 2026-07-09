@@ -131,6 +131,7 @@ class AuthProvider with ChangeNotifier {
     final name = prefs.getString('name');
     final email = prefs.getString('email');
     final phone = prefs.getString('phone');
+    final address = prefs.getString('address');
 
     if (token != null && tenantId != null && employeeId != null) {
       _user = User(
@@ -140,6 +141,7 @@ class AuthProvider with ChangeNotifier {
         name: name,
         email: email,
         phone: phone,
+        address: address,
       );
       notifyListeners();
       return true;
