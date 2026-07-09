@@ -26,6 +26,23 @@ class ApiService {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
+        final authPaths = [
+          ApiConstants.login,
+          ApiConstants.requestOtp,
+          ApiConstants.verifyOtp,
+          ApiConstants.selectTenant,
+          ApiConstants.forgotPassword,
+          ApiConstants.forgotPasswordVerify,
+          ApiConstants.setPassword,
+        ];
+
+        final requestPath = e.requestOptions.path;
+        final isAuthEndpoint = authPaths.any((p) => requestPath.contains(p));
+
+        if (isAuthEndpoint) {
+          return handler.next(e);
+        }
+
         if (e.response?.statusCode == 401 && e.requestOptions.extra['_retry'] != true) {
           // Prevent infinite loop on 401 from retries
           e.requestOptions.extra['_retry'] = true;

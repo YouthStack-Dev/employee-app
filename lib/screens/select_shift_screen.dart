@@ -5,6 +5,7 @@ import '../services/shift_service.dart';
 import '../services/booking_service.dart';
 import '../services/weekoff_service.dart';
 import '../constants/app_colors.dart';
+import '../widgets/skeletons.dart';
 import 'booking_confirmation_screen.dart';
 
 class SelectShiftScreen extends StatefulWidget {
@@ -130,7 +131,18 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  SizedBox(height: 60),
+                  SkeletonShiftCard(),
+                  SkeletonShiftCard(),
+                  SkeletonShiftCard(),
+                  SkeletonShiftCard(),
+                ],
+              ),
+            )
           : Column(
               children: [
                 _buildHeader(),
@@ -183,14 +195,14 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
           ),
           child: Row(
               children: [
-                  _buildTabItem('🌅 Login (Pickup)', 'in'),
-                  _buildTabItem('🌆 Logout (Drop)', 'out'),
+                  _buildTabItem('Login', 'in', Icons.login_rounded),
+                  _buildTabItem('Logout', 'out', Icons.logout_rounded),
               ],
           ),
       );
   }
   
-  Widget _buildTabItem(String label, String type) {
+  Widget _buildTabItem(String label, String type, IconData icon) {
       final isSelected = _shiftType == type;
       return Expanded(
           child: GestureDetector(
@@ -202,12 +214,19 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
                       borderRadius: BorderRadius.circular(10),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                      label, 
-                      style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.grey[600],
-                          fontWeight: FontWeight.bold,
-                      ),
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                          Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey[600]),
+                          const SizedBox(width: 6),
+                          Text(
+                              label, 
+                              style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.grey[600],
+                                  fontWeight: FontWeight.bold,
+                              ),
+                          ),
+                      ],
                   ),
               ),
           ),
@@ -228,9 +247,25 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
       );
   }
 
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return '';
+    final parts = time.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return time;
+  }
+
+  String _formatGender(String? gender) {
+    final g = (gender ?? '').trim().toLowerCase();
+    if (g == 'male') return 'Male';
+    if (g == 'female') return 'Female';
+    return 'Both';
+  }
+
   Widget _buildShiftCard(Shift shift) {
       final isSelected = _selectedShift?.shiftId == shift.shiftId;
-      final isPickup = shift.logType == 'IN';
+      final isLogin = shift.logType == 'IN';
       
       return GestureDetector(
           onTap: () => _handleSelectShift(shift),
@@ -257,12 +292,19 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
                               Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                      color: isPickup ? const Color(0xFFFFEAA7) : const Color(0xFF74B9FF),
+                                      color: isLogin ? const Color(0xFFFFEAA7) : const Color(0xFF74B9FF),
                                       borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Text(
-                                      isPickup ? '🏠 Pickup' : '🏢 Drop',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                          Icon(isLogin ? Icons.login_rounded : Icons.logout_rounded, size: 14, color: Colors.black87),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                              isLogin ? 'Login' : 'Logout',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                      ],
                                   ),
                               ),
                               if (isSelected)
@@ -277,15 +319,21 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
                       Text(shift.shiftCode ?? shift.name ?? 'Shift', 
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 5),
-                      Text('⏰ ${shift.shiftTime ?? shift.startTime}', 
-                          style: const TextStyle(fontSize: 16, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                      Row(
+                          children: [
+                              const Icon(Icons.schedule_rounded, size: 18, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(_formatTime(shift.shiftTime ?? shift.startTime), 
+                                  style: const TextStyle(fontSize: 16, color: AppColors.primary, fontWeight: FontWeight.bold)),
+                          ],
+                      ),
                       const SizedBox(height: 10),
                       const Divider(),
                       Row(
                           children: [
-                              Text('👤 ${shift.gender ?? 'Any'}', style: TextStyle(color: Colors.grey[600])),
-                              const SizedBox(width: 20),
-                              Text('📍 ${shift.pickupType ?? 'Pickup'}', style: TextStyle(color: Colors.grey[600])),
+                              const Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(_formatGender(shift.gender), style: TextStyle(color: Colors.grey[600])),
                           ],
                       ),
                   ],

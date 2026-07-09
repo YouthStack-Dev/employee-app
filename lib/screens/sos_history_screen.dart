@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../constants/app_theme.dart';
 import '../services/alert_service.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'sos_details_screen.dart';
 
 class SosHistoryScreen extends StatefulWidget {
@@ -117,8 +118,16 @@ class _SosHistoryScreenState extends State<SosHistoryScreen> {
                   const SizedBox(height: 24),
                   if (_isLoading)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 60),
-                      child: Center(child: CircularProgressIndicator(color: FxColors.error)),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Column(
+                        children: [
+                          SkeletonAlertCard(),
+                          SizedBox(height: 8),
+                          SkeletonAlertCard(),
+                          SizedBox(height: 8),
+                          SkeletonAlertCard(),
+                        ],
+                      ),
                     )
                   else if (_error != null)
                     _errorView()

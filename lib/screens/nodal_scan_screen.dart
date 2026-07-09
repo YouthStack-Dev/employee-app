@@ -6,6 +6,7 @@ import '../constants/app_theme.dart';
 import '../models/nodal_models.dart';
 import '../providers/nodal_provider.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 
 /// Nodal QR onboarding: scan the vehicle's RC-number QR (or type it) to mark
 /// yourself boarded at the nodal point.
@@ -295,20 +296,7 @@ class _NodalScanScreenState extends State<NodalScanScreen> {
     return Consumer<NodalProvider>(
       builder: (context, nodal, _) {
         if (nodal.isLoadingAssignment && nodal.assignment == null) {
-          return FxTonalCard(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: FxColors.primary),
-                ),
-                const SizedBox(width: 12),
-                Text('Loading your hub…', style: FxText.bodySm()),
-              ],
-            ),
-          );
+          return const SkeletonAssignmentCard();
         }
         final hub = nodal.assignment;
         if (hub == null) {

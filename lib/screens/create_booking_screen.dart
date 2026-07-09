@@ -5,6 +5,7 @@ import '../constants/app_theme.dart';
 import '../services/weekoff_service.dart';
 import '../widgets/calendar_widget.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'select_shift_screen.dart';
 
 class CreateBookingScreen extends StatefulWidget {
@@ -85,9 +86,21 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: FxColors.background,
-        body: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _topBar(),
+              const Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 100),
+                  child: SkeletonCalendar(),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
     final count = _workingDayCount();

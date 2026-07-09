@@ -41,19 +41,25 @@ class Shift {
     );
   }
 
-  /// A shift whose `gender` is explicitly "Female" (case-insensitive) — a
-  /// female-only shift. Male / Other / null are treated as general.
+  /// A shift whose `gender` is explicitly "Female" (case-insensitive).
   bool get isFemaleOnly => (gender ?? '').trim().toLowerCase() == 'female';
 
-  /// Gender-based visibility ("strict split"):
-  ///  - a female viewer sees ONLY female-only shifts
-  ///  - everyone else (male / other / unknown) sees everything EXCEPT
-  ///    female-only shifts
+  /// A shift whose `gender` is explicitly "Male" (case-insensitive).
+  bool get isMaleOnly => (gender ?? '').trim().toLowerCase() == 'male';
+
+  /// Any gender value other than "male" / "female" is treated as "both".
+  bool get isBothGender => !isFemaleOnly && !isMaleOnly;
+
+  /// Gender-based visibility:
+  ///  - female viewer sees female-only + both-gender shifts
+  ///  - male viewer sees male-only + both-gender shifts
+  ///  - other / unknown viewer sees all shifts
   static List<Shift> visibleFor(List<Shift> shifts, {required bool viewerIsFemale}) {
-    if (viewerIsFemale) {
-      return shifts.where((s) => s.isFemaleOnly).toList();
-    }
-    return shifts.where((s) => !s.isFemaleOnly).toList();
+    return shifts.where((s) {
+      if (s.isBothGender) return true;
+      if (viewerIsFemale) return s.isFemaleOnly;
+      return s.isMaleOnly;
+    }).toList();
   }
 
   /// Whether a profile gender string denotes female (case-insensitive).

@@ -11,6 +11,7 @@ import '../providers/auth_provider.dart';
 import '../services/booking_service.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'edit_booking_screen.dart';
 import 'review_screen.dart';
 import 'track_driver_screen.dart';
@@ -38,6 +39,13 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   bool _isLoading = true;
   bool _isCancelling = false;
   String? _error;
+
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return '--:--';
+    final parts = time.split(':');
+    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
+    return time;
+  }
   GoogleMapController? _mapController;
   Set<Polyline> _polylines = {};
 
@@ -195,8 +203,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
       backgroundColor: FxColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: FxColors.primary),
+            ? const SingleChildScrollView(
+                padding: EdgeInsets.all(20),
+                child: SkeletonBookingDetailsCard(),
               )
             : _error != null
             ? _errorView()
@@ -349,9 +358,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              _statusHero(b, dateLabel, canTrack),
-              const SizedBox(height: 16),
-              _routeCard(b),
+              _mergedCard(b, dateLabel, canTrack),
               if (b.boardingOtp != null || b.deboardingOtp != null) ...[
                 const SizedBox(height: 16),
                 _otpCard(b),
@@ -378,7 +385,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           const SizedBox(width: 4),
-          Text('MLT Mobility', style: FxText.headlineMd()),
+          Text('Booking Details', style: FxText.headlineMd()),
           const Spacer(),
           const Icon(Icons.notifications_outlined, color: FxColors.primary),
         ],
@@ -386,111 +393,87 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
-  Widget _statusHero(Booking b, String dateLabel, bool canTrack) {
-    return Stack(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            gradient: FxGradients.indigo,
-            borderRadius: FxRadii.card,
-            boxShadow: FxShadows.button,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FxMetaLabel(
-                          'Booking ID',
-                          color: FxColors.onPrimary.withOpacity(0.8),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '#MLT-${b.id ?? '------'}',
-                          style: FxText.headlineLg(color: FxColors.onPrimary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: FxRadii.pill,
-                    ),
-                    child: Text(
-                      (b.status ?? 'Unknown').toUpperCase(),
-                      style: FxText.labelSm(
-                        color: FxColors.onPrimary,
-                      ).copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_rounded,
-                    color: FxColors.onPrimary.withOpacity(0.9),
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    dateLabel.toString(),
-                    style: FxText.body(
-                      color: FxColors.onPrimary.withOpacity(0.95),
-                    ),
-                  ),
-                ],
-              ),
-              if (canTrack) ...[
-                const SizedBox(height: 24),
-                FxPrimaryButton(
-                  label: 'Track Driver',
-                  leadingIcon: Icons.explore_rounded,
-                  onPressed: _handleTrack,
-                ),
-              ],
-            ],
-          ),
-        ),
-        // Decorative flare
-        Positioned(
-          right: -32,
-          top: -32,
-          child: IgnorePointer(
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: FxColors.primaryContainer.withOpacity(0.18),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _routeCard(Booking b) {
+  Widget _mergedCard(Booking b, String dateLabel, bool canTrack) {
+    final isLogin = b.logType == 'IN';
     return FxCard(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Trip Route', style: FxText.headlineSm()),
+          // Header
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FxMetaLabel('Booking ID'),
+                    const SizedBox(height: 4),
+                    Text(
+                      '#MLT-${b.id ?? '------'}',
+                      style: FxText.headlineLg(),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: FxColors.primary.withOpacity(0.1),
+                  borderRadius: FxRadii.pill,
+                ),
+                child: Text(
+                  (b.status ?? 'Unknown').toUpperCase(),
+                  style: FxText.labelSm(
+                    color: FxColors.primary,
+                  ).copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
+          // Date
+          Row(
+            children: [
+              const Icon(Icons.calendar_month_outlined, size: 16, color: FxColors.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(dateLabel.toString(), style: FxText.title()),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Time and Type
+          Row(
+            children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: FxColors.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(_formatTime(b.shiftTime ?? b.pickupTime), style: FxText.title()),
+              const SizedBox(width: 16),
+              Icon(
+                isLogin ? Icons.login_rounded : Icons.logout_rounded,
+                size: 16,
+                color: FxColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isLogin ? 'Login' : 'Logout',
+                style: FxText.title(color: FxColors.onSurfaceVariant),
+              ),
+            ],
+          ),
+          if (canTrack) ...[
+            const SizedBox(height: 16),
+            FxPrimaryButton(
+              label: 'Track Driver',
+              leadingIcon: Icons.explore_rounded,
+              onPressed: _handleTrack,
+            ),
+          ],
+          const SizedBox(height: 20),
+          // Route Timeline
           FxRouteTimeline(
             pickup: b.pickupLocation ?? 'Pickup point',
             drop: b.dropLocation ?? 'Drop-off',
@@ -498,8 +481,9 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
             dropLabel: 'DROP-OFF',
             isActive: b.status == 'Ongoing',
           ),
-          const SizedBox(height: 16),
-          if ((b.pickupLatitude ?? 0) != 0 && (b.dropLatitude ?? 0) != 0)
+          // Map
+          if ((b.pickupLatitude ?? 0) != 0 && (b.dropLatitude ?? 0) != 0) ...[
+            const SizedBox(height: 16),
             ClipRRect(
               borderRadius: FxRadii.card,
               child: SizedBox(
@@ -545,47 +529,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                 ),
               ),
             ),
-          if ((b.pickupLatitude ?? 0) != 0 && (b.dropLatitude ?? 0) != 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    color: FxColors.primary,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      '${b.pickupLatitude!.toStringAsFixed(4)}, ${b.pickupLongitude!.toStringAsFixed(4)}  →  ${b.dropLatitude!.toStringAsFixed(4)}, ${b.dropLongitude!.toStringAsFixed(4)}',
-                      style: FxText.bodySm().copyWith(
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 12),
-          _kv('Shift ID', '${b.shiftId ?? "N/A"}'),
-          _kv(
-            'Shift Time',
-            (b.shiftTime ?? '').substring(
-              0,
-              (b.shiftTime ?? '').length.clamp(0, 5),
-            ),
-          ),
-          _kv('Tenant', _tenantId ?? 'N/A'),
-          _kv(
-            'Type',
-            b.logType?.toUpperCase() == 'IN'
-                ? 'Login'
-                : b.logType?.toUpperCase() == 'OUT'
-                ? 'Logout'
-                : (b.logType ?? 'N/A'),
-          ),
+          ],
         ],
       ),
     );

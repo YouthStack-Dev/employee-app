@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'announcements_screen.dart';
 import 'notification_history_screen.dart';
 import 'booking_details_screen.dart';
@@ -214,8 +215,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     const SizedBox(height: 16),
                     if (provider.isLoading && inWindow.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
-                        child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Column(
+                          children: [
+                            SkeletonRideCard(),
+                            SkeletonRideCard(),
+                            SkeletonRideCard(),
+                          ],
+                        ),
                       ),
                     if (activeRide != null) _activeRideCard(activeRide),
                     if (activeRide != null) const SizedBox(height: 16),
@@ -492,6 +499,20 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Text(name, style: FxText.headlineLg()),
             const SizedBox(height: 4),
             Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            if (user?.gender != null)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    user!.isFemale ? Icons.female_rounded : Icons.male_rounded,
+                    size: 18,
+                    color: FxColors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(user!.gender!, style: FxText.bodySm(color: FxColors.onSurfaceVariant)),
+                ],
+              ),
             const SizedBox(height: 40),
             
             // Dynamic Fields (Filtered to Phone & Address)
@@ -587,7 +608,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   Widget _activeRideCard(Booking b) {
-    final timeRange = _formatTimeRange(b);
+    final formattedTime = _formatTime(b);
+    final isLogin = b.logType == 'IN';
     final vehicle = b.routeDetails?['vehicle_details']?['vehicle_name']?.toString() ?? 'Vehicle assigned';
     final plate = b.routeDetails?['vehicle_details']?['plate_number']?.toString() ?? '';
     return FxCard(
@@ -618,7 +640,13 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                         children: [
                           FxMetaLabel('Ongoing Journey'),
                           const SizedBox(height: 2),
-                          Text(timeRange, style: FxText.headlineMd(color: FxColors.primary)),
+                          Row(
+                            children: [
+                              Icon(isLogin ? Icons.login_rounded : Icons.logout_rounded, size: 18, color: FxColors.primary),
+                              const SizedBox(width: 6),
+                              Text(formattedTime, style: FxText.headlineMd(color: FxColors.primary)),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -751,7 +779,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }
 
   Widget _scheduledRideCard(Booking b, {required bool isHistory}) {
-    final timeRange = _formatTimeRange(b);
+    final formattedTime = _formatTime(b);
     final isLogin = b.logType == 'IN';
     final dateLabel = _humanDate(b.date);
     final status = b.status ?? 'Scheduled';
@@ -782,9 +810,15 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    FxMetaLabel('$dateLabel • ${isLogin ? 'LOGIN' : 'LOGOUT'}'),
+                    FxMetaLabel(dateLabel),
                     const SizedBox(height: 2),
-                    Text(timeRange, style: FxText.headlineMd()),
+                    Row(
+                      children: [
+                        Icon(isLogin ? Icons.login_rounded : Icons.logout_rounded, size: 18, color: FxColors.primary),
+                        const SizedBox(width: 6),
+                        Text(formattedTime, style: FxText.headlineMd()),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -970,8 +1004,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                   const SizedBox(height: 24),
                   if (provider.isLoading)
                     const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Column(
+                        children: [
+                          SkeletonRideCard(),
+                          SkeletonRideCard(),
+                          SkeletonRideCard(),
+                        ],
+                      ),
                     )
                   else if (filtered.isEmpty)
                     _emptyState(Icons.history_toggle_off,
@@ -1048,27 +1088,10 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     );
   }
 
-  String _formatTimeRange(Booking b) {
+  String _formatTime(Booking b) {
     final raw = b.shiftTime ?? b.pickupTime ?? '';
     if (raw.isEmpty) return '--:--';
-    final t = raw.length > 5 ? raw.substring(0, 5) : raw;
-
-    // Use backend drop time if available
-    String? dropTime = b.dropTime ?? b.routeDetails?['drop_time']?.toString() ?? b.routeDetails?['estimated_drop_time']?.toString();
-    if (dropTime != null && dropTime.isNotEmpty) {
-      final dt = dropTime.length > 5 ? dropTime.substring(0, 5) : dropTime;
-      return '$t - $dt';
-    }
-
-    // Fallback: Add a 45-minute "estimated arrival" upper bound for the time-range look.
-    final parts = t.split(':');
-    if (parts.length < 2) return t;
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = int.tryParse(parts[1]) ?? 0;
-    final total = h * 60 + m + 45;
-    final hh = (total ~/ 60) % 24;
-    final mm = total % 60;
-    return '$t - ${hh.toString().padLeft(2, '0')}:${mm.toString().padLeft(2, '0')}';
+    return raw.length > 5 ? raw.substring(0, 5) : raw;
   }
 
   String _humanDate(String? raw) {

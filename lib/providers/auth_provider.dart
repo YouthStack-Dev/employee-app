@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
@@ -14,10 +15,17 @@ class AuthProvider with ChangeNotifier {
   String? _error;
   String? _passwordSetToken; // held in memory between forgot-verify and set-password
 
+  // OTP multi-tenant flow
+  List<Map<String, dynamic>>? _availableTenants;
+  String? _preAuthToken;
+  bool _needsTenantSelection = false;
+
   User? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get passwordSetToken => _passwordSetToken;
+  List<Map<String, dynamic>>? get availableTenants => _availableTenants;
+  bool get needsTenantSelection => _needsTenantSelection;
 
   Future<bool> login(String tenantId, String username, String password) async {
     _isLoading = true;
@@ -32,8 +40,8 @@ class AuthProvider with ChangeNotifier {
       _error = null;
       notifyListeners();
       
-      // Register Push Token
-      await NotificationService().registerToken();
+      // Register Push Token in background (don't block login)
+      NotificationService().registerToken();
       
       return true;
     } else {
@@ -100,7 +108,7 @@ class AuthProvider with ChangeNotifier {
     _isLoading = false;
     if (result['success'] == true) {
       _passwordSetToken = null;
-      await NotificationService().registerToken();
+      NotificationService().registerToken();
       notifyListeners();
       return true;
     }
@@ -133,6 +141,14 @@ class AuthProvider with ChangeNotifier {
     final phone = prefs.getString('phone');
     final address = prefs.getString('address');
 
+    Map<String, dynamic>? rawEmployeeData;
+    final raw = prefs.getString('raw_employee_data');
+    if (raw != null) {
+      try {
+        rawEmployeeData = Map<String, dynamic>.from(jsonDecode(raw));
+      } catch (_) {}
+    }
+
     if (token != null && tenantId != null && employeeId != null) {
       _user = User(
         employeeId: int.tryParse(employeeId),
@@ -142,6 +158,7 @@ class AuthProvider with ChangeNotifier {
         email: email,
         phone: phone,
         address: address,
+        rawEmployeeData: rawEmployeeData,
       );
       notifyListeners();
       return true;
@@ -177,6 +194,9 @@ class AuthProvider with ChangeNotifier {
   Future<bool> verifyOtp(String phoneNumber, String otp) async {
     _isLoading = true;
     _error = null;
+    _needsTenantSelection = false;
+    _availableTenants = null;
+    _preAuthToken = null;
     notifyListeners();
 
     // 1. Verify OTP -> Get Pre-Auth Token & Tenant List
@@ -200,8 +220,17 @@ class AuthProvider with ChangeNotifier {
        return false;
     }
 
-    // 2. Auto-Select First Tenant (Assumption for current UI flow)
-    // Safe extraction
+    // Multiple tenants — store and let UI choose
+    if (availableTenants.length > 1) {
+      _availableTenants = availableTenants.cast<Map<String, dynamic>>();
+      _preAuthToken = preAuthToken;
+      _needsTenantSelection = true;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+
+    // 2. Single tenant — auto-select
     final firstTenant = availableTenants[0];
     if (firstTenant is! Map || firstTenant['tenant_id'] == null) {
         _isLoading = false;
@@ -219,8 +248,45 @@ class AuthProvider with ChangeNotifier {
     if (loginResult['success']) {
       _user = loginResult['user'];
       _error = null;
+      _needsTenantSelection = false;
+      _availableTenants = null;
+      _preAuthToken = null;
       notifyListeners();
-      await NotificationService().registerToken();
+      NotificationService().registerToken();
+      return true;
+    } else {
+      _error = loginResult['error'];
+      _needsTenantSelection = false;
+      _availableTenants = null;
+      _preAuthToken = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> selectOtpTenant(String tenantId) async {
+    if (_preAuthToken == null) {
+      _error = 'Session expired. Please restart login.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final loginResult = await _authService.selectTenant(_preAuthToken!, tenantId);
+
+    _isLoading = false;
+    _needsTenantSelection = false;
+    _availableTenants = null;
+    _preAuthToken = null;
+
+    if (loginResult['success']) {
+      _user = loginResult['user'];
+      _error = null;
+      notifyListeners();
+      NotificationService().registerToken();
       return true;
     } else {
       _error = loginResult['error'];

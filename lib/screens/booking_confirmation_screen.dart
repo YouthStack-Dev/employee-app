@@ -167,7 +167,13 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     const Text('📅 Booking Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+                     Row(
+                         children: [
+                             Icon(Icons.calendar_month_outlined, size: 22, color: Color(0xFF2D3436)),
+                             SizedBox(width: 8),
+                             Text('Booking Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+                         ],
+                     ),
                      const Divider(height: 30),
                      
                      _buildRow('Type', selectionMode == 'single' ? 'Specific Dates' : 'Date Range'),
@@ -215,30 +221,14 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                     const Text('🚗 Shift Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
+                     const Text('Shift Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3436))),
                      const Divider(height: 30),
-                     
-                     Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                           decoration: BoxDecoration(
-                             color: shift.logType == 'IN' ? const Color(0xFFFFEAA7) : const Color(0xFF74B9FF),
-                             borderRadius: BorderRadius.circular(20),
-                           ),
-                           child: Text(
-                             shift.logType == 'IN' ? '🏠 Pickup' : '🏢 Drop',
-                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF2D3436)),
-                           ),
-                        ),
-                     ),
-                     const SizedBox(height: 15),
                      
                      _buildRow('Shift Code', shift.shiftCode ?? '-'),
                      const SizedBox(height: 12),
-                     _buildRow('Time', '⏰ ${shift.shiftTime ?? shift.startTime}'),
+                     _buildTimeRow(_formatTime(shift.shiftTime ?? shift.startTime)),
                      const SizedBox(height: 12),
-                     _buildRow('Pickup Type', shift.pickupType ?? 'Standard'),
+                     _buildShiftTypeRow(shift.logType),
                   ],
                 ),
               ),
@@ -307,12 +297,54 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     );
   }
 
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return '-';
+    final parts = time.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return time;
+  }
+
   Widget _buildRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
          Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF636E72), fontWeight: FontWeight.w600)),
          Text(value, style: const TextStyle(fontSize: 14, color: Color(0xFF2D3436), fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildTimeRow(String time) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+         Text('Time', style: const TextStyle(fontSize: 14, color: Color(0xFF636E72), fontWeight: FontWeight.w600)),
+         Row(
+           children: [
+             Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF2D3436)),
+             SizedBox(width: 6),
+             Text(time, style: const TextStyle(fontSize: 14, color: Color(0xFF2D3436), fontWeight: FontWeight.bold)),
+           ],
+         ),
+      ],
+    );
+  }
+
+  Widget _buildShiftTypeRow(String? logType) {
+    final bool isLogin = logType == 'IN';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+         Text('Type', style: const TextStyle(fontSize: 14, color: Color(0xFF636E72), fontWeight: FontWeight.w600)),
+         Row(
+           children: [
+             Icon(isLogin ? Icons.login_rounded : Icons.logout_rounded, size: 16, color: Color(0xFF2D3436)),
+             SizedBox(width: 6),
+             Text(isLogin ? 'Login' : 'Logout', style: const TextStyle(fontSize: 14, color: Color(0xFF2D3436), fontWeight: FontWeight.bold)),
+           ],
+         ),
       ],
     );
   }

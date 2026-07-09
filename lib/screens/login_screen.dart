@@ -17,24 +17,25 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _tenantController = TextEditingController();
   final _usernameController = TextEditingController();
-  final _emailFocusNode = FocusNode();
   final _passwordController = TextEditingController();
-
-  bool _isPhoneLogin = false;
-  final _phoneController = TextEditingController();
-  final _otpController = TextEditingController();
-  bool _isOtpSent = false;
   bool _isPasswordVisible = false;
+
+  String? _tenantError;
+  String? _usernameError;
+  String? _passwordError;
+
+  // OTP toggle state
+  bool _showPasswordLogin = false;
+  bool _showPhoneOtp = false;
+  final _otpEmailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _otpCodeController = TextEditingController();
+  bool _isOtpSent = false;
 
   @override
   void initState() {
     super.initState();
     _requestPermissions();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isPhoneLogin) {
-        _emailFocusNode.requestFocus();
-      }
-    });
   }
 
   Future<void> _requestPermissions() async {
@@ -45,62 +46,124 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _tenantController.dispose();
     _usernameController.dispose();
-    _emailFocusNode.dispose();
     _passwordController.dispose();
+    _otpEmailController.dispose();
     _phoneController.dispose();
-    _otpController.dispose();
+    _otpCodeController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.login(
-      _tenantController.text,
-      _usernameController.text,
-      _passwordController.text,
-    );
+    final tenantId = _tenantController.text.trim();
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    setState(() {
+      _tenantError = tenantId.isEmpty ? 'Please enter your Tenant ID' : null;
+      _usernameError = username.isEmpty ? 'Please enter your email or username' : null;
+      _passwordError = password.isEmpty ? 'Please enter your password' : null;
+    });
+
+    if (_tenantError != null || _usernameError != null || _passwordError != null) return;
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final success = await auth.login(tenantId, username, password);
+
     if (!mounted) return;
+
     if (success) {
       TrackingService.logEvent('email_login_success');
       Navigator.pushReplacementNamed(context, '/schedules');
     } else {
-      _toast(authProvider.error ?? 'Login failed', error: true);
+      _toast(auth.error ?? 'Login failed', error: true);
     }
   }
 
-  Future<void> _handleSendOtp() async {
-    if (_phoneController.text.isEmpty) {
-      _toast('Please enter phone number');
+  Future<void> _handleSendOtp({required bool isEmail}) async {
+    final username = isEmail ? _otpEmailController.text.trim() : _phoneController.text.trim();
+    if (username.isEmpty) {
+      _toast(isEmail ? 'Please enter your email' : 'Please enter your phone number', error: true);
       return;
     }
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final ok = await auth.sendOtp(_phoneController.text);
+    final result = await auth.sendOtp(username);
+
     if (!mounted) return;
-    if (ok) {
+
+    if (result) {
       setState(() => _isOtpSent = true);
-      _toast('OTP Sent');
+      _toast('OTP sent successfully');
     } else {
       _toast(auth.error ?? 'Failed to send OTP', error: true);
     }
   }
 
-  Future<void> _handleVerifyOtp() async {
-    if (_otpController.text.isEmpty) {
-      _toast('Please enter OTP');
+  Future<void> _handleVerifyOtp({required bool isEmail}) async {
+    final username = isEmail ? _otpEmailController.text.trim() : _phoneController.text.trim();
+    final otp = _otpCodeController.text.trim();
+
+    if (otp.isEmpty) {
+      _toast('Please enter the OTP', error: true);
       return;
     }
+
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final ok = await auth.verifyOtp(_phoneController.text, _otpController.text);
+    final success = await auth.verifyOtp(username, otp);
+
     if (!mounted) return;
-    if (ok) {
-      TrackingService.logEvent('mobile_login_success');
+
+    if (success) {
+      TrackingService.logEvent(isEmail ? 'email_otp_login_success' : 'mobile_login_success');
       Navigator.pushReplacementNamed(context, '/schedules');
+    } else if (auth.needsTenantSelection) {
+      _showTenantPicker(auth);
     } else {
       _toast(auth.error ?? 'Invalid OTP', error: true);
     }
   }
 
+  void _showTenantPicker(AuthProvider auth) {
+    final tenants = auth.availableTenants;
+    if (tenants == null || tenants.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Organization'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: tenants.map((t) {
+            final id = t['tenant_id'] ?? '';
+            final name = t['name'] ?? id;
+            return ListTile(
+              leading: const Icon(Icons.domain_rounded, color: FxColors.primary),
+              title: Text(name.toString(), style: FxText.titleSm()),
+              subtitle: Text(id.toString(), style: FxText.bodySm()),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final ok = await auth.selectOtpTenant(id.toString());
+                if (!mounted) return;
+                if (ok) {
+                  Navigator.pushReplacementNamed(context, '/schedules');
+                } else {
+                  _toast(auth.error ?? 'Failed to select organization', error: true);
+                }
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _toast(String msg, {bool error = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -117,7 +180,6 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: FxColors.background,
       body: Stack(
         children: [
-          // Background footer strip anchored to bottom
           Positioned(
             left: 0,
             right: 0,
@@ -127,15 +189,12 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: const BoxDecoration(gradient: FxGradients.indigoFooter),
             ),
           ),
-          // Scrollable content
           Positioned.fill(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 24),
               child: Column(
                 children: [
-                  // Decorative geometric header (dot grid + fade)
                   _BrandHeader(),
-                  // Card body overlapping the header slightly
                   Transform.translate(
                     offset: const Offset(0, -40),
                     child: Padding(
@@ -143,15 +202,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: FxCard(
                         padding: const EdgeInsets.all(24),
                         borderRadius: BorderRadius.circular(28),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_isPhoneLogin)
-                              _buildPhoneForm()
-                            else
-                              _buildEmailForm(),
-                          ],
-                        ),
+                        child: _showPasswordLogin || _showPhoneOtp
+                            ? (_showPasswordLogin ? _buildPasswordForm() : _buildOtpForm())
+                            : _buildOtpForm(),
                       ),
                     ),
                   ),
@@ -164,32 +217,61 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildEmailForm() {
+  Widget _buildPasswordForm() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () => setState(() {
+                _showPasswordLogin = false;
+                _showPhoneOtp = false;
+                _isOtpSent = false;
+                _otpCodeController.clear();
+              }),
+              child: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+            ),
+            const SizedBox(width: 12),
+            Text('Login to fleet account', style: FxText.headlineMd()),
+          ],
+        ),
+        const SizedBox(height: 24),
         FxTextField(
           controller: _tenantController,
           label: 'Tenant ID',
-          hint: 'Tenant ID',
+          hint: 'Your organization ID',
           prefixIcon: Icons.domain_rounded,
+          errorText: _tenantError,
+          onChanged: (_) {
+            if (_tenantError != null) setState(() => _tenantError = null);
+          },
         ),
         const SizedBox(height: 16),
         FxTextField(
           controller: _usernameController,
-          focusNode: _emailFocusNode,
-          label: 'Mail',
-          hint: 'ID or mail',
+          label: 'Email / Username',
+          hint: 'your.email@company.com',
           prefixIcon: Icons.badge_outlined,
+          keyboardType: TextInputType.emailAddress,
+          errorText: _usernameError,
+          onChanged: (_) {
+            if (_usernameError != null) setState(() => _usernameError = null);
+          },
         ),
         const SizedBox(height: 16),
         FxTextField(
           controller: _passwordController,
           label: 'Password',
-          hint: '••••••••',
+          hint: 'Enter your password',
           prefixIcon: Icons.lock_outline_rounded,
           suffixIcon: _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
           onSuffixTap: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
           obscure: !_isPasswordVisible,
+          errorText: _passwordError,
+          onChanged: (_) {
+            if (_passwordError != null) setState(() => _passwordError = null);
+          },
         ),
         Align(
           alignment: Alignment.centerRight,
@@ -198,7 +280,9 @@ class _LoginScreenState extends State<LoginScreen> {
               context,
               MaterialPageRoute(
                 builder: (_) => ForgotPasswordScreen(
-                  initialTenantId: _tenantController.text.trim().isEmpty ? null : _tenantController.text.trim(),
+                  initialTenantId: _tenantController.text.trim().isEmpty
+                      ? null
+                      : _tenantController.text.trim(),
                   initialEmail: _usernameController.text.trim().contains('@')
                       ? _usernameController.text.trim()
                       : null,
@@ -211,46 +295,102 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         Consumer<AuthProvider>(
           builder: (_, auth, __) => FxPrimaryButton(
-            label: 'Login with Email',
+            label: 'Login',
             trailingIcon: Icons.arrow_forward_rounded,
             onPressed: _handleLogin,
             loading: auth.isLoading,
           ),
         ),
-        const SizedBox(height: 14),
-        TextButton(
-          onPressed: () {
-            TrackingService.logEvent('mobile_login_selected');
-            setState(() {
-              _isPhoneLogin = true;
-              _isOtpSent = false;
-            });
-          },
-          child: Text(
-            'Login with mobile number instead',
-            style: FxText.titleSm(color: FxColors.primary),
+        const SizedBox(height: 24),
+        _buildDivider(),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              TrackingService.logEvent('email_otp_selected');
+              setState(() {
+                _showPasswordLogin = false;
+                _showPhoneOtp = false;
+                _isOtpSent = false;
+                _otpCodeController.clear();
+              });
+            },
+            icon: const Icon(Icons.email_outlined, color: FxColors.primary),
+            label: Text('Login with Email OTP',
+                style: FxText.titleSm(color: FxColors.primary)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: FxColors.primary, width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              TrackingService.logEvent('phone_otp_selected');
+              setState(() {
+                _showPhoneOtp = true;
+                _showPasswordLogin = false;
+                _isOtpSent = false;
+                _otpCodeController.clear();
+              });
+            },
+            icon: const Icon(Icons.phone_rounded, color: FxColors.primary),
+            label: Text('Login with Phone Number',
+                style: FxText.titleSm(color: FxColors.primary)),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: FxColors.primary, width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPhoneForm() {
+  Widget _buildOtpForm() {
+    final isEmail = !_showPasswordLogin && !_showPhoneOtp;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (!isEmail)
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => setState(() {
+                  _showPasswordLogin = false;
+                  _showPhoneOtp = false;
+                  _isOtpSent = false;
+                  _otpCodeController.clear();
+                }),
+                child: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ),
+        if (!isEmail) ...[
+          Text('Phone OTP Login', style: FxText.headlineSm()),
+          const SizedBox(height: 24),
+        ],
         FxTextField(
-          controller: _phoneController,
-          label: 'Phone Number',
-          hint: '+91 9xxxx xxxxx',
-          prefixIcon: Icons.phone_rounded,
-          keyboardType: TextInputType.phone,
+          controller: isEmail ? _otpEmailController : _phoneController,
+          label: isEmail ? 'Email Address' : 'Phone Number',
+          hint: isEmail ? 'your.email@company.com' : '+91 9876543210',
+          prefixIcon: isEmail ? Icons.email_outlined : Icons.phone_rounded,
+          keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.phone,
+          readOnly: _isOtpSent,
         ),
         if (_isOtpSent) ...[
           const SizedBox(height: 16),
           FxTextField(
-            controller: _otpController,
+            controller: _otpCodeController,
             label: 'One-Time Password',
-            hint: '6-digit code',
+            hint: 'Enter 6-digit OTP',
             prefixIcon: Icons.pin_rounded,
             keyboardType: TextInputType.number,
           ),
@@ -260,21 +400,112 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (_, auth, __) => FxPrimaryButton(
             label: _isOtpSent ? 'Verify & Login' : 'Send OTP',
             trailingIcon: Icons.arrow_forward_rounded,
-            onPressed: _isOtpSent ? _handleVerifyOtp : _handleSendOtp,
+            onPressed: _isOtpSent
+                ? () => _handleVerifyOtp(isEmail: isEmail)
+                : () => _handleSendOtp(isEmail: isEmail),
             loading: auth.isLoading,
           ),
         ),
-        const SizedBox(height: 14),
-        TextButton(
-          onPressed: () {
-            TrackingService.logEvent('email_login_selected');
-            setState(() => _isPhoneLogin = false);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _emailFocusNode.requestFocus();
-            });
-          },
-          child: Text('Login with email instead', style: FxText.titleSm(color: FxColors.primary)),
+        if (_isOtpSent) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _isOtpSent = false;
+                  _otpCodeController.clear();
+                });
+                _handleSendOtp(isEmail: isEmail);
+              },
+              child: Text('Resend OTP', style: FxText.titleSm(color: FxColors.primary)),
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+        _buildDivider(),
+        const SizedBox(height: 16),
+        if (isEmail) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                TrackingService.logEvent('phone_otp_selected');
+                setState(() {
+                  _showPhoneOtp = true;
+                  _showPasswordLogin = false;
+                  _isOtpSent = false;
+                  _otpCodeController.clear();
+                });
+              },
+              icon: const Icon(Icons.phone_rounded, color: FxColors.primary),
+              label: Text('Login with Phone Number',
+                  style: FxText.titleSm(color: FxColors.primary)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: FxColors.primary, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _showPasswordLogin = true;
+              _showPhoneOtp = false;
+              _isOtpSent = false;
+              _otpCodeController.clear();
+            }),
+            icon: Icon(isEmail ? Icons.domain_rounded : Icons.email_outlined,
+                color: FxColors.primary),
+            label: Text(
+              isEmail ? 'Login with Tenant ID & Password' : 'Back to Email OTP',
+              style: FxText.titleSm(color: FxColors.primary),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              side: const BorderSide(color: FxColors.primary, width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
         ),
+        if (!isEmail) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => setState(() {
+                _showPasswordLogin = true;
+                _showPhoneOtp = false;
+                _isOtpSent = false;
+                _otpCodeController.clear();
+              }),
+              icon: const Icon(Icons.domain_rounded, color: FxColors.primary),
+              label: Text('Login with Tenant ID & Password',
+                  style: FxText.titleSm(color: FxColors.primary)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: FxColors.primary, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        const Expanded(child: _Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('or', style: FxText.body(color: FxColors.onSurfaceVariant)),
+        ),
+        const Expanded(child: _Divider()),
       ],
     );
   }
@@ -287,11 +518,9 @@ class _BrandHeader extends StatelessWidget {
       height: 280,
       child: Stack(
         children: [
-          // Dot-grid geometric pattern via CustomPaint
           const Positioned.fill(
             child: Opacity(opacity: 0.35, child: _DotGrid()),
           ),
-          // Soft fade to background
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -303,7 +532,6 @@ class _BrandHeader extends StatelessWidget {
               ),
             ),
           ),
-          // Brand anchor
           Padding(
             padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 32),
             child: Column(

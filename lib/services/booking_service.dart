@@ -2,7 +2,9 @@ import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
 import '../models/booking_model.dart';
+import '../models/shift_model.dart';
 import 'api_service.dart';
+import 'shift_service.dart';
 
 class BookingService {
   final ApiService _apiService = ApiService();
@@ -74,6 +76,11 @@ class BookingService {
           }
           return Booking.fromJson(Map<String, dynamic>.from(json));
         }).toList();
+
+        if (bookings.any((b) => b.logType == null)) {
+          final shiftLogType = await _loadShiftLogTypeMap();
+          _enrichLogType(bookings, shiftLogType);
+        }
 
         return {
           'success': true,
@@ -210,6 +217,26 @@ class BookingService {
     }
   }
 
+  Future<Map<int, String>> _loadShiftLogTypeMap() async {
+    try {
+      final result = await ShiftService().fetchShifts();
+      if (result['success']) {
+        final all = (result['shifts']['all'] as List).cast<Shift>();
+        return {for (final s in all) if (s.shiftId != null) s.shiftId!: s.logType ?? 'IN'};
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  void _enrichLogType(List<Booking> bookings, Map<int, String> shiftLogType) {
+    for (int i = 0; i < bookings.length; i++) {
+      final b = bookings[i];
+      if (b.logType == null && b.shiftId != null && shiftLogType.containsKey(b.shiftId!)) {
+        bookings[i] = b.copyWith(logType: shiftLogType[b.shiftId!]);
+      }
+    }
+  }
+
   Future<Map<String, dynamic>> getBookingDetails(int bookingId) async {
     try {
       // Use /api/v1/bookings/{id}
@@ -218,7 +245,16 @@ class BookingService {
       );
       if (response.statusCode == 200) {
         final data = response.data['data'];
-        return {'success': true, 'data': Booking.fromJson(data)};
+        final booking = Booking.fromJson(data);
+
+        if (booking.logType == null && booking.shiftId != null) {
+          final shiftLogType = await _loadShiftLogTypeMap();
+          final enriched = [booking];
+          _enrichLogType(enriched, shiftLogType);
+          return {'success': true, 'data': enriched.first};
+        }
+
+        return {'success': true, 'data': booking};
       }
       return {'success': false, 'error': 'Failed to fetch booking details'};
     } on DioException catch (e) {

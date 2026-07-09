@@ -20,7 +20,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
 
     bool isLoggedIn = false;
@@ -38,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
             isLoggedIn ? const SchedulesScreen() : const LoginScreen(),
         transitionsBuilder: (_, animation, __, child) =>
             FadeTransition(opacity: animation, child: child),
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 150),
       ),
     );
   }
@@ -74,14 +73,8 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Column(
                 children: [
                   const Spacer(),
-                // Brand anchor — MLT logotype
-                Text('MLT', style: FxText.displayLg()),
-                const SizedBox(height: 12),
-                Text(
-                  'MOBILITY REIMAGINED',
-                  style: FxText.labelXs(color: FxColors.onSurfaceVariant)
-                      .copyWith(letterSpacing: 3.2),
-                ),
+                // Brand anchor — MLT Technologies
+                Text('MLT Technologies', style: FxText.displayLg()),
                 const Spacer(),
                 // Loading indicator (concentric — branded primary on track)
                 SizedBox(

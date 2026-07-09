@@ -6,6 +6,7 @@ import '../models/chat_message_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 
 class ChatScreen extends StatefulWidget {
   final int bookingId;
@@ -278,7 +279,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildMessageList(ChatProvider chat) {
     if (chat.isLoading && chat.messages.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: FxColors.primary));
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            SkeletonChatBubble(isSent: true),
+            SkeletonChatBubble(isSent: true),
+            SkeletonChatBubble(isSent: false),
+            SkeletonChatBubble(isSent: false),
+            SkeletonChatBubble(isSent: true),
+          ],
+        ),
+      );
     }
     if (chat.session == null && chat.error != null) {
       return Center(

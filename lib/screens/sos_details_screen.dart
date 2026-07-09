@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_theme.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 
 class SOSDetailsScreen extends StatefulWidget {
   final int alertId;
@@ -89,7 +90,16 @@ class _SOSDetailsScreenState extends State<SOSDetailsScreen> {
       backgroundColor: FxColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: FxColors.primary))
+            ? const SingleChildScrollView(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    SkeletonAlertCard(),
+                    SizedBox(height: 20),
+                    SkeletonMapPlaceholder(),
+                  ],
+                ),
+              )
             : _error != null
                 ? Center(
                     child: Padding(

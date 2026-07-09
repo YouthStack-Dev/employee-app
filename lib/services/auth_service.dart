@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
@@ -58,11 +59,12 @@ class AuthService {
                    await prefs.setString('phone', phone.toString());
                  }
                  final address = employee['address'] ?? employee['home_address'];
-                 if (address != null) {
-                   await prefs.setString('address', address.toString());
-                 }
-             }
-        }
+                  if (address != null) {
+                    await prefs.setString('address', address.toString());
+                  }
+                  await prefs.setString('raw_employee_data', jsonEncode(employee));
+              }
+         }
         
         return {
           'success': true,
@@ -197,13 +199,18 @@ class AuthService {
                    await prefs.setString('email', employee['email'].toString());
                  }
                  final phone = employee['contact_number'] ?? employee['phone_number'] ?? employee['phone'];
-                 if (phone != null) {
-                   await prefs.setString('phone', phone.toString());
-                 }
-             }
-        }
-        
-        return {
+                  if (phone != null) {
+                    await prefs.setString('phone', phone.toString());
+                  }
+                  final address = employee['address'] ?? employee['home_address'];
+                  if (address != null) {
+                    await prefs.setString('address', address.toString());
+                  }
+                  await prefs.setString('raw_employee_data', jsonEncode(employee));
+              }
+         }
+         
+         return {
           'success': true,
           'user': User.fromJson(data),
           'access_token': accessToken,
@@ -281,6 +288,21 @@ class AuthService {
             if (employee['gender'] != null) {
               await prefs.setString('gender', employee['gender'].toString());
             }
+            if (employee['name'] != null) {
+              await prefs.setString('name', employee['name'].toString());
+            }
+            if (employee['email'] != null) {
+              await prefs.setString('email', employee['email'].toString());
+            }
+            final phone = employee['contact_number'] ?? employee['phone_number'] ?? employee['phone'];
+            if (phone != null) {
+              await prefs.setString('phone', phone.toString());
+            }
+            final address = employee['address'] ?? employee['home_address'];
+            if (address != null) {
+              await prefs.setString('address', address.toString());
+            }
+            await prefs.setString('raw_employee_data', jsonEncode(employee));
           }
         }
 

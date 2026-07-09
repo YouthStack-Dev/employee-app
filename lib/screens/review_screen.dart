@@ -5,6 +5,7 @@ import '../models/review_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import '../widgets/star_rating_widget.dart';
 
 class ReviewScreen extends StatefulWidget {
@@ -136,7 +137,10 @@ class _ReviewScreenState extends State<ReviewScreen> {
       backgroundColor: FxColors.background,
       body: SafeArea(
         child: _isLoadingTags
-            ? const Center(child: CircularProgressIndicator(color: FxColors.primary))
+            ? const SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 20, 20, 100),
+                child: SkeletonReviewForm(),
+              )
             : Column(
                 children: [
                   _topBar(),

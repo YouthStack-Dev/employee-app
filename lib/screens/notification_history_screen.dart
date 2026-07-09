@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../providers/notification_provider.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 
 class NotificationHistoryScreen extends StatefulWidget {
   const NotificationHistoryScreen({super.key});
@@ -49,8 +50,21 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
                 slivers: [
                   SliverToBoxAdapter(child: _topBar(provider)),
                   if (provider.isLoading && provider.notifications.isEmpty)
-                    const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                    SliverToBoxAdapter(
+                      child: const Column(
+                        children: [
+                          SizedBox(height: 16),
+                          SkeletonNotificationRow(),
+                          SizedBox(height: 8),
+                          SkeletonNotificationRow(),
+                          SizedBox(height: 8),
+                          SkeletonNotificationRow(),
+                          SizedBox(height: 8),
+                          SkeletonNotificationRow(),
+                          SizedBox(height: 8),
+                          SkeletonNotificationRow(),
+                        ],
+                      ),
                     )
                   else if (provider.error != null)
                     SliverFillRemaining(

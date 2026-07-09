@@ -50,7 +50,7 @@ class Booking {
       dropLocation: json['drop_location'],
       pickupTime: json['pickup_time'],
       dropTime: json['drop_time'] ?? json['end_time']?.toString(),
-      logType: json['log_type'] ?? 'IN',
+      logType: json['log_type'],
       shiftId: json['shift_id'] is int ? json['shift_id'] : int.tryParse(json['shift_id']?.toString() ?? ''),
       pickupLatitude: double.tryParse(json['pickup_latitude']?.toString() ?? '0'),
       pickupLongitude: double.tryParse(json['pickup_longitude']?.toString() ?? '0'),

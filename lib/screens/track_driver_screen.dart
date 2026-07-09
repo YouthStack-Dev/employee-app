@@ -4,6 +4,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_theme.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -392,21 +393,18 @@ class _TrackDriverScreenState extends State<TrackDriverScreen> {
                     myLocationButtonEnabled: false,
                  ),
 
-             // 2. Loading View
-             if (_isLoading)
-                Container(
-                   color: FxColors.background,
-                   width: double.infinity,
-                   height: double.infinity,
-                   child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                         const CircularProgressIndicator(color: FxColors.primary),
-                         const SizedBox(height: 20),
-                         Text('Locating Driver...', style: FxText.headlineSm()),
-                      ],
-                   ),
-                ),
+              // 2. Loading View
+              if (_isLoading)
+                 const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                       children: [
+                          SkeletonMapPlaceholder(),
+                          SizedBox(height: 16),
+                          SkeletonDriverInfoCard(),
+                       ],
+                    ),
+                 ),
 
              // 3. Error / Debug View
              if (!_isLoading && (_driverLocation == null || _error != null))

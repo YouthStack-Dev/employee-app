@@ -5,6 +5,7 @@ import '../constants/app_theme.dart';
 import '../models/announcement_model.dart';
 import '../providers/announcement_provider.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 import 'announcement_detail_screen.dart';
 
 class AnnouncementsScreen extends StatefulWidget {
@@ -78,7 +79,20 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   SliverToBoxAdapter(child: _filterRow(provider.unreadCount)),
                   if (provider.isLoading && provider.inbox.isEmpty)
                     const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+                      child: Column(
+                        children: const [
+                          SizedBox(height: 16),
+                          SkeletonAnnouncementRow(),
+                          SizedBox(height: 8),
+                          SkeletonAnnouncementRow(),
+                          SizedBox(height: 8),
+                          SkeletonAnnouncementRow(),
+                          SizedBox(height: 8),
+                          SkeletonAnnouncementRow(),
+                          SizedBox(height: 8),
+                          SkeletonAnnouncementRow(),
+                        ],
+                      ),
                     )
                   else if (provider.error != null)
                     SliverFillRemaining(

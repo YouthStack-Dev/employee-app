@@ -6,6 +6,7 @@ import '../models/shift_model.dart';
 import '../services/booking_service.dart';
 import '../services/shift_service.dart';
 import '../widgets/fx_widgets.dart';
+import '../widgets/skeletons.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final int bookingId;
@@ -151,9 +152,24 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: FxColors.background,
-        body: Center(child: CircularProgressIndicator(color: FxColors.primary)),
+        appBar: AppBar(title: const Text('Edit Booking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+        body: const SingleChildScrollView(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              SkeletonBookingDetailsCard(),
+              SizedBox(height: 20),
+              Text('Select Shift', style: TextStyle(fontSize: 16)),
+              SizedBox(height: 16),
+              SkeletonShiftRow(),
+              SkeletonShiftRow(),
+              SkeletonShiftRow(),
+              SkeletonShiftRow(),
+            ],
+          ),
+        ),
       );
     }
     if (_error != null) {
@@ -203,94 +219,64 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    FxCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          FxMetaLabel('Booking ID'),
-                          const SizedBox(height: 4),
-                          Text(
-                            '#MLT-${_booking!['id']}',
-                            style: FxText.headlineMd(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    // Merged Booking Card
                     FxCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Booking Date', style: FxText.headlineSm()),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    FxMetaLabel('Booking ID'),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '#MLT-${_booking!['id']}',
+                                      style: FxText.headlineLg(),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               FxPill(
-                                text: 'READ ONLY',
-                                color: FxColors.outline,
-                                background: FxColors.surfaceContainerLow,
+                                text: (currentShift.logType == 'IN' ? 'LOGIN' : 'LOGOUT'),
+                                color: FxColors.primary,
+                                background: FxColors.primary.withOpacity(0.1),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: FxColors.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(12),
-                              border: const Border(
-                                left: BorderSide(
-                                  color: FxColors.primary,
-                                  width: 3,
-                                ),
-                              ),
-                            ),
-                            child: Text(formattedDate, style: FxText.title()),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_outlined, size: 16, color: FxColors.onSurfaceVariant),
+                              const SizedBox(width: 6),
+                              Text(formattedDate, style: FxText.title()),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Route Information (read-only from booking)
-                    if (_booking!['pickup_location'] != null ||
-                        _booking!['drop_location'] != null)
-                      FxCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: FxColors.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.route_rounded,
-                                    color: FxColors.primary,
-                                    size: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  'Route Information',
-                                  style: FxText.headlineSm(),
-                                ),
-                                const Spacer(),
-                                FxPill(
-                                  text: (_booking!['log_type'] ?? 'IN') == 'IN'
-                                      ? 'LOGIN'
-                                      : 'LOGOUT',
-                                  color: FxColors.primary,
-                                  background: FxColors.primary.withOpacity(0.1),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule_rounded, size: 16, color: FxColors.onSurfaceVariant),
+                              const SizedBox(width: 6),
+                              Text(_formatTime(currentShift.shiftTime), style: FxText.title()),
+                              const SizedBox(width: 16),
+                              Icon(
+                                currentShift.logType == 'IN' ? Icons.login_rounded : Icons.logout_rounded,
+                                size: 16,
+                                color: FxColors.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                currentShift.logType == 'IN' ? 'Login' : 'Logout',
+                                style: FxText.title(color: FxColors.onSurfaceVariant),
+                              ),
+                            ],
+                          ),
+                          if (_booking!['pickup_location'] != null ||
+                              _booking!['drop_location'] != null) ...[
+                            const SizedBox(height: 20),
                             FxRouteTimeline(
                               pickup:
                                   _booking!['pickup_location'] ??
@@ -301,47 +287,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                               dropLabel: 'DROP-OFF LOCATION',
                             ),
                           ],
-                        ),
-                      ),
-                    if (_booking!['pickup_location'] != null ||
-                        _booking!['drop_location'] != null)
-                      const SizedBox(height: 16),
-                    FxCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Current Shift', style: FxText.headlineSm()),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE7F8EE),
-                              borderRadius: BorderRadius.circular(12),
-                              border: const Border(
-                                left: BorderSide(
-                                  color: Color(0xFF00B894),
-                                  width: 3,
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  currentShift.shiftTime ?? '-',
-                                  style: FxText.headlineMd(),
-                                ),
-                                Text(
-                                  currentShift.logType == 'IN'
-                                      ? 'Login'
-                                      : 'Logout',
-                                  style: FxText.titleSm(
-                                    color: const Color(0xFF00B894),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -400,6 +345,15 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     );
   }
 
+  String _formatTime(String? time) {
+    if (time == null || time.isEmpty) return '-';
+    final parts = time.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return time;
+  }
+
   Widget _shiftRow(Shift s) {
     final isSelected = _selectedShiftId == s.shiftId;
     final isCurrent = s.shiftId == _booking!['shift_id'];
@@ -448,15 +402,28 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        s.logType == 'IN' ? Icons.login_rounded : Icons.logout_rounded,
+                        size: 16,
+                        color: isSelected ? FxColors.primary : FxColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        s.logType == 'IN' ? 'Login' : 'Logout',
+                        style: FxText.bodySm(
+                          color: isSelected ? FxColors.primary : FxColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
                   Text(
-                    s.shiftTime ?? '-',
+                    _formatTime(s.shiftTime),
                     style: FxText.title(
                       color: isSelected ? FxColors.primary : FxColors.onSurface,
                     ),
-                  ),
-                  Text(
-                    s.logType == 'IN' ? 'Login' : 'Logout',
-                    style: FxText.bodySm(),
                   ),
                 ],
               ),
