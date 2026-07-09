@@ -1051,7 +1051,15 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     final raw = b.shiftTime ?? b.pickupTime ?? '';
     if (raw.isEmpty) return '--:--';
     final t = raw.length > 5 ? raw.substring(0, 5) : raw;
-    // Add a 45-minute "estimated arrival" upper bound for the time-range look.
+
+    // Use backend drop time if available
+    String? dropTime = b.dropTime ?? b.routeDetails?['drop_time']?.toString() ?? b.routeDetails?['estimated_drop_time']?.toString();
+    if (dropTime != null && dropTime.isNotEmpty) {
+      final dt = dropTime.length > 5 ? dropTime.substring(0, 5) : dropTime;
+      return '$t - $dt';
+    }
+
+    // Fallback: Add a 45-minute "estimated arrival" upper bound for the time-range look.
     final parts = t.split(':');
     if (parts.length < 2) return t;
     final h = int.tryParse(parts[0]) ?? 0;

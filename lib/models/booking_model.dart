@@ -5,6 +5,7 @@ class Booking {
   final String? pickupLocation;
   final String? dropLocation;
   final String? pickupTime;
+  final String? dropTime;
   final String? logType;
   final int? shiftId;
   final double? pickupLatitude;
@@ -25,6 +26,7 @@ class Booking {
     this.pickupLocation,
     this.dropLocation,
     this.pickupTime,
+    this.dropTime,
     this.logType,
     this.shiftId,
     this.pickupLatitude,
@@ -47,6 +49,7 @@ class Booking {
       pickupLocation: json['pickup_location'],
       dropLocation: json['drop_location'],
       pickupTime: json['pickup_time'],
+      dropTime: json['drop_time'] ?? json['end_time']?.toString(),
       logType: json['log_type'] ?? 'IN',
       shiftId: json['shift_id'] is int ? json['shift_id'] : int.tryParse(json['shift_id']?.toString() ?? ''),
       pickupLatitude: double.tryParse(json['pickup_latitude']?.toString() ?? '0'),
@@ -68,6 +71,7 @@ class Booking {
     String? pickupLocation,
     String? dropLocation,
     String? pickupTime,
+    String? dropTime,
     String? logType,
     int? shiftId,
     double? pickupLatitude,
@@ -88,6 +92,7 @@ class Booking {
       pickupLocation: pickupLocation ?? this.pickupLocation,
       dropLocation: dropLocation ?? this.dropLocation,
       pickupTime: pickupTime ?? this.pickupTime,
+      dropTime: dropTime ?? this.dropTime,
       logType: logType ?? this.logType,
       shiftId: shiftId ?? this.shiftId,
       pickupLatitude: pickupLatitude ?? this.pickupLatitude,
