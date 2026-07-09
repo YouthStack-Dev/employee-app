@@ -24,6 +24,7 @@ class ApiConstants {
   static const String unregisterFcmToken = '/api/v1/push-notifications/unregister-token';
   static const String sendNotification = '/api/v1/push-notifications/send';
   static const String sendBatchNotification = '/api/v1/push-notifications/send-batch';
+  static const String employeeNotifications = '/api/v1/employee/notifications';
   
   // Alert endpoints
   static const String triggerAlert = '/api/v1/alerts/trigger';

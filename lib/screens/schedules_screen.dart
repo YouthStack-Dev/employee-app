@@ -10,6 +10,7 @@ import '../providers/booking_provider.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
 import 'announcements_screen.dart';
+import 'notification_history_screen.dart';
 import 'booking_details_screen.dart';
 import 'chat_screen.dart';
 import 'create_booking_screen.dart';
@@ -159,7 +160,18 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         final scheduled = inWindow.where((b) {
           if (b.id == activeRide?.id) return false;
           final s = b.status?.toLowerCase() ?? '';
-          return s != 'ongoing' && s != 'completed' && s != 'cancelled' && s != 'no-show';
+          if (s == 'ongoing' || s == 'completed' || s == 'cancelled' || s == 'no-show' || s == 'expired') return false;
+          
+          // Do not show past non-active rides in upcoming
+          if (b.date != null) {
+            final d = DateTime.tryParse(b.date!);
+            if (d != null) {
+              final dOnly = DateTime(d.year, d.month, d.day);
+              final todayOnly = DateTime(now.year, now.month, now.day);
+              if (dOnly.isBefore(todayOnly)) return false;
+            }
+          }
+          return true;
         }).toList()
           ..sort((a, b) {
             final c = (a.date ?? '').compareTo(b.date ?? '');
@@ -289,7 +301,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
               clipBehavior: Clip.none,
               children: [
                 _iconButton(
-                  Icons.notifications_outlined,
+                  Icons.campaign_outlined,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const AnnouncementsScreen()),
@@ -312,6 +324,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     ),
                   ),
               ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _iconButton(
+            Icons.notifications_outlined,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationHistoryScreen()),
             ),
           ),
           const SizedBox(width: 8),

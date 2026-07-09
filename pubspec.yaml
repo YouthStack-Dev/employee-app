@@ -52,6 +52,7 @@ dependencies:
   device_info_plus: ^12.3.0
   package_info_plus: ^9.0.0
   flutter_polyline_points: ^3.1.0
+  firebase_analytics: ^11.6.0
 
 
 

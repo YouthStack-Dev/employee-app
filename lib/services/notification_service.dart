@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/api_constants.dart';
+import '../models/notification_model.dart';
 import '../screens/chat_screen.dart';
 import 'api_service.dart';
 
@@ -261,4 +262,79 @@ class NotificationService {
       print('Error unregistering FCM token: $e');
     }
   }
+
+  Future<Map<String, dynamic>> getNotifications({int page = 1, int pageSize = 20}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tenantId = prefs.getString('tenant_id');
+
+      final response = await _apiService.dio.get(
+        ApiConstants.employeeNotifications,
+        queryParameters: {
+          'page': page,
+          'page_size': pageSize,
+        },
+        options: Options(
+          headers: {
+            if (tenantId != null) 'X-Tenant-Id': tenantId,
+          },
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      return _parseResponse(response, (data) {
+        if (data == null) return [];
+        return (data as List).map((json) => NotificationModel.fromJson(json)).toList();
+      });
+    } catch (e) {
+      return {'success': false, 'error': 'Service error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> clearNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tenantId = prefs.getString('tenant_id');
+
+      final response = await _apiService.dio.delete(
+        ApiConstants.employeeNotifications,
+        options: Options(
+          headers: {
+            if (tenantId != null) 'X-Tenant-Id': tenantId,
+          },
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      return _parseResponse(response, (data) => data);
+    } catch (e) {
+      return {'success': false, 'error': 'Service error: $e'};
+    }
+  }
+
+  Map<String, dynamic> _parseResponse(Response response, dynamic Function(dynamic data)? onSuccessData) {
+    try {
+      if (response.statusCode! >= 200 && response.statusCode! < 300) {
+        final dataVal = response.data['data'];
+        return {
+          'success': true,
+          'data': onSuccessData != null ? onSuccessData(dataVal) : dataVal,
+          'message': response.data['message'],
+          'meta': response.data['meta'],
+        };
+      } else {
+        String errorMsg = 'Unknown error occurred (${response.statusCode})';
+        var responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+           errorMsg = responseData['message'] ?? responseData['error'] ?? responseData['detail'] ?? errorMsg;
+        } else if (responseData is String) {
+           errorMsg = responseData;
+        }
+        return {'success': false, 'error': errorMsg};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Failed to parse API response: $e'};
+    }
+  }
 }
+

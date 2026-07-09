@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../providers/auth_provider.dart';
 import '../constants/app_theme.dart';
 import '../widgets/fx_widgets.dart';
+import '../services/tracking_service.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _tenantController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _emailFocusNode = FocusNode();
   final _passwordController = TextEditingController();
 
   bool _isPhoneLogin = false;
@@ -28,6 +30,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _requestPermissions();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isPhoneLogin) {
+        _emailFocusNode.requestFocus();
+      }
+    });
   }
 
   Future<void> _requestPermissions() async {
@@ -38,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _tenantController.dispose();
     _usernameController.dispose();
+    _emailFocusNode.dispose();
     _passwordController.dispose();
     _phoneController.dispose();
     _otpController.dispose();
@@ -53,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (success) {
+      TrackingService.logEvent('email_login_success');
       Navigator.pushReplacementNamed(context, '/schedules');
     } else {
       _toast(authProvider.error ?? 'Login failed', error: true);
@@ -84,6 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await auth.verifyOtp(_phoneController.text, _otpController.text);
     if (!mounted) return;
     if (ok) {
+      TrackingService.logEvent('mobile_login_success');
       Navigator.pushReplacementNamed(context, '/schedules');
     } else {
       _toast(auth.error ?? 'Invalid OTP', error: true);
@@ -166,6 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 16),
         FxTextField(
           controller: _usernameController,
+          focusNode: _emailFocusNode,
           label: 'Mail',
           hint: 'ID or mail',
           prefixIcon: Icons.badge_outlined,
@@ -200,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         Consumer<AuthProvider>(
           builder: (_, auth, __) => FxPrimaryButton(
-            label: 'Login',
+            label: 'Login with Email',
             trailingIcon: Icons.arrow_forward_rounded,
             onPressed: _handleLogin,
             loading: auth.isLoading,
@@ -208,12 +219,15 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 14),
         TextButton(
-          onPressed: () => setState(() {
-            _isPhoneLogin = true;
-            _isOtpSent = false;
-          }),
+          onPressed: () {
+            TrackingService.logEvent('mobile_login_selected');
+            setState(() {
+              _isPhoneLogin = true;
+              _isOtpSent = false;
+            });
+          },
           child: Text(
-            'Use phone number instead',
+            'Login with mobile number instead',
             style: FxText.titleSm(color: FxColors.primary),
           ),
         ),
@@ -252,8 +266,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 14),
         TextButton(
-          onPressed: () => setState(() => _isPhoneLogin = false),
-          child: Text('Back to email login', style: FxText.titleSm(color: FxColors.primary)),
+          onPressed: () {
+            TrackingService.logEvent('email_login_selected');
+            setState(() => _isPhoneLogin = false);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _emailFocusNode.requestFocus();
+            });
+          },
+          child: Text('Login with email instead', style: FxText.titleSm(color: FxColors.primary)),
         ),
       ],
     );

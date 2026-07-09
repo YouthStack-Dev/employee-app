@@ -497,6 +497,7 @@ class FxSegmented extends StatelessWidget {
 /// Tonal input field — surfaceContainerLow background, no border.
 class FxTextField extends StatelessWidget {
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? hint;
   final String? label;
   final IconData? prefixIcon;
@@ -514,6 +515,7 @@ class FxTextField extends StatelessWidget {
   const FxTextField({
     super.key,
     this.controller,
+    this.focusNode,
     this.hint,
     this.label,
     this.prefixIcon,
@@ -543,9 +545,13 @@ class FxTextField extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             color: errorText != null ? FxColors.onError : FxColors.surfaceContainerLow,
-            borderRadius: FxRadii.input,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: errorText != null ? FxColors.error.withOpacity(0.5) : Colors.transparent,
+            ),
           ),
           child: TextField(
+            focusNode: focusNode,
             controller: controller,
             obscureText: obscure,
             keyboardType: keyboardType,
