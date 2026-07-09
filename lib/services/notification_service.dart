@@ -282,6 +282,10 @@ class NotificationService {
         ),
       );
 
+      if (response.statusCode == 404) {
+        return {'success': true, 'data': <NotificationModel>[]};
+      }
+
       return _parseResponse(response, (data) {
         if (data == null) return [];
         return (data as List).map((json) => NotificationModel.fromJson(json)).toList();

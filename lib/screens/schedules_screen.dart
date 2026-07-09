@@ -296,37 +296,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
               ],
             ),
           ),
-          Consumer<AnnouncementProvider>(
-            builder: (_, ap, __) => Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _iconButton(
-                  Icons.campaign_outlined,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AnnouncementsScreen()),
-                  ),
-                ),
-                if (ap.unreadCount > 0)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: FxColors.error,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        ap.unreadCount > 9 ? '9+' : '${ap.unreadCount}',
-                        style: FxText.labelSm(color: FxColors.onError).copyWith(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
+
           _iconButton(
             Icons.notifications_outlined,
             onTap: () => Navigator.push(
@@ -491,14 +461,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Text(name, style: FxText.headlineLg()),
             const SizedBox(height: 4),
             Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
-            if (user?.phone != null && user!.phone!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(user.phone!, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
-            ],
-            if (user?.address != null && user!.address!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(user.address!, style: FxText.bodyLg(color: FxColors.onSurfaceVariant), textAlign: TextAlign.center),
-            ],
             const SizedBox(height: 40),
             
             // Dynamic Fields (Filtered to Phone & Address)
