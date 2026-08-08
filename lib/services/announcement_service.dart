@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/announcement_model.dart';
 import 'api_service.dart';
 
@@ -41,10 +42,10 @@ class AnnouncementService {
         return (data as List).map((json) => Announcement.fromJson(json)).toList();
       });
     } catch (e) {
-      if (e is DioException && ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      if (e is DioException) {
+        return {'success': false, 'error': ApiError.resolve(e, feature: 'announcement', fallback: AppErrorMessages.announcementLoadFailed)};
       }
-      return {'success': false, 'error': 'Unable to load announcements. Please check your connection and try again.'};
+      return {'success': false, 'error': AppErrorMessages.announcementLoadFailed};
     }
   }
 
@@ -66,8 +67,8 @@ class AnnouncementService {
 
       return _parseResponse(response, (data) => data);
     } catch (e) {
-      if (e is DioException && ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      if (e is DioException) {
+        return {'success': false, 'error': ApiError.resolve(e, feature: 'announcement', fallback: 'Could not mark as read. Please try again.')};
       }
       return {'success': false, 'error': 'Could not mark as read. Please try again.'};
     }

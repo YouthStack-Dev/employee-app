@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import 'api_service.dart';
 
 class AlertService {
@@ -62,9 +63,9 @@ class AlertService {
       if (ApiError.isNetworkError(e)) {
         return {'success': false, 'error': 'No internet connection. Your SOS could not be sent. Please call emergency services directly.'};
       }
-      return {'success': false, 'error': _parseError(e, 'SOS alert failed. Please try again.')};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'alert', fallback: AppErrorMessages.alertFailed)};
     } catch (e) {
-      return {'success': false, 'error': 'SOS alert failed. Please try again or call emergency services.'};
+      return {'success': false, 'error': AppErrorMessages.alertFailed};
     }
   }
 
@@ -96,10 +97,7 @@ class AlertService {
         return {'success': false, 'error': 'Unable to load your alert history.'};
       }
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      return {'success': false, 'error': _parseError(e, 'Failed to load alerts. Please try again.')};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'alert', fallback: 'Unable to load your alert history. Please try again.')};
     } catch (e) {
       return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
@@ -117,23 +115,9 @@ class AlertService {
         return {'success': false, 'error': 'Unable to load alert details.'};
       }
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      return {'success': false, 'error': _parseError(e, 'Failed to load alert details.')};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'alert', fallback: 'Unable to load alert details.')};
     } catch (e) {
       return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
-  }
-
-  String _parseError(DioException e, String fallback) {
-    final data = e.response?.data;
-    if (data is Map) {
-      final detail = data['detail'];
-      if (detail is Map && detail['message'] != null) return detail['message'].toString();
-      if (detail is String && detail.isNotEmpty) return detail;
-      if (data['message'] is String) return data['message'];
-    }
-    return fallback;
   }
 }

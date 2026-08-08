@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import 'api_service.dart';
 
 class WeekoffService {
@@ -39,26 +40,9 @@ class WeekoffService {
       }
       return {'success': false, 'error': 'Failed to fetch weekoff config'};
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      print('WEEKOFF ERROR: ${e.response?.statusCode} - ${e.response?.data}');
-      String error = 'Failed to fetch settings';
-      if (e.response?.statusCode == 401) {
-          error = 'Session expired. Please login again.';
-      } else if (e.response?.data != null) {
-          final data = e.response!.data;
-          if (data is Map) {
-             if (data['detail'] != null && data['detail'] is String) {
-                 error = data['detail'];
-             } else if (data['message'] != null) {
-                 error = data['message'];
-             }
-          }
-      }
-      return {'success': false, 'error': error};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'weekoff', fallback: 'Unable to load your schedule settings. Please try again.')};
     } catch (e) {
-      return {'success': false, 'error': 'Something went wrong. Please try again.'};
+      return {'success': false, 'error': 'Unable to load your schedule settings. Please try again.'};
     }
   }
 }

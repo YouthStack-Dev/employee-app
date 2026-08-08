@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/booking_model.dart';
 import '../models/shift_model.dart';
 import 'api_service.dart';
@@ -269,41 +270,8 @@ class BookingService {
 
   String _parseError(
     DioException e, {
-    String fallback = 'Unknown network error',
+    String fallback = 'Something went wrong. Please try again.',
   }) {
-    if (ApiError.isNetworkError(e)) {
-      return ApiError.getUserMessage(e);
-    }
-    final parsed = _parseErrorData(e.response?.data);
-    if (parsed != null && parsed.isNotEmpty) return parsed;
-    return e.message ?? fallback;
-  }
-
-  String? _parseErrorData(dynamic data) {
-    if (data == null) return null;
-    if (data is String && data.isNotEmpty) return data;
-    if (data is List && data.isNotEmpty) return data.toString();
-    if (data is! Map) return null;
-
-    final detail = data['detail'];
-    if (detail is String && detail.isNotEmpty) return detail;
-    if (detail is Map) {
-      final message = detail['message']?.toString();
-      final errorCode =
-          detail['error_code']?.toString() ?? detail['code']?.toString();
-      if (message != null && message.isNotEmpty) {
-        return errorCode == null ? message : '$message ($errorCode)';
-      }
-      if (errorCode != null && errorCode.isNotEmpty) return errorCode;
-    }
-
-    final message = data['message']?.toString();
-    final errorCode =
-        data['error_code']?.toString() ?? data['code']?.toString();
-    if (message != null && message.isNotEmpty) {
-      return errorCode == null ? message : '$message ($errorCode)';
-    }
-    if (errorCode != null && errorCode.isNotEmpty) return errorCode;
-    return null;
+    return ApiError.resolve(e, feature: 'booking', fallback: fallback);
   }
 }

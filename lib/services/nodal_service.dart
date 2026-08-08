@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/nodal_models.dart';
 import 'api_service.dart';
 
@@ -66,50 +67,6 @@ class NodalService {
 
   /// Map known nodal error codes / statuses to friendly, actionable copy.
   String _friendly(DioException e) {
-    if (ApiError.isNetworkError(e)) {
-      return ApiError.getUserMessage(e);
-    }
-    final code = _errorCode(e);
-    switch (code) {
-      case 'VEHICLE_NOT_FOUND':
-        return 'That vehicle number isn\'t recognised. Check the QR sticker and try again.';
-      case 'ROUTE_NOT_FOUND':
-        return 'No active trip is running for this vehicle right now.';
-      case 'BOOKING_NOT_FOUND':
-        return 'You don\'t have a scheduled booking on this vehicle today.';
-      case 'NOT_NODAL_SHIFT':
-        return 'This booking isn\'t a nodal-point shift, so QR boarding doesn\'t apply.';
-      case 'BOARDING_WINDOW_CLOSED':
-        return 'The boarding window has closed (more than 30 min after shift start).';
-      case 'APP_ACCESS_DISABLED':
-        return 'Your app access has been disabled. Please contact your transport admin.';
-      case 'ACCOUNT_INACTIVE':
-        return 'Your account is inactive. Please contact your transport admin.';
-      case 'ASSIGNMENT_NOT_FOUND':
-        return 'No nodal point has been assigned to you yet.';
-    }
-
-    // Fall back to any server-provided message, then to status-based copy.
-    final data = e.response?.data;
-    if (data is Map) {
-      final detail = data['detail'];
-      if (detail is String && detail.isNotEmpty) return detail;
-      if (detail is Map && detail['message'] != null) return detail['message'].toString();
-      if (data['message'] is String && (data['message'] as String).isNotEmpty) return data['message'];
-    } else if (data is String && data.isNotEmpty) {
-      return data;
-    }
-
-    switch (e.response?.statusCode) {
-      case 401:
-        return 'Your session has expired. Please log in again.';
-      case 403:
-        return 'You don\'t have access to nodal boarding.';
-      case 404:
-        return 'Nothing found for this scan.';
-      case 422:
-        return 'Invalid vehicle number format.';
-    }
-    return e.message ?? 'Network error. Please try again.';
+    return ApiError.resolve(e, feature: 'nodal', fallback: AppErrorMessages.nodalScanFailed);
   }
 }

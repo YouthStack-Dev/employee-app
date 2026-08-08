@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/notification_model.dart';
 import '../screens/chat_screen.dart';
 import 'api_service.dart';
@@ -292,12 +293,9 @@ class NotificationService {
         return (data as List).map((json) => NotificationModel.fromJson(json)).toList();
       });
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      return {'success': false, 'error': 'Unable to load notifications. Please try again.'};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'notification', fallback: AppErrorMessages.notificationLoadFailed)};
     } catch (e) {
-      return {'success': false, 'error': 'Unable to load notifications. Please try again.'};
+      return {'success': false, 'error': AppErrorMessages.notificationLoadFailed};
     }
   }
 
@@ -318,10 +316,7 @@ class NotificationService {
 
       return _parseResponse(response, (data) => data);
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      return {'success': false, 'error': 'Unable to clear notifications. Please try again.'};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'notification', fallback: 'Unable to clear notifications. Please try again.')};
     } catch (e) {
       return {'success': false, 'error': 'Unable to clear notifications. Please try again.'};
     }

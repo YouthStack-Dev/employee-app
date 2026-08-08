@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/chat_message_model.dart';
 import '../models/chat_session_model.dart';
 import 'api_service.dart';
@@ -185,18 +186,21 @@ class ChatService {
     if (ApiError.isNetworkError(e)) {
       return ApiError.getUserMessage(e);
     }
+    // Chat endpoints return plain string detail messages
     final data = e.response?.data;
     if (data is Map) {
       if (data['detail'] is String) return data['detail'];
       if (data['detail'] is Map && data['detail']['message'] != null) return data['detail']['message'].toString();
       if (data['message'] is String) return data['message'];
-    } else if (data is String) {
+    } else if (data is String && data.isNotEmpty) {
       return data;
     }
-    if (e.response?.statusCode == 401) return 'Not authorized to access this chat';
-    if (e.response?.statusCode == 403) return 'You do not have access to this booking chat';
-    if (e.response?.statusCode == 404) return 'Booking not found';
-    if (e.response?.statusCode == 422) return 'Invalid message or language';
-    return e.message ?? 'Network error';
+    switch (e.response?.statusCode) {
+      case 401: return 'Your session has expired. Please log in again.';
+      case 403: return 'You don\'t have access to this chat.';
+      case 404: return 'This chat is not available. The booking may not have an active trip.';
+      case 422: return 'Invalid input. Please try again.';
+    }
+    return AppErrorMessages.chatFailed;
   }
 }

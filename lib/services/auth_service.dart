@@ -2,28 +2,13 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 
 /// Helper to extract user-friendly error from DioException for auth endpoints.
 String _authError(DioException e, String fallback) {
-  if (ApiError.isNetworkError(e)) {
-    return ApiError.getUserMessage(e);
-  }
-  if (e.response?.data != null) {
-    final data = e.response!.data;
-    if (data is Map && data.containsKey('detail')) {
-      if (data['detail'] is Map && data['detail']['message'] != null) {
-        return data['detail']['message'];
-      } else if (data['detail'] is String) {
-        return data['detail'];
-      }
-    }
-    if (data is Map && data['message'] is String) {
-      return data['message'];
-    }
-  }
-  return fallback;
+  return ApiError.resolve(e, feature: 'auth', fallback: fallback);
 }
 
 class AuthService {
@@ -95,7 +80,7 @@ class AuthService {
       }
       return {'success': false, 'error': 'Login failed'};
     } on DioException catch (e) {
-      return {'success': false, 'error': _authError(e, 'Login failed. Please check your credentials and try again.')};
+      return {'success': false, 'error': _authError(e, AppErrorMessages.loginFailed)};
     } catch (e) {
       return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
@@ -115,7 +100,7 @@ class AuthService {
       }
       return {'success': false, 'error': 'Failed to send OTP'};
     } on DioException catch (e) {
-      return {'success': false, 'error': _authError(e, 'Failed to send OTP. Please check your connection and try again.')};
+      return {'success': false, 'error': _authError(e, AppErrorMessages.otpFailed)};
     } catch (e) {
       return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
@@ -136,7 +121,7 @@ class AuthService {
       }
       return {'success': false, 'error': 'Invalid OTP'};
     } on DioException catch (e) {
-      return {'success': false, 'error': _authError(e, 'OTP verification failed. Please try again.')};
+      return {'success': false, 'error': _authError(e, 'OTP verification failed. Please request a new OTP and try again.')};
     } catch (e) {
       return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
@@ -324,22 +309,7 @@ class AuthService {
 
   /// Shared error extractor for the fleet-manager response envelope.
   String _parseError(DioException e, String fallback) {
-    if (ApiError.isNetworkError(e)) {
-      return ApiError.getUserMessage(e);
-    }
-    final data = e.response?.data;
-    if (data is Map) {
-      final detail = data['detail'];
-      if (detail is String && detail.isNotEmpty) return detail;
-      if (detail is Map && detail['message'] != null) return detail['message'].toString();
-      if (data['message'] is String && (data['message'] as String).isNotEmpty) return data['message'];
-    } else if (data is String && data.isNotEmpty) {
-      return data;
-    }
-    if (e.response?.statusCode == 401) return 'Invalid or expired OTP. Please try again.';
-    if (e.response?.statusCode == 400) return 'Reset link expired. Please restart the reset.';
-    if (e.response?.statusCode == 429) return 'Too many attempts. Please wait a minute and retry.';
-    return e.message ?? fallback;
+    return ApiError.resolve(e, feature: 'auth', fallback: fallback);
   }
 
   Future<void> logout() async {

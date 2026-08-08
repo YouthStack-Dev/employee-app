@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/shift_model.dart';
 import 'api_service.dart';
 
@@ -60,13 +61,9 @@ class ShiftService {
       }
       return {'success': false, 'error': 'Failed to fetch shifts'};
     } on DioException catch (e) {
-      if (ApiError.isNetworkError(e)) {
-        return {'success': false, 'error': ApiError.getUserMessage(e)};
-      }
-      final errorMsg = e.response?.data?['detail']?['message'] ?? e.response?.data?['message'] ?? 'Failed to fetch shifts. Please try again.';
-      return {'success': false, 'error': errorMsg};
+      return {'success': false, 'error': ApiError.resolve(e, feature: 'shift', fallback: AppErrorMessages.shiftLoadFailed)};
     } catch (e) {
-      return {'success': false, 'error': 'Something went wrong. Please try again.'};
+      return {'success': false, 'error': AppErrorMessages.shiftLoadFailed};
     }
   }
 }

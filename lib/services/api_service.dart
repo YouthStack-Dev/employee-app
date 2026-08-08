@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../main.dart';
 import 'connectivity_service.dart';
 
@@ -10,54 +11,61 @@ class ApiError {
   static String getUserMessage(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
-        return 'Connection timed out. Please check your internet and try again.';
       case DioExceptionType.sendTimeout:
-        return 'Request timed out while sending data. Please try again.';
       case DioExceptionType.receiveTimeout:
-        return 'Server is taking too long to respond. Please try again.';
+        return AppErrorMessages.timeout;
       case DioExceptionType.connectionError:
-        return 'Unable to reach the server. Please check your internet connection.';
+        return AppErrorMessages.noInternet;
       case DioExceptionType.badResponse:
         return _parseServerError(e.response);
       case DioExceptionType.cancel:
         return 'Request was cancelled.';
       case DioExceptionType.unknown:
         if (e.error is SocketException) {
-          return 'No internet connection. Please check your WiFi or mobile data.';
+          return AppErrorMessages.noInternet;
         }
         return 'Something went wrong. Please try again.';
       default:
-        return 'An unexpected error occurred. Please try again.';
+        return 'Something went wrong. Please try again.';
     }
   }
 
-  static String _parseServerError(Response? response) {
-    if (response == null) return 'Server error. Please try again.';
+  /// Full error resolver: extracts error_code from response and maps to
+  /// user-friendly message using AppErrorMessages.
+  static String resolve(DioException e, {required String feature, String? fallback}) {
+    if (isNetworkError(e)) {
+      return getUserMessage(e);
+    }
 
-    final data = response.data;
+    final statusCode = e.response?.statusCode;
+    final data = e.response?.data;
+    String? errorCode;
+    String? serverMessage;
+
     if (data is Map) {
-      // Backend error format: {"detail": {"message": "...", "error_code": "..."}}
-      if (data['detail'] is Map) {
-        return data['detail']['message']?.toString() ?? 'Server error (${response.statusCode})';
+      final detail = data['detail'];
+      if (detail is Map) {
+        errorCode = detail['error_code']?.toString() ?? detail['code']?.toString();
+        serverMessage = detail['message']?.toString();
+      } else if (detail is String) {
+        serverMessage = detail;
       }
-      if (data['detail'] is String) return data['detail'];
-      if (data['message'] is String) return data['message'];
-      if (data['error'] is String) return data['error'];
+      errorCode ??= data['error_code']?.toString() ?? data['code']?.toString();
+      serverMessage ??= data['message']?.toString();
     }
 
-    switch (response.statusCode) {
-      case 400: return 'Invalid request. Please check your input.';
-      case 401: return 'Session expired. Please log in again.';
-      case 403: return 'You don\'t have permission to perform this action.';
-      case 404: return 'The requested resource was not found.';
-      case 409: return 'This action conflicts with existing data.';
-      case 422: return 'Invalid data provided. Please check and try again.';
-      case 429: return 'Too many requests. Please wait a moment and try again.';
-      case 500: return 'Server error. Our team has been notified.';
-      case 502: return 'Server is temporarily unavailable. Please try again.';
-      case 503: return 'Service is under maintenance. Please try later.';
-      default: return 'Error (${response.statusCode}). Please try again.';
-    }
+    return AppErrorMessages.resolve(
+      feature: feature,
+      statusCode: statusCode,
+      errorCode: errorCode,
+      serverMessage: serverMessage,
+      fallback: fallback,
+    );
+  }
+
+  static String _parseServerError(Response? response) {
+    if (response == null) return 'Something went wrong. Please try again.';
+    return AppErrorMessages.fromStatusCode(response.statusCode);
   }
 
   /// Returns true if this error is a network/connectivity issue (retryable)
