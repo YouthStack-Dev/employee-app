@@ -11,34 +11,36 @@ import 'screens/login_screen.dart';
 import 'screens/schedules_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/create_booking_screen.dart';
+import 'services/connectivity_service.dart';
 import 'services/notification_service.dart';
+import 'widgets/connectivity_widgets.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize connectivity monitoring early
+  ConnectivityService();
+
   try {
-    // Try with platform options (required for iOS)
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // On Android, Firebase may already be initialized via google-services.json
-    // If so, just use the existing default app
     if (Firebase.apps.isNotEmpty) {
       // Already initialized, continue normally
     } else {
-      // Genuine Firebase error — show error screen
       runApp(MaterialApp(
         home: Scaffold(
           backgroundColor: Colors.white,
           body: Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
                 'Firebase Error:\n$e',
-                style: TextStyle(color: Colors.red, fontSize: 14),
+                style: const TextStyle(color: Colors.red, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -65,7 +67,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Initialize Notifications with navigator key
     NotificationService().initialize(navigatorKey);
   }
 
@@ -92,6 +93,10 @@ class _MyAppState extends State<MyApp> {
           '/login': (context) => const LoginScreen(),
           '/schedules': (context) => const SchedulesScreen(),
           '/create_booking': (context) => const CreateBookingScreen(),
+        },
+        builder: (context, child) {
+          // Wrap entire app with connectivity banner
+          return ConnectivityBanner(child: child ?? const SizedBox.shrink());
         },
       ),
     );

@@ -182,6 +182,9 @@ class ChatService {
   }
 
   String _parseError(DioException e) {
+    if (ApiError.isNetworkError(e)) {
+      return ApiError.getUserMessage(e);
+    }
     final data = e.response?.data;
     if (data is Map) {
       if (data['detail'] is String) return data['detail'];

@@ -9,7 +9,6 @@ class ReviewService {
 
   Future<Map<String, dynamic>> fetchReviewTags(String tenantId) async {
     try {
-      // Tags endpoint might not require auth, but we send it via interceptor anyway
       final response = await _apiService.dio.get(
         '${ApiConstants.reviewTags}?tenant_id=$tenantId',
       );
@@ -18,16 +17,19 @@ class ReviewService {
         final tagsResponse = ReviewTagsResponse.fromJson(response.data['data']);
         return {'success': true, 'data': tagsResponse};
       }
-      return {'success': false, 'error': response.data['message'] ?? 'Failed to load tags'};
+      return {'success': false, 'error': response.data['message'] ?? 'Failed to load review options'};
     } on DioException catch (e) {
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
       final data = e.response?.data;
-      String errorMsg = e.message ?? 'Failed to load tags';
-      if (data is Map<String, dynamic>) {
-        errorMsg = data['message'] ?? errorMsg;
+      String errorMsg = 'Failed to load review options. Please try again.';
+      if (data is Map<String, dynamic> && data['message'] != null) {
+        errorMsg = data['message'];
       }
       return {'success': false, 'error': errorMsg};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -43,20 +45,22 @@ class ReviewService {
       }
       return {'success': false, 'error': response.data['message'] ?? 'Failed to submit review'};
     } on DioException catch (e) {
-      final data = e.response?.data;
-      String errorMsg = e.message ?? 'Failed to submit review';
-      if (data is Map<String, dynamic>) {
-        errorMsg = data['message'] ?? errorMsg;
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': 'No internet connection. Your review was not submitted. Please try again when connected.'};
       }
-      
       if (e.response?.statusCode == 409) {
-        return {'success': false, 'error': 'You already reviewed this ride.', 'code': 409};
+        return {'success': false, 'error': 'You have already reviewed this ride.', 'code': 409};
       } else if (e.response?.statusCode == 400) {
-        return {'success': false, 'error': 'This ride is not completed yet.', 'code': 400};
+        return {'success': false, 'error': 'This ride is not completed yet. You can review after the trip ends.', 'code': 400};
+      }
+      final data = e.response?.data;
+      String errorMsg = 'Failed to submit review. Please try again.';
+      if (data is Map<String, dynamic> && data['message'] != null) {
+        errorMsg = data['message'];
       }
       return {'success': false, 'error': errorMsg, 'code': e.response?.statusCode};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -72,18 +76,19 @@ class ReviewService {
       return {'success': false, 'error': 'Failed to load review'};
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
-        // Review not found (expected if they haven't reviewed)
-        return {'success': true, 'data': null}; // Indicate explicitly no review
+        return {'success': true, 'data': null};
       }
-      
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
       final data = e.response?.data;
-      String errorMsg = e.message ?? 'Failed to load review';
-      if (data is Map<String, dynamic>) {
-        errorMsg = data['message'] ?? errorMsg;
+      String errorMsg = 'Failed to load review. Please try again.';
+      if (data is Map<String, dynamic> && data['message'] != null) {
+        errorMsg = data['message'];
       }
       return {'success': false, 'error': errorMsg, 'code': e.response?.statusCode};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 }

@@ -271,6 +271,9 @@ class BookingService {
     DioException e, {
     String fallback = 'Unknown network error',
   }) {
+    if (ApiError.isNetworkError(e)) {
+      return ApiError.getUserMessage(e);
+    }
     final parsed = _parseErrorData(e.response?.data);
     if (parsed != null && parsed.isNotEmpty) return parsed;
     return e.message ?? fallback;

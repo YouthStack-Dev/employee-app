@@ -41,7 +41,10 @@ class AnnouncementService {
         return (data as List).map((json) => Announcement.fromJson(json)).toList();
       });
     } catch (e) {
-      return {'success': false, 'error': 'Service error: $e'};
+      if (e is DioException && ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
+      return {'success': false, 'error': 'Unable to load announcements. Please check your connection and try again.'};
     }
   }
 
@@ -63,7 +66,10 @@ class AnnouncementService {
 
       return _parseResponse(response, (data) => data);
     } catch (e) {
-      return {'success': false, 'error': 'Service error: $e'};
+      if (e is DioException && ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
+      return {'success': false, 'error': 'Could not mark as read. Please try again.'};
     }
   }
 

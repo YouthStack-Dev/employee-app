@@ -39,6 +39,9 @@ class WeekoffService {
       }
       return {'success': false, 'error': 'Failed to fetch weekoff config'};
     } on DioException catch (e) {
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
       print('WEEKOFF ERROR: ${e.response?.statusCode} - ${e.response?.data}');
       String error = 'Failed to fetch settings';
       if (e.response?.statusCode == 401) {
@@ -55,7 +58,7 @@ class WeekoffService {
       }
       return {'success': false, 'error': error};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 }

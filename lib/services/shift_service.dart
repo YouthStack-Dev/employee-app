@@ -59,12 +59,14 @@ class ShiftService {
         };
       }
       return {'success': false, 'error': 'Failed to fetch shifts'};
-    } catch (e) {
-      if (e is DioException && e.response != null) {
-         final errorMsg = e.response?.data?['detail']?['message'] ?? e.response?.data?['message'] ?? 'Failed to fetch shifts';
-         return {'success': false, 'error': errorMsg};
+    } on DioException catch (e) {
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
       }
-      return {'success': false, 'error': e.toString()};
+      final errorMsg = e.response?.data?['detail']?['message'] ?? e.response?.data?['message'] ?? 'Failed to fetch shifts. Please try again.';
+      return {'success': false, 'error': errorMsg};
+    } catch (e) {
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 }

@@ -53,6 +53,7 @@ class FxColors {
   // Soft accents
   static const Color emeraldDot = Color(0xFF10B981);
   static const Color amber = Color(0xFFF59E0B);
+  static const Color success = Color(0xFF10B981);
 
   // Booking-status colors (mapped to the design's tonal language)
   static Color statusColor(String? status) {

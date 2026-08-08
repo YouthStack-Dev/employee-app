@@ -5,6 +5,27 @@ import '../constants/api_constants.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 
+/// Helper to extract user-friendly error from DioException for auth endpoints.
+String _authError(DioException e, String fallback) {
+  if (ApiError.isNetworkError(e)) {
+    return ApiError.getUserMessage(e);
+  }
+  if (e.response?.data != null) {
+    final data = e.response!.data;
+    if (data is Map && data.containsKey('detail')) {
+      if (data['detail'] is Map && data['detail']['message'] != null) {
+        return data['detail']['message'];
+      } else if (data['detail'] is String) {
+        return data['detail'];
+      }
+    }
+    if (data is Map && data['message'] is String) {
+      return data['message'];
+    }
+  }
+  return fallback;
+}
+
 class AuthService {
   final ApiService _apiService = ApiService();
 
@@ -74,21 +95,9 @@ class AuthService {
       }
       return {'success': false, 'error': 'Login failed'};
     } on DioException catch (e) {
-      // Extract error message similar to React Native implementation
-      String errorMessage = 'Login failed';
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('detail')) {
-             if (data['detail'] is Map && data['detail']['message'] != null) {
-               errorMessage = data['detail']['message'];
-             } else if (data['detail'] is String) {
-               errorMessage = data['detail'];
-             }
-        }
-      }
-      return {'success': false, 'error': errorMessage};
+      return {'success': false, 'error': _authError(e, 'Login failed. Please check your credentials and try again.')};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -106,20 +115,9 @@ class AuthService {
       }
       return {'success': false, 'error': 'Failed to send OTP'};
     } on DioException catch (e) {
-      String errorMessage = 'Failed to send OTP';
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('detail')) {
-            if (data['detail'] is Map && data['detail']['message'] != null) {
-               errorMessage = data['detail']['message'];
-            } else if (data['detail'] is String) {
-               errorMessage = data['detail'];
-            }
-        }
-      }
-      return {'success': false, 'error': errorMessage};
+      return {'success': false, 'error': _authError(e, 'Failed to send OTP. Please check your connection and try again.')};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -138,20 +136,9 @@ class AuthService {
       }
       return {'success': false, 'error': 'Invalid OTP'};
     } on DioException catch (e) {
-      String errorMessage = 'Invalid OTP';
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('detail')) {
-            if (data['detail'] is Map && data['detail']['message'] != null) {
-               errorMessage = data['detail']['message'];
-            } else if (data['detail'] is String) {
-               errorMessage = data['detail'];
-            }
-        }
-      }
-      return {'success': false, 'error': errorMessage};
+      return {'success': false, 'error': _authError(e, 'OTP verification failed. Please try again.')};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -218,20 +205,9 @@ class AuthService {
       }
       return {'success': false, 'error': 'Failed to select tenant'};
     } on DioException catch (e) {
-      String errorMessage = 'Failed to select tenant';
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map && data.containsKey('detail')) {
-            if (data['detail'] is Map && data['detail']['message'] != null) {
-               errorMessage = data['detail']['message'];
-            } else if (data['detail'] is String) {
-               errorMessage = data['detail'];
-            }
-        }
-      }
-      return {'success': false, 'error': errorMessage};
+      return {'success': false, 'error': _authError(e, 'Failed to select organization. Please try again.')};
     } catch (e) {
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': 'Something went wrong. Please try again.'};
     }
   }
 
@@ -348,6 +324,9 @@ class AuthService {
 
   /// Shared error extractor for the fleet-manager response envelope.
   String _parseError(DioException e, String fallback) {
+    if (ApiError.isNetworkError(e)) {
+      return ApiError.getUserMessage(e);
+    }
     final data = e.response?.data;
     if (data is Map) {
       final detail = data['detail'];

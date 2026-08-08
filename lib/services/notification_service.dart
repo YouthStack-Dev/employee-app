@@ -251,8 +251,9 @@ class NotificationService {
       
       print('Unregistering FCM Token ID: $regId');
       
-      await _apiService.dio.delete(
-        '${ApiConstants.unregisterFcmToken}/$regId'
+      await _apiService.dio.post(
+        ApiConstants.unregisterFcmToken,
+        data: {'platform': Platform.isIOS ? 'ios' : 'android'},
       );
       
       await prefs.remove('push_registration_id');
@@ -290,8 +291,13 @@ class NotificationService {
         if (data == null) return [];
         return (data as List).map((json) => NotificationModel.fromJson(json)).toList();
       });
+    } on DioException catch (e) {
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
+      return {'success': false, 'error': 'Unable to load notifications. Please try again.'};
     } catch (e) {
-      return {'success': false, 'error': 'Service error: $e'};
+      return {'success': false, 'error': 'Unable to load notifications. Please try again.'};
     }
   }
 
@@ -311,8 +317,13 @@ class NotificationService {
       );
 
       return _parseResponse(response, (data) => data);
+    } on DioException catch (e) {
+      if (ApiError.isNetworkError(e)) {
+        return {'success': false, 'error': ApiError.getUserMessage(e)};
+      }
+      return {'success': false, 'error': 'Unable to clear notifications. Please try again.'};
     } catch (e) {
-      return {'success': false, 'error': 'Service error: $e'};
+      return {'success': false, 'error': 'Unable to clear notifications. Please try again.'};
     }
   }
 

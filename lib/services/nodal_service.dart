@@ -66,6 +66,9 @@ class NodalService {
 
   /// Map known nodal error codes / statuses to friendly, actionable copy.
   String _friendly(DioException e) {
+    if (ApiError.isNetworkError(e)) {
+      return ApiError.getUserMessage(e);
+    }
     final code = _errorCode(e);
     switch (code) {
       case 'VEHICLE_NOT_FOUND':
