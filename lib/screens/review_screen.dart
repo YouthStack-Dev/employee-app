@@ -133,20 +133,27 @@ class _ReviewScreenState extends State<ReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: FxColors.background,
-      body: SafeArea(
-        child: _isLoadingTags
-            ? const SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20, 20, 20, 100),
-                child: SkeletonReviewForm(),
-              )
-            : Column(
-                children: [
-                  _topBar(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+    return PopScope(
+      canPop: _isReadOnly || !_hasUnsavedChanges(),
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await _showDiscardDialog();
+        if (shouldLeave && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+        backgroundColor: FxColors.background,
+        body: SafeArea(
+          child: _isLoadingTags
+              ? const SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(20, 20, 20, 100),
+                  child: SkeletonReviewForm(),
+                )
+              : Column(
+                  children: [
+                    _topBar(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -210,7 +217,38 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 ),
               ),
             ),
+    ),
     );
+  }
+
+  bool _hasUnsavedChanges() {
+    return _overallRating != null ||
+        _driverRating != null ||
+        _vehicleRating != null ||
+        _selectedDriverTags.isNotEmpty ||
+        _selectedVehicleTags.isNotEmpty ||
+        _driverCommentController.text.isNotEmpty ||
+        _vehicleCommentController.text.isNotEmpty;
+  }
+
+  Future<bool> _showDiscardDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard review?'),
+        content: const Text('You have unsaved changes. Are you sure you want to go back?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep editing'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Discard', style: TextStyle(color: FxColors.error)),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   Widget _topBar() {

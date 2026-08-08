@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_theme.dart';
 import '../services/weekoff_service.dart';
 import '../widgets/calendar_widget.dart';
@@ -106,12 +105,29 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     final count = _workingDayCount();
     final hasValid = _selectionMode == 'single' ? _selectedDates.isNotEmpty : (_startDate != null && _endDate != null);
 
-    return Scaffold(
-      backgroundColor: FxColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _topBar(),
+    return PopScope(
+      canPop: _selectedDates.isEmpty && _startDate == null,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldLeave = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Discard booking?'),
+            content: const Text('You have selected dates. Are you sure you want to go back?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep selecting')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Discard', style: TextStyle(color: FxColors.error))),
+            ],
+          ),
+        ) ?? false;
+        if (shouldLeave && context.mounted) Navigator.pop(context);
+      },
+      child: Scaffold(
+        backgroundColor: FxColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _topBar(),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -191,6 +207,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -202,20 +219,11 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back_rounded, color: FxColors.primary),
             onPressed: () => Navigator.pop(context),
+            tooltip: 'Go back',
           ),
           const SizedBox(width: 4),
           Text('Create Booking', style: FxText.headlineSm(color: FxColors.primary)),
           const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: FxColors.onSurfaceVariant),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
-              }
-            },
-          ),
         ],
       ),
     );

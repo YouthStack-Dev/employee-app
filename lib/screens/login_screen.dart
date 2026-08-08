@@ -202,9 +202,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: FxCard(
                         padding: const EdgeInsets.all(24),
                         borderRadius: BorderRadius.circular(28),
-                        child: _showPasswordLogin || _showPhoneOtp
-                            ? (_showPasswordLogin ? _buildPasswordForm() : _buildOtpForm())
-                            : _buildOtpForm(),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          child: _showPasswordLogin || _showPhoneOtp
+                              ? (_showPasswordLogin
+                                  ? KeyedSubtree(key: const ValueKey('password'), child: _buildPasswordForm())
+                                  : KeyedSubtree(key: const ValueKey('phone_otp'), child: _buildOtpForm()))
+                              : KeyedSubtree(key: const ValueKey('email_otp'), child: _buildOtpForm()),
+                        ),
                       ),
                     ),
                   ),
@@ -223,16 +230,19 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Row(
           children: [
-            GestureDetector(
-              onTap: () => setState(() {
+            IconButton(
+              onPressed: () => setState(() {
                 _showPasswordLogin = false;
                 _showPhoneOtp = false;
                 _isOtpSent = false;
                 _otpCodeController.clear();
               }),
-              child: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+              icon: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+              tooltip: 'Go back',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Text('Login to fleet account', style: FxText.headlineMd()),
           ],
         ),
@@ -361,16 +371,19 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!isEmail)
           Row(
             children: [
-              GestureDetector(
-                onTap: () => setState(() {
+              IconButton(
+                onPressed: () => setState(() {
                   _showPasswordLogin = false;
                   _showPhoneOtp = false;
                   _isOtpSent = false;
                   _otpCodeController.clear();
                 }),
-                child: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+                icon: const Icon(Icons.arrow_back_rounded, color: FxColors.onSurface),
+                tooltip: 'Go back',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
             ],
           ),
         if (!isEmail) ...[

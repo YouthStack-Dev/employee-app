@@ -351,15 +351,19 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     final hasDriver = b.routeDetails?['driver_details'] != null;
     final canTrack = ['Scheduled', 'Ongoing'].contains(b.status) && hasDriver;
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: _topNav()),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              _mergedCard(b, dateLabel, canTrack),
-              if (b.boardingOtp != null || b.deboardingOtp != null) ...[
+    return RefreshIndicator(
+      color: FxColors.primary,
+      onRefresh: _fetchBookingDetails,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(child: _topNav()),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _mergedCard(b, dateLabel, canTrack),
+                if (b.boardingOtp != null || b.deboardingOtp != null) ...[
                 const SizedBox(height: 16),
                 _otpCard(b),
               ],
@@ -369,6 +373,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 

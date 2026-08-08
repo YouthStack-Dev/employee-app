@@ -89,36 +89,44 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         children: [
           Container(
             margin: EdgeInsets.only(bottom: _segmentIndex == 0 ? 8 : 24),
-            child: GestureDetector(
-              onTap: _triggerSOS,
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: FxColors.error,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: FxShadows.button,
+            child: Semantics(
+              button: true,
+              label: 'Emergency SOS',
+              child: GestureDetector(
+                onTap: _triggerSOS,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: FxColors.error,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: FxShadows.button,
+                  ),
+                  child: const Icon(Icons.warning_amber_rounded, color: FxColors.onError, size: 28),
                 ),
-                child: const Icon(Icons.warning_amber_rounded, color: FxColors.onError, size: 28),
               ),
             ),
           ),
           if (_segmentIndex == 0)
             Container(
               margin: const EdgeInsets.only(bottom: 24),
-              child: GestureDetector(
-                onTap: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const CreateBookingScreen())),
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: FxGradients.indigo,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: FxShadows.button,
-                  ),
-                  child: const Icon(Icons.add_rounded, color: FxColors.onPrimary, size: 28),
+              child: Semantics(
+                button: true,
+                label: 'Create new booking',
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const CreateBookingScreen())),
+                  child: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      gradient: FxGradients.indigo,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: FxShadows.button,
+                    ),
+                    child: const Icon(Icons.add_rounded, color: FxColors.onPrimary, size: 28),
                 ),
+              ),
               ),
             ),
         ],
@@ -337,6 +345,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           const SizedBox(width: 8),
           _iconButton(
             Icons.notifications_outlined,
+            semanticLabel: 'Notifications',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const NotificationHistoryScreen()),
@@ -346,6 +355,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
           _iconButton(
             Icons.logout_rounded,
             color: FxColors.error,
+            semanticLabel: 'Logout',
             onTap: _handleLogout,
           ),
         ],
@@ -586,22 +596,26 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
   }
 
-  Widget _iconButton(IconData icon, {VoidCallback? onTap, Color? color}) {
-    return Material(
-      color: FxColors.surfaceContainerLowest,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
+  Widget _iconButton(IconData icon, {VoidCallback? onTap, Color? color, String? semanticLabel}) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Material(
+        color: FxColors.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: FxColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: FxShadows.soft,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: FxColors.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: FxShadows.soft,
+            ),
+            child: Icon(icon, color: color ?? FxColors.onSurfaceVariant, size: 22),
           ),
-          child: Icon(icon, color: color ?? FxColors.onSurfaceVariant, size: 22),
         ),
       ),
     );
@@ -1075,13 +1089,25 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
   Widget _emptyState(IconData icon, String label) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40),
+      padding: const EdgeInsets.symmetric(vertical: 48),
       child: Center(
         child: Column(
           children: [
-            Icon(icon, size: 56, color: FxColors.outline),
-            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: FxColors.primaryContainer.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: FxColors.primary.withOpacity(0.6)),
+            ),
+            const SizedBox(height: 16),
             Text(label, style: FxText.body(color: FxColors.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            Text(
+              'Pull down to refresh',
+              style: FxText.caption(color: FxColors.outline),
+            ),
           ],
         ),
       ),
