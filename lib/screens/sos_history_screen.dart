@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../services/alert_service.dart';
 import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
@@ -328,7 +331,9 @@ class _SosHistoryScreenState extends State<SosHistoryScreen> {
     DateTime? dt;
     if (triggered is String) dt = DateTime.tryParse(triggered);
     final dateLabel = dt != null ? DateFormat('MMM d, yyyy').format(dt.toLocal()) : '';
-    final timeLabel = dt != null ? DateFormat('h:mm a').format(dt.toLocal()) : '';
+    final timeLabel = dt != null
+        ? formatClock(dt, is24Hour: context.watch<TimeFormatProvider>().is24Hour)
+        : '';
 
     final lat = alert['trigger_latitude'];
     final lng = alert['trigger_longitude'];

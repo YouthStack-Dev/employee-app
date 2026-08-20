@@ -7,7 +7,7 @@ import 'api_service.dart';
 class NodalService {
   final ApiService _apiService = ApiService();
 
-  /// GET /api/v1/employee/nodal/assignment
+  /// GET /api/v1/app/employee/nodal/assignment
   Future<Map<String, dynamic>> getAssignment() async {
     try {
       final response = await _apiService.dio.get(ApiConstants.nodalAssignment);
@@ -28,7 +28,7 @@ class NodalService {
     }
   }
 
-  /// POST /api/v1/employee/nodal/scan  body {"vehicle_number": "KA01AB1234"}
+  /// POST /api/v1/app/employee/nodal/scan  body {"vehicle_number": "KA01AB1234"}
   Future<Map<String, dynamic>> scan(String vehicleNumber) async {
     try {
       final response = await _apiService.dio.post(

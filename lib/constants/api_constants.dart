@@ -5,6 +5,7 @@ class ApiConstants {
   static const String requestOtp = '/api/v1/app/auth/employee/request-otp';
   static const String verifyOtp = '/api/v1/app/auth/employee/verify-otp';
   static const String selectTenant = '/api/v1/app/auth/employee/select-tenant';
+  static const String switchTenant = '/api/v1/app/auth/employee/switch-tenant';
   static const String refreshToken = '/api/v1/app/auth/refresh-token';
 
   // Forgot-password flow (employee)
@@ -15,6 +16,7 @@ class ApiConstants {
   static const String weekoffConfig = '/api/v1/app/weekoff-configs';
   static const String shifts = '/api/v1/app/shifts';
   static const String createBooking = '/api/v1/app/bookings/';
+  static const String createRoundTripBooking = '/api/v1/app/bookings/round-trip';
   static const String bookingOperations = '/api/v1/app/bookings';
   static const String reviewTags = '/api/v1/app/reviews/tags';
   static const String bookingReview = '/api/v1/app/employee/bookings';

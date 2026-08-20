@@ -8,8 +8,10 @@ import '../constants/app_theme.dart';
 import '../models/booking_model.dart';
 import '../models/review_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/time_format_provider.dart';
 import '../services/booking_service.dart';
 import '../services/review_service.dart';
+import '../utils/time_format.dart';
 import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
 import 'edit_booking_screen.dart';
@@ -42,9 +44,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
   String _formatTime(String? time) {
     if (time == null || time.isEmpty) return '--:--';
-    final parts = time.split(':');
-    if (parts.length >= 2) return '${parts[0]}:${parts[1]}';
-    return time;
+    return formatTimeOfDay(time, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
   GoogleMapController? _mapController;
   Set<Polyline> _polylines = {};
@@ -104,14 +104,29 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   }
 
   Future<void> _handleCancel() async {
+    final reasonController = TextEditingController();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Cancel booking?', style: FxText.headlineSm()),
-        content: Text(
-          'Booking #${widget.bookingId} will be cancelled.',
-          style: FxText.body(color: FxColors.onSurfaceVariant),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Booking #${widget.bookingId} will be cancelled.',
+              style: FxText.body(color: FxColors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            FxTextField(
+              controller: reasonController,
+              label: 'Reason (optional)',
+              hint: 'Why are you cancelling?',
+              prefixIcon: Icons.edit_outlined,
+              maxLines: 2,
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -126,9 +141,14 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
         ],
       ),
     );
+    final reason = reasonController.text.trim();
+    reasonController.dispose();
     if (confirm != true) return;
     setState(() => _isCancelling = true);
-    final result = await _bookingService.cancelBooking(widget.bookingId);
+    final result = await _bookingService.cancelBooking(
+      widget.bookingId,
+      reason: reason.isEmpty ? null : reason,
+    );
     if (!mounted) return;
     setState(() => _isCancelling = false);
     if (result['success']) {
@@ -334,9 +354,12 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
   Widget _buildBody() {
     final b = _booking!;
     final bookingDate = DateTime.tryParse(b.date ?? '');
-    final timeParts = (b.shiftTime ?? b.pickupTime ?? '00:00').split(':');
+    final timeLabel = formatTimeOfDay(
+      b.shiftTime ?? b.pickupTime,
+      is24Hour: context.watch<TimeFormatProvider>().is24Hour,
+    );
     final dateLabel = bookingDate != null
-        ? '${DateFormat('MMM d, yyyy').format(bookingDate)} • ${timeParts.isNotEmpty ? timeParts[0] : '00'}:${timeParts.length > 1 ? timeParts[1] : '00'}'
+        ? '${DateFormat('MMM d, yyyy').format(bookingDate)} • $timeLabel'
         : (b.date ?? '');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

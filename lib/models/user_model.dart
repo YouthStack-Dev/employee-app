@@ -10,6 +10,9 @@ class User {
   final String? department;
   final String? designation;
   final String? gender;
+  final String? tenantName;
+  final double? latitude;
+  final double? longitude;
   final Map<String, dynamic>? rawEmployeeData;
 
   User({
@@ -24,6 +27,9 @@ class User {
     this.department,
     this.designation,
     this.gender,
+    this.tenantName,
+    this.latitude,
+    this.longitude,
     this.rawEmployeeData,
   });
 
@@ -38,7 +44,7 @@ class User {
     return User(
       employeeId: employee?['employee_id'],
       username: user?['username'],
-      tenantId: user?['tenant_id'],
+      tenantId: user?['tenant_id'] ?? employee?['tenant_id'],
       role: (user?['roles'] as List?)?.isNotEmpty == true ? user!['roles'][0] : null,
       name: employee?['name'],
       email: employee?['email'],
@@ -47,7 +53,16 @@ class User {
       department: employee?['department'],
       designation: employee?['designation'],
       gender: employee?['gender']?.toString(),
+      tenantName: (user?['tenant'] as Map?)?['name']?.toString(),
+      latitude: _toDouble(employee?['latitude'] ?? user?['tenant']?['latitude']),
+      longitude: _toDouble(employee?['longitude'] ?? user?['tenant']?['longitude']),
       rawEmployeeData: employee is Map<String, dynamic> ? employee : null,
     );
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    final parsed = double.tryParse(value.toString());
+    return parsed;
   }
 }

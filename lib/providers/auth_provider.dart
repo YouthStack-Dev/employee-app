@@ -117,6 +117,43 @@ class AuthProvider with ChangeNotifier {
     return false;
   }
 
+  /// Tenants the employee can switch to (persisted at login per API docs —
+  /// the list already excludes the current tenant).
+  Future<List<Map<String, dynamic>>> getSwitchableTenants() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('available_tenants');
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.whereType<Map<String, dynamic>>().toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// POST /auth/employee/switch-tenant — swaps session to another tenant
+  /// without re-authentication. Service persists new tokens + tenant config.
+  Future<bool> switchTenant(String tenantId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final result = await _authService.switchTenant(tenantId);
+
+    _isLoading = false;
+    if (result['success'] == true) {
+      _user = result['user'];
+      _error = null;
+      notifyListeners();
+      NotificationService().registerToken();
+      return true;
+    }
+    _error = result['error'];
+    notifyListeners();
+    return false;
+  }
+
   Future<void> logout() async {
     // Unregister Push Token
     await NotificationService().unregisterToken();
@@ -132,14 +169,11 @@ class AuthProvider with ChangeNotifier {
     final tenantId = prefs.getString('tenant_id');
     final employeeId = prefs.getString('employee_id');
 
-    print('CHECK LOGIN STATUS: access_token exists? ${token != null}');
-    print('CHECK LOGIN STATUS: tenant_id: $tenantId');
-    print('CHECK LOGIN STATUS: employee_id: $employeeId');
-
     final name = prefs.getString('name');
     final email = prefs.getString('email');
     final phone = prefs.getString('phone');
     final address = prefs.getString('address');
+    final tenantName = prefs.getString('tenant_name');
 
     Map<String, dynamic>? rawEmployeeData;
     final raw = prefs.getString('raw_employee_data');
@@ -148,6 +182,11 @@ class AuthProvider with ChangeNotifier {
         rawEmployeeData = Map<String, dynamic>.from(jsonDecode(raw));
       } catch (_) {}
     }
+
+    final savedLat = double.tryParse(prefs.getString('latitude') ?? '');
+    final savedLng = double.tryParse(prefs.getString('longitude') ?? '');
+    final latitude = savedLat ?? _toDouble(rawEmployeeData?['latitude']);
+    final longitude = savedLng ?? _toDouble(rawEmployeeData?['longitude']);
 
     if (token != null && tenantId != null && employeeId != null) {
       _user = User(
@@ -158,12 +197,20 @@ class AuthProvider with ChangeNotifier {
         email: email,
         phone: phone,
         address: address,
+        tenantName: tenantName,
+        latitude: latitude,
+        longitude: longitude,
         rawEmployeeData: rawEmployeeData,
       );
       notifyListeners();
       return true;
     }
     return false;
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    return double.tryParse(value.toString());
   }
   Future<Map<String, dynamic>> triggerGenericSOS({int? bookingId}) async {
     final result = await _alertService.triggerSOSAlert(

@@ -56,7 +56,9 @@ class Booking {
       pickupLongitude: double.tryParse(json['pickup_longitude']?.toString() ?? '0'),
       dropLatitude: double.tryParse(json['drop_latitude']?.toString() ?? '0'),
       dropLongitude: double.tryParse(json['drop_longitude']?.toString() ?? '0'),
-      routeDetails: json['route_details'] != null ? Map<String, dynamic>.from(json['route_details']) : null,
+      routeDetails: json['route_details'] != null
+          ? Map<String, dynamic>.from(json['route_details'])
+          : (json['route'] is Map ? Map<String, dynamic>.from(json['route']) : null),
       tenantId: json['tenant_id'] is int ? json['tenant_id'] : int.tryParse(json['tenant_id']?.toString() ?? ''),
       boardingOtp: json['boarding_otp']?.toString(),
       deboardingOtp: json['deboarding_otp']?.toString(),

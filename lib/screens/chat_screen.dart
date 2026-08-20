@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_theme.dart';
 import '../models/chat_message_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
 
@@ -391,7 +392,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _messageBubble(ChatMessage msg, bool isMine, String viewerLang) {
     final textColor = isMine ? FxColors.onPrimary : FxColors.onSurface;
-    final timeStr = DateFormat('HH:mm').format(msg.sortTime.toLocal());
+    final timeStr = formatClock(msg.sortTime, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
     final showOriginal = msg.originalLanguage != null &&
         msg.originalLanguage!.isNotEmpty &&
         msg.originalLanguage != viewerLang &&

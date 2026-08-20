@@ -7,19 +7,25 @@ import '../models/booking_model.dart';
 import '../providers/announcement_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../providers/time_format_provider.dart';
 import '../services/review_service.dart';
 import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
+import '../utils/time_format.dart';
 import 'announcements_screen.dart';
 import 'notification_history_screen.dart';
 import 'booking_details_screen.dart';
 import 'chat_screen.dart';
 import 'create_booking_screen.dart';
 import 'edit_booking_screen.dart';
+import 'my_addresses_screen.dart';
 import 'nodal_scan_screen.dart';
+import 'personal_details_screen.dart';
 import 'review_screen.dart';
+import 'settings_screen.dart';
 import 'sos_details_screen.dart';
 import 'sos_history_screen.dart';
+import 'tenant_switch_screen.dart';
 import 'track_driver_screen.dart';
 
 class SchedulesScreen extends StatefulWidget {
@@ -34,11 +40,42 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   int _segmentIndex = 0; // 0 upcoming, 1 past
   bool _isActiveCardExpanded = true;
   DateTime _selectedHistoryDate = DateTime.now();
+  List<Map<String, dynamic>> _switchableTenants = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshBookings());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshBookings();
+      _loadSwitchableTenants();
+    });
+  }
+
+  Future<void> _loadSwitchableTenants() async {
+    final tenants = await Provider.of<AuthProvider>(context, listen: false)
+        .getSwitchableTenants();
+    if (!mounted) return;
+    if (tenants.length != _switchableTenants.length) {
+      setState(() => _switchableTenants = tenants);
+    }
+  }
+
+  Future<void> _openTenantSwitch() async {
+    final switched = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const TenantSwitchScreen()),
+    );
+    if (switched == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Organization switched'),
+          backgroundColor: FxColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      _refreshBookings();
+    }
   }
 
   void _refreshBookings() {
@@ -260,8 +297,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                               padding: const EdgeInsets.only(bottom: 16),
                               child: _scheduledRideCard(b, isHistory: false),
                             )),
-                    const SizedBox(height: 16),
-                    _bentoTomorrow(scheduled, now),
                     const SizedBox(height: 32),
                   ]),
                 ),
@@ -275,41 +310,34 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
   Widget _buildAppHeader() {
     final user = context.watch<AuthProvider>().user;
-    final name = user?.name ?? 'Welcome';
-    final initials = (user?.name ?? 'E')
-        .trim()
-        .split(' ')
-        .where((s) => s.isNotEmpty)
-        .take(2)
-        .map((s) => s[0].toUpperCase())
-        .join();
+    final tenantId = user?.tenantId ?? 'Welcome';
+    final canSwitch = _switchableTenants.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: FxGradients.indigo,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Text(
-              initials.isEmpty ? 'E' : initials,
-              style: FxText.title(color: FxColors.onPrimary),
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FxMetaLabel('Welcome back,'),
-                Text(name, style: FxText.headlineMd()),
-              ],
-            ),
+            child: canSwitch
+                ? InkWell(
+                    onTap: _openTenantSwitch,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(tenantId, style: FxText.headlineMd()),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.swap_horiz_rounded,
+                          size: 20,
+                          color: FxColors.primary,
+                        ),
+                      ],
+                    ),
+                  )
+                : Text(tenantId, style: FxText.headlineMd()),
           ),
 
           Consumer<AnnouncementProvider>(
@@ -350,13 +378,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
               context,
               MaterialPageRoute(builder: (_) => const NotificationHistoryScreen()),
             ),
-          ),
-          const SizedBox(width: 8),
-          _iconButton(
-            Icons.logout_rounded,
-            color: FxColors.error,
-            semanticLabel: 'Logout',
-            onTap: _handleLogout,
           ),
         ],
       ),
@@ -442,97 +463,102 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
   Widget _buildProfilePage() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
-    final name = user?.name ?? 'Welcome';
-    final email = user?.email ?? 'No email on file';
-    final tenant = user?.tenantId ?? '';
-    final empId = user?.employeeId;
-    final rawData = user?.rawEmployeeData ?? {};
-    final ignoredKeys = ['id', 'employee_id', 'tenant_id', 'user_id', 'created_at', 'updated_at', 'name', 'email', 'roles', 'password', 'token'];
+    final name = user?.name ?? 'Employee';
+    final rawData = user?.rawEmployeeData ?? const <String, dynamic>{};
+    final empCode = rawData['employee_code']?.toString() ?? user?.employeeId?.toString() ?? '';
 
-    List<Widget> dynamicFields = [];
-    for (var entry in rawData.entries) {
-      if (entry.value == null || entry.value.toString().isEmpty) continue;
-      
-      String lowerKey = entry.key.toLowerCase();
-      
-      // Only include phone/number and address fields as requested
-      if (!lowerKey.contains('phone') && !lowerKey.contains('number') && !lowerKey.contains('contact') && !lowerKey.contains('address') && !lowerKey.contains('location')) {
-        continue;
-      }
-      
-      String keyLabel = entry.key.split('_').map((word) {
-        if (word.isEmpty) return '';
-        return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
-      }).join(' ');
-      
-      IconData icon = Icons.info_outline_rounded;
-      if (lowerKey.contains('phone') || lowerKey.contains('contact') || lowerKey.contains('number')) icon = Icons.phone_outlined;
-      else if (lowerKey.contains('address') || lowerKey.contains('location')) icon = Icons.location_on_outlined;
+    const divider = FxColors.surfaceContainerHigh;
 
-      dynamicFields.add(_profileRow(icon, keyLabel, entry.value.toString()));
-    }
-
-    final initials = (user?.name ?? 'E')
-        .trim()
+    final initials = (name.trim().isEmpty ? 'E' : name.trim())
         .split(' ')
         .where((s) => s.isNotEmpty)
         .take(2)
         .map((s) => s[0].toUpperCase())
         .join();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 40, 20, 100),
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: FxColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: FxShadows.soft,
+    void showNote(String message) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: FxColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Column(
-          children: [
-            Container(
-              width: 96,
-              height: 96,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: FxGradients.indigo,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: Text(
-                initials.isEmpty ? 'E' : initials,
-                style: FxText.displaySm(color: FxColors.onPrimary),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(name, style: FxText.headlineLg()),
-            const SizedBox(height: 4),
-            Text(email, style: FxText.bodyLg(color: FxColors.onSurfaceVariant)),
-            const SizedBox(height: 8),
-            if (user?.gender != null)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    user!.isFemale ? Icons.female_rounded : Icons.male_rounded,
-                    size: 18,
-                    color: FxColors.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(user!.gender!, style: FxText.bodySm(color: FxColors.onSurfaceVariant)),
-                ],
-              ),
-            const SizedBox(height: 40),
-            
-            // Dynamic Fields (Filtered to Phone & Address)
-            ...dynamicFields,
+      );
+    }
 
-            const SizedBox(height: 40),
-            FxPrimaryButton(
-              label: 'Sign out',
-              leadingIcon: Icons.logout_rounded,
-              onPressed: _handleLogout,
+    return Container(
+      color: FxColors.background,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _profileSummaryCard(
+              initials: initials,
+              name: name,
+              empCode: empCode,
+            ),
+            const SizedBox(height: 19),
+            _menuTile(
+              icon: Icons.help_outline_rounded,
+              label: 'Help',
+              onTap: () => showNote('Help is coming soon.'),
+            ),
+            const SizedBox(height: 18),
+            _sectionCard(
+              title: 'Preferences',
+              children: [
+                _menuTile(
+                  icon: Icons.location_on_outlined,
+                  label: 'My Address',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MyAddressesScreen()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 19),
+            _sectionCard(
+              title: 'More',
+              children: [
+                _menuTile(
+                  icon: Icons.feedback_outlined,
+                  label: 'App Feedback',
+                  onTap: () => showNote('App Feedback is coming soon.'),
+                ),
+                const _RowDivider(color: divider),
+                _menuTile(
+                  icon: Icons.settings_outlined,
+                  label: 'Settings',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                ),
+                const _RowDivider(color: divider),
+                _menuTile(
+                  icon: Icons.description_outlined,
+                  label: 'Terms Of Usage',
+                  onTap: () => showNote('Terms Of Usage is coming soon.'),
+                ),
+                const _RowDivider(color: divider),
+                _menuTile(
+                  icon: Icons.warning_amber_rounded,
+                  label: 'SOS History',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SosHistoryScreen()),
+                  ),
+                ),
+                const _RowDivider(color: divider),
+                _menuTile(
+                  icon: Icons.logout_rounded,
+                  label: 'Logout',
+                  onTap: _handleLogout,
+                ),
+              ],
             ),
           ],
         ),
@@ -540,32 +566,157 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     );
   }
 
-  Widget _profileRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: FxColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(10),
+  Widget _profileSummaryCard({
+    required String initials,
+    required String name,
+    required String empCode,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PersonalDetailsScreen(
+              user: Provider.of<AuthProvider>(context, listen: false).user,
             ),
-            child: Icon(icon, color: FxColors.primary, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FxMetaLabel(label),
-                Text(value, style: FxText.titleSm()),
+        ),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                FxColors.primary.withValues(alpha: 0.07),
+                FxColors.primaryContainer.withValues(alpha: 0.25),
               ],
             ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: FxColors.surfaceContainerHigh),
           ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: FxColors.surfaceContainerLow,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  initials.isEmpty ? 'E' : initials,
+                  style: FxText.headlineMd().copyWith(fontSize: 20, color: FxColors.primary),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name.toUpperCase(),
+                      style: FxText.headlineMd(),
+                    ),
+                    const SizedBox(height: 4),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Emp ID ',
+                            style: FxText.body(color: FxColors.onSurfaceVariant).copyWith(fontSize: 14),
+                          ),
+                          TextSpan(
+                            text: empCode.isEmpty ? '—' : empCode,
+                            style: FxText.headlineMd(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: FxColors.primaryContainer.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: FxColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: FxColors.surfaceContainerHigh),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: FxText.headlineMd(),
+          ),
+          const SizedBox(height: 8),
+          ...children,
         ],
+      ),
+    );
+  }
+
+  Widget _menuTile({
+    required IconData icon,
+    required String label,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: FxColors.surfaceContainerLow,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 20, color: FxColors.primary),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: FxText.bodyLg(),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, size: 22, color: FxColors.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }
@@ -894,70 +1045,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     );
   }
 
-  Widget _bentoTomorrow(List<Booking> upcoming, DateTime now) {
-    final tomorrowDate = now.add(const Duration(days: 1));
-    final tomorrowStr = DateFormat('yyyy-MM-dd').format(tomorrowDate);
-    final tomorrowList = upcoming.where((b) => b.date == tomorrowStr).toList();
-    Booking? nextShift;
-    if (tomorrowList.isNotEmpty) {
-      tomorrowList.sort((a, b) =>
-          (a.shiftTime ?? '').compareTo(b.shiftTime ?? ''));
-      nextShift = tomorrowList.first;
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: FxTonalCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  FxMetaLabel('Tomorrow'),
-                  const SizedBox(height: 28),
-                  Text('${tomorrowList.length.toString().padLeft(2, '0')}',
-                      style: FxText.displaySm()),
-                  const SizedBox(height: 2),
-                  Text('Total rides scheduled', style: FxText.bodySm()),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: FxColors.primaryContainer.withOpacity(0.15),
-                borderRadius: FxRadii.card,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  FxMetaLabel('Next Shift', color: FxColors.primary),
-                  const SizedBox(height: 24),
-                  Text(
-                    nextShift?.shiftTime?.substring(0, 5) ?? '—',
-                    style: FxText.headlineLg(color: FxColors.onPrimaryContainer),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    nextShift?.pickupLocation ?? 'No shift assigned',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: FxText.bodySm(color: FxColors.onPrimaryContainer),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ------------------ PAST (HISTORY) ------------------
   Widget _buildPast() {
@@ -998,19 +1085,6 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                           background: FxColors.primary.withOpacity(0.1),
                           foreground: FxColors.primary,
                           onPressed: () {},
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FxSecondaryButton(
-                          icon: Icons.warning_amber_rounded,
-                          label: 'SOS History',
-                          background: FxColors.surfaceContainerLowest,
-                          foreground: FxColors.error,
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SosHistoryScreen()),
-                          ),
                         ),
                       ),
                     ],
@@ -1096,17 +1170,17 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: FxColors.primaryContainer.withOpacity(0.1),
+                color: FxColors.primaryContainer.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 48, color: FxColors.primary.withOpacity(0.6)),
+              child: Icon(icon, size: 48, color: FxColors.primary.withValues(alpha: 0.6)),
             ),
             const SizedBox(height: 16),
             Text(label, style: FxText.body(color: FxColors.onSurfaceVariant)),
             const SizedBox(height: 6),
             Text(
               'Pull down to refresh',
-              style: FxText.caption(color: FxColors.outline),
+              style: FxText.bodySm(color: FxColors.outline),
             ),
           ],
         ),
@@ -1117,7 +1191,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   String _formatTime(Booking b) {
     final raw = b.shiftTime ?? b.pickupTime ?? '';
     if (raw.isEmpty) return '--:--';
-    return raw.length > 5 ? raw.substring(0, 5) : raw;
+    return formatTimeOfDay(raw, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
 
   String _humanDate(String? raw) {
@@ -1293,6 +1367,21 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         ),
       );
     }
+  }
+}
+
+class _RowDivider extends StatelessWidget {
+  final Color color;
+
+  const _RowDivider({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.only(left: 70, right: 16),
+      color: color,
+    );
   }
 }
 

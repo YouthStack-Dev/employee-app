@@ -6,6 +6,7 @@ import '../constants/app_theme.dart';
 import '../widgets/fx_widgets.dart';
 import '../services/tracking_service.dart';
 import 'forgot_password_screen.dart';
+import 'tenant_select_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -116,50 +117,13 @@ class _LoginScreenState extends State<LoginScreen> {
       TrackingService.logEvent(isEmail ? 'email_otp_login_success' : 'mobile_login_success');
       Navigator.pushReplacementNamed(context, '/schedules');
     } else if (auth.needsTenantSelection) {
-      _showTenantPicker(auth);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TenantSelectScreen()),
+      );
     } else {
       _toast(auth.error ?? 'Invalid OTP', error: true);
     }
-  }
-
-  void _showTenantPicker(AuthProvider auth) {
-    final tenants = auth.availableTenants;
-    if (tenants == null || tenants.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Select Organization'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: tenants.map((t) {
-            final id = t['tenant_id'] ?? '';
-            final name = t['name'] ?? id;
-            return ListTile(
-              leading: const Icon(Icons.domain_rounded, color: FxColors.primary),
-              title: Text(name.toString(), style: FxText.titleSm()),
-              subtitle: Text(id.toString(), style: FxText.bodySm()),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final ok = await auth.selectOtpTenant(id.toString());
-                if (!mounted) return;
-                if (ok) {
-                  Navigator.pushReplacementNamed(context, '/schedules');
-                } else {
-                  _toast(auth.error ?? 'Failed to select organization', error: true);
-                }
-              },
-            );
-          }).toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _toast(String msg, {bool error = false}) {

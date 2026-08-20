@@ -5,9 +5,9 @@ import '../providers/auth_provider.dart';
 import '../widgets/fx_widgets.dart';
 
 /// Three-step employee password reset:
-///   1. request OTP   POST /api/v1/auth/employee/forgot-password {tenant_id, email}
-///   2. verify OTP    POST /api/v1/auth/employee/forgot-password/verify {tenant_id, email, otp}
-///   3. set password  PUT  /api/v1/auth/employee/password {password_set_token, new_password, confirm_password}
+///   1. request OTP   POST /api/v1/app/auth/employee/forgot-password {tenant_id, email}
+///   2. verify OTP    POST /api/v1/app/auth/employee/forgot-password/verify {tenant_id, email, otp}
+///   3. set password  PUT  /api/v1/app/auth/employee/password {password_set_token, new_password, confirm_password}
 class ForgotPasswordScreen extends StatefulWidget {
   final String? initialTenantId;
   final String? initialEmail;

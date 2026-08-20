@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +6,24 @@ import '../constants/api_constants.dart';
 import '../constants/error_messages.dart';
 import '../main.dart';
 import 'connectivity_service.dart';
+
+/// Persists tenant/app config returned by auth responses (login, select-tenant,
+/// switch-tenant, refresh-token) as raw JSON. Missing keys are skipped, so
+/// non-tenant-scoped responses (e.g. admin refresh) are handled gracefully.
+Future<void> persistAppConfig(Map container) async {
+  final prefs = await SharedPreferences.getInstance();
+  for (final key in const [
+    'active_modules',
+    'tenant_config',
+    'booking_policy',
+    'available_tenants',
+  ]) {
+    final value = container[key];
+    if (value != null) {
+      await prefs.setString(key, jsonEncode(value));
+    }
+  }
+}
 
 /// User-friendly error messages based on DioException type.
 class ApiError {
@@ -41,17 +60,20 @@ class ApiError {
     final data = e.response?.data;
     String? errorCode;
     String? serverMessage;
+    int? remainingAttempts;
 
     if (data is Map) {
       final detail = data['detail'];
       if (detail is Map) {
         errorCode = detail['error_code']?.toString() ?? detail['code']?.toString();
         serverMessage = detail['message']?.toString();
+        remainingAttempts = _extractRemainingAttempts(detail['details'] ?? detail);
       } else if (detail is String) {
         serverMessage = detail;
       }
       errorCode ??= data['error_code']?.toString() ?? data['code']?.toString();
       serverMessage ??= data['message']?.toString();
+      remainingAttempts ??= _extractRemainingAttempts(data['details']);
     }
 
     return AppErrorMessages.resolve(
@@ -59,8 +81,19 @@ class ApiError {
       statusCode: statusCode,
       errorCode: errorCode,
       serverMessage: serverMessage,
+      remainingAttempts: remainingAttempts,
       fallback: fallback,
     );
+  }
+
+  /// Pulls `remaining_attempts` out of an error `details` payload
+  /// (e.g. INVALID_OTP responses include it per the auth API docs).
+  static int? _extractRemainingAttempts(dynamic details) {
+    if (details is! Map) return null;
+    final value = details['remaining_attempts'];
+    if (value is int) return value;
+    if (value != null) return int.tryParse(value.toString());
+    return null;
   }
 
   static String _parseServerError(Response? response) {
@@ -117,16 +150,33 @@ class ApiService {
           }
         }
 
-        final prefs = await SharedPreferences.getInstance();
-        final token = prefs.getString('access_token');
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        
-        // Attach tenant_id header for all authenticated requests
-        final tenantId = prefs.getString('tenant_id');
-        if (tenantId != null) {
-          options.headers['X-Tenant-Id'] = tenantId;
+        // Pre-auth endpoints (login, OTP, tenant selection, forgot-password)
+        // require no Authorization per the API docs. Never attach stale
+        // session headers here — a leftover X-Tenant-Id could contradict the
+        // tenant_id sent in the request body. (set-password is excluded: it
+        // IS an authenticated call.)
+        const preAuthPaths = [
+          ApiConstants.login,
+          ApiConstants.requestOtp,
+          ApiConstants.verifyOtp,
+          ApiConstants.selectTenant,
+          ApiConstants.forgotPassword,
+          ApiConstants.forgotPasswordVerify,
+        ];
+        final isPreAuthEndpoint = preAuthPaths.any((p) => options.path.contains(p));
+
+        if (!isPreAuthEndpoint) {
+          final prefs = await SharedPreferences.getInstance();
+          final token = prefs.getString('access_token');
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          // Attach tenant_id header for all authenticated requests
+          final tenantId = prefs.getString('tenant_id');
+          if (tenantId != null) {
+            options.headers['X-Tenant-Id'] = tenantId;
+          }
         }
 
         return handler.next(options);
@@ -154,7 +204,6 @@ class ApiService {
 
           final prefs = await SharedPreferences.getInstance();
           final refreshToken = prefs.getString('refresh_token');
-          final tenantId = prefs.getString('tenant_id');
 
           if (refreshToken != null) {
             try {
@@ -162,15 +211,12 @@ class ApiService {
                 connectTimeout: const Duration(seconds: 10),
                 receiveTimeout: const Duration(seconds: 10),
               ));
-              
-              final dataPayload = <String, String>{'refresh_token': refreshToken};
-              if (tenantId != null) {
-                dataPayload['tenant_id'] = tenantId;
-              }
 
+              // Per API docs the body is only {refresh_token} — sending extra
+              // fields risks a 422 on strict schemas.
               final response = await refreshDio.post(
                 '${ApiConstants.baseUrl}${ApiConstants.refreshToken}',
-                data: dataPayload,
+                data: {'refresh_token': refreshToken},
                 options: Options(headers: {'Content-Type': 'application/json'}),
               );
 
@@ -179,10 +225,17 @@ class ApiService {
                 if (data != null && data['access_token'] != null) {
                   final newAccessToken = data['access_token'];
                   final newRefreshToken = data['refresh_token'];
-                  
+
                   await prefs.setString('access_token', newAccessToken);
                   if (newRefreshToken != null) {
                     await prefs.setString('refresh_token', newRefreshToken);
+                  }
+
+                  // Pick up mid-session config changes — refresh returns
+                  // active_modules / tenant_config / booking_policy at the
+                  // data level for tenant-scoped users.
+                  if (data is Map) {
+                    await persistAppConfig(data);
                   }
 
                   final options = e.requestOptions;

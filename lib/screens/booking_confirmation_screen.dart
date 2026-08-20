@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/shift_model.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../services/booking_service.dart';
-import '../services/weekoff_service.dart';
 import '../constants/app_colors.dart';
 import 'booking_success_screen.dart';
 
@@ -106,6 +108,25 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
         if (result['success']) {
              final daysCount = bookingDates.length;
+             final createdCount = (result['createdCount'] as num?)?.toInt() ?? daysCount;
+             final skipped = (result['skipped'] as List?) ?? const [];
+             var message = result['message']?.toString() ?? 'Booking created successfully';
+
+             if (skipped.isNotEmpty) {
+               final reasons = skipped.map((s) {
+                 if (s is Map) {
+                   final reason = s['reason']?.toString();
+                   final date = s['date']?.toString();
+                   if (reason != null && date != null) return '$date: $reason';
+                   if (reason != null) return reason;
+                   if (date != null) return date;
+                 }
+                 return null;
+               }).whereType<String>().join(', ');
+               if (reasons.isNotEmpty) {
+                 message = '$message — Skipped: $reasons';
+               }
+             }
              
              if (mounted) {
                 // Navigate to Success
@@ -114,8 +135,8 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   MaterialPageRoute(builder: (context) => BookingSuccessScreen(
                       bookingId: result['bookingId']?.toString(), 
                       status: 'Request', // Default
-                      message: result['message'] ?? 'Booking created successfully',
-                      daysCount: daysCount,
+                      message: message,
+                      daysCount: createdCount,
                   )),
                   (route) => route.settings.name == '/schedules' || route.isFirst, 
                   // Ideally remove until home/schedules
@@ -299,11 +320,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
   String _formatTime(String? time) {
     if (time == null || time.isEmpty) return '-';
-    final parts = time.split(':');
-    if (parts.length >= 2) {
-      return '${parts[0]}:${parts[1]}';
-    }
-    return time;
+    return formatTimeOfDay(time, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
 
   Widget _buildRow(String label, String value) {

@@ -10,8 +10,8 @@ import '../widgets/skeletons.dart';
 
 /// Nodal QR onboarding: scan the vehicle's RC-number QR (or type it) to mark
 /// yourself boarded at the nodal point.
-///   GET  /api/v1/employee/nodal/assignment  (assigned hub, shown at top)
-///   POST /api/v1/employee/nodal/scan         (board)
+///   GET  /api/v1/app/employee/nodal/assignment  (assigned hub, shown at top)
+///   POST /api/v1/app/employee/nodal/scan         (board)
 class NodalScanScreen extends StatefulWidget {
   const NodalScanScreen({super.key});
 

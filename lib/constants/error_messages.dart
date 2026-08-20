@@ -38,6 +38,8 @@ class AppErrorMessages {
         'Your verification has expired. Please start the login process again.',
     'TENANT_ACCESS_DENIED':
         'You don\'t have access to this organization. Please select a different one or contact your admin.',
+    'ALREADY_IN_TENANT':
+        'You\'re already logged into this organization.',
 
     // Token
     'TOKEN_EXPIRED':
@@ -257,20 +259,33 @@ class AppErrorMessages {
     int? statusCode,
     String? errorCode,
     String? serverMessage,
+    int? remainingAttempts,
     String? fallback,
   }) {
     // 1. Try mapping by error_code
     if (errorCode != null && errorCode.isNotEmpty) {
       final mapped = _lookupCode(feature, errorCode);
-      if (mapped != null) return mapped;
+      if (mapped != null) {
+        // INVALID_OTP responses carry `details.remaining_attempts` — surface it.
+        if (errorCode == 'INVALID_OTP' && remainingAttempts != null) {
+          return '$mapped ($remainingAttempts ${remainingAttempts == 1 ? 'attempt' : 'attempts'} remaining)';
+        }
+        return mapped;
+      }
     }
 
-    // 2. Try status code based message
+    // 2. On auth endpoints, a 401 without a known error code means invalid
+    //    credentials (per API docs) — not an expired session.
+    if (feature == 'auth' && statusCode == 401) {
+      return fallback ?? 'Invalid credentials. Please check your details and try again.';
+    }
+
+    // 3. Try status code based message
     if (statusCode != null && statusCode >= 400) {
       return fromStatusCode(statusCode, context: fallback);
     }
 
-    // 3. Use provided fallback
+    // 4. Use provided fallback
     return fallback ?? 'Something went wrong. Please try again.';
   }
 

@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/shift_model.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../services/shift_service.dart';
 import '../services/booking_service.dart';
 import '../services/weekoff_service.dart';
+import '../constants/app_theme.dart';
 import '../constants/app_colors.dart';
+import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
-import 'booking_confirmation_screen.dart';
+import 'booking_success_screen.dart';
 
 class SelectShiftScreen extends StatefulWidget {
   final Map<String, dynamic> bookingData;
 
-  const SelectShiftScreen({super.key, required this.bookingData});
+  /// When true, this screen acts as a shift picker: selecting a shift pops
+  /// back with the chosen [Shift] instead of booking.
+  final bool pickerMode;
+
+  /// Preselects the Login/Logout tab ('in' or 'out') at open time.
+  final String? initialShiftType;
+
+  const SelectShiftScreen({
+    super.key,
+    required this.bookingData,
+    this.pickerMode = false,
+    this.initialShiftType,
+  });
 
   @override
   State<SelectShiftScreen> createState() => _SelectShiftScreenState();
@@ -26,7 +43,7 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
   String? _error;
   
   // Tab state
-  String _shiftType = 'in'; // 'in' or 'out'
+  late String _shiftType; // 'in' or 'out'
   List<Shift> _inShifts = [];
   List<Shift> _outShifts = [];
   List<String> _weekoffDays = [];
@@ -35,6 +52,7 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
   @override
   void initState() {
     super.initState();
+    _shiftType = widget.initialShiftType ?? 'in';
     _fetchShiftsAndWeekoff();
   }
 
@@ -52,7 +70,6 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
       List<String> weekoffDays = [];
       if (weekoffResult['success'] == true) {
           weekoffDays = (weekoffResult['weekoffDays'] as List).cast<String>();
-          print('Fetched Weekoff Days: $weekoffDays');
       }
 
       // Handle Shifts
@@ -96,6 +113,10 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
   }
 
   void _handleSelectShift(Shift shift) {
+    if (widget.pickerMode) {
+      Navigator.pop(context, shift);
+      return;
+    }
     setState(() {
       _selectedShift = shift;
     });
@@ -103,17 +124,105 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
 
   void _handleConfirm() {
     if (_selectedShift == null) return;
-    
-    Navigator.push(
-      context, 
-      MaterialPageRoute(
-        builder: (context) => BookingConfirmationScreen(
-          bookingData: widget.bookingData,
-          selectedShift: _selectedShift!,
-          weekoffDays: _weekoffDays,
-        )
-      )
-    );
+    if (widget.pickerMode) {
+      Navigator.pop(context, _selectedShift);
+      return;
+    }
+    _bookDirectly();
+  }
+
+  /// Books the selected shift immediately, skipping the confirmation page.
+  Future<void> _bookDirectly() async {
+    final shift = _selectedShift;
+    if (shift == null) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    try {
+      // Compute booking dates the same way the confirmation screen did
+      // (single selection vs date range, excluding weekoffs).
+      List<DateTime> dates = [];
+      final selectionMode = widget.bookingData['selectionMode'];
+      if (selectionMode == 'single') {
+        dates = List<DateTime>.from(widget.bookingData['selectedDates']);
+      } else {
+        final start = widget.bookingData['startDate'] as DateTime;
+        final end = widget.bookingData['endDate'] as DateTime;
+        var current = start;
+        while (!current.isAfter(end)) {
+          dates.add(current);
+          current = current.add(const Duration(days: 1));
+        }
+      }
+      final validDates = dates.where((d) => !_isWeekoff(d)).toList()..sort();
+
+      final bookingDates = validDates.map((d) {
+        final y = d.year.toString().padLeft(4, '0');
+        final m = d.month.toString().padLeft(2, '0');
+        final day = d.day.toString().padLeft(2, '0');
+        return '$y-$m-$day';
+      }).toList();
+
+      if (bookingDates.isEmpty) {
+        setState(() {
+          _error = 'No valid working days selected.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final tenantId = prefs.getString('tenant_id');
+      final employeeId = prefs.getString('employee_id');
+
+      if (tenantId == null || employeeId == null) {
+        setState(() {
+          _error = 'User session invalid. Please login again.';
+          _isSubmitting = false;
+        });
+        return;
+      }
+
+      final result = await _bookingService.createBooking(
+        tenantId: tenantId,
+        employeeId: int.parse(employeeId),
+        bookingDates: bookingDates,
+        shiftId: shift.shiftId!,
+      );
+
+      if (!mounted) return;
+
+      if (result['success']) {
+        final createdCount = (result['createdCount'] as num?)?.toInt() ?? bookingDates.length;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookingSuccessScreen(
+              bookingId: result['bookingId']?.toString(),
+              status: 'Request',
+              message: result['message']?.toString() ?? 'Booking created successfully',
+              daysCount: createdCount,
+            ),
+          ),
+          (route) => route.settings.name == '/schedules' || route.isFirst,
+        );
+      } else {
+        setState(() {
+          _error = result['error'];
+          _isSubmitting = false;
+        });
+        _showError(_error ?? 'Failed to book');
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Booking failed. Please try again.';
+        _isSubmitting = false;
+      });
+      _showError(_error!);
+    }
   }
 
   void _showError(String message) {
@@ -130,6 +239,19 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
         backgroundColor: AppColors.primary,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: FxPrimaryButton(
+            label: _selectedShift != null
+                ? (widget.pickerMode ? 'Choose ${_selectedShift!.shiftCode}' : 'Book ${_selectedShift!.shiftCode}')
+                : (widget.pickerMode ? 'Select Shift' : 'Select a Shift'),
+            trailingIcon: Icons.arrow_forward_rounded,
+            onPressed: (_isLoading || _isSubmitting) ? null : (_selectedShift != null ? _handleConfirm : null),
+            loading: _isSubmitting,
+          ),
+        ),
+      ),
       body: _isLoading 
           ? const Padding(
               padding: EdgeInsets.all(20),
@@ -145,49 +267,46 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
             )
           : Column(
               children: [
-                _buildHeader(),
                 if (_error != null)
                    Padding(
                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                      child: Text(_error!, style: const TextStyle(color: Colors.red)),
                    ),
-                _buildTabs(),
-                 Expanded(
-                   child: currentShifts.isEmpty 
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(15),
-                          itemCount: currentShifts.length,
-                          itemBuilder: (context, index) {
-                             return _buildShiftCard(currentShifts[index]);
-                          },
-                        ),
+                 if (!(widget.pickerMode && widget.initialShiftType != null))
+                   _buildTabs(),
+                 Padding(
+                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+                   child: Align(
+                     alignment: Alignment.centerLeft,
+                     child: Text('Available Shifts',
+                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                   ),
                  ),
-                 _buildFooter(),
+                 Expanded(
+                    child: currentShifts.isEmpty 
+                       ? _buildEmptyState()
+                       : GridView.builder(
+                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
+                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                             crossAxisCount: 3,
+                             mainAxisSpacing: 16,
+                             crossAxisSpacing: 16,
+                             mainAxisExtent: 40,
+                           ),
+                           itemCount: currentShifts.length,
+                           itemBuilder: (context, index) {
+                              return _buildShiftCard(currentShifts[index]);
+                           },
+                         ),
+                  ),
               ],
             ),
     );
   }
 
-  Widget _buildHeader() {
-      return Container(
-          padding: const EdgeInsets.all(20),
-          color: Colors.white,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                  const Text('Select Your Shift', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  Text('Choose the shift timing for your ${widget.bookingData['daysCount']} day booking', 
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-              ],
-          ),
-      );
-  }
-
   Widget _buildTabs() {
       return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          margin: const EdgeInsets.fromLTRB(20, 15, 20, 0),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
               color: Colors.grey[200],
@@ -195,8 +314,8 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
           ),
           child: Row(
               children: [
-                  _buildTabItem('Login', 'in', Icons.login_rounded),
-                  _buildTabItem('Logout', 'out', Icons.logout_rounded),
+                  _buildTabItem('Login (Go to Work)', 'in', Icons.login_rounded),
+                  _buildTabItem('Logout (Return to Home)', 'out', Icons.logout_rounded),
               ],
           ),
       );
@@ -208,7 +327,7 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
           child: GestureDetector(
               onTap: () => _switchTab(type),
               child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                   decoration: BoxDecoration(
                       color: isSelected ? AppColors.primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
@@ -217,13 +336,19 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
                   child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                          Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Text(
-                              label, 
-                              style: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.grey[600],
-                                  fontWeight: FontWeight.bold,
+                          Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey[600]),
+                          const SizedBox(width: 5),
+                          Flexible(
+                              child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                      label, 
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: isSelected ? Colors.white : Colors.grey[600],
+                                          fontWeight: FontWeight.bold,
+                                      ),
+                                  ),
                               ),
                           ),
                       ],
@@ -249,122 +374,31 @@ class _SelectShiftScreenState extends State<SelectShiftScreen> {
 
   String _formatTime(String? time) {
     if (time == null || time.isEmpty) return '';
-    final parts = time.split(':');
-    if (parts.length >= 2) {
-      return '${parts[0]}:${parts[1]}';
-    }
-    return time;
-  }
-
-  String _formatGender(String? gender) {
-    final g = (gender ?? '').trim().toLowerCase();
-    if (g == 'male') return 'Male';
-    if (g == 'female') return 'Female';
-    return 'Both';
+    return formatTimeOfDay(time, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
 
   Widget _buildShiftCard(Shift shift) {
       final isSelected = _selectedShift?.shiftId == shift.shiftId;
-      final isLogin = shift.logType == 'IN';
       
       return GestureDetector(
           onTap: () => _handleSelectShift(shift),
           child: Container(
-              margin: const EdgeInsets.only(bottom: 15),
-              padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFF0EFFF) : Colors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  color: isSelected ? FxColors.primaryContainer.withValues(alpha: 0.25) : Colors.white,
+                  borderRadius: BorderRadius.circular(5),
                   border: Border.all(
                       color: isSelected ? AppColors.primary : Colors.grey[300]!,
-                      width: isSelected ? 2 : 1,
+                      width: 1,
                   ),
-                  boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
-                  ]
               ),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                              Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                      color: isLogin ? const Color(0xFFFFEAA7) : const Color(0xFF74B9FF),
-                                      borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                          Icon(isLogin ? Icons.login_rounded : Icons.logout_rounded, size: 14, color: Colors.black87),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                              isLogin ? 'Login' : 'Logout',
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
-                                      ],
-                                  ),
-                              ),
-                              if (isSelected)
-                                 const CircleAvatar(
-                                     radius: 12,
-                                     backgroundColor: AppColors.primary,
-                                     child: Icon(Icons.check, size: 16, color: Colors.white),
-                                 )
-                          ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(shift.shiftCode ?? shift.name ?? 'Shift', 
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 5),
-                      Row(
-                          children: [
-                              const Icon(Icons.schedule_rounded, size: 18, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(_formatTime(shift.shiftTime ?? shift.startTime), 
-                                  style: const TextStyle(fontSize: 16, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                          ],
-                      ),
-                      const SizedBox(height: 10),
-                      const Divider(),
-                      Row(
-                          children: [
-                              const Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey),
-                              const SizedBox(width: 6),
-                              Text(_formatGender(shift.gender), style: TextStyle(color: Colors.grey[600])),
-                          ],
-                      ),
-                  ],
-              ),
-          ),
-      );
-  }
-
-  Widget _buildFooter() {
-      return Container(
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey[200]!)),
-          ),
-          child: SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                  onPressed: _selectedShift != null ? _handleConfirm : null,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      disabledBackgroundColor: Colors.grey[300],
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              alignment: Alignment.center,
+              child: Text(
+                  _formatTime(shift.shiftTime ?? shift.startTime),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: isSelected ? AppColors.primary : Colors.black87,
                   ),
-                  child: _isSubmitting 
-                     ? const SizedBox() // Removed loading
-                     : Text(
-                         _selectedShift != null ? 'Book ${_selectedShift!.shiftCode}' : 'Select a Shift', 
-                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
-                     ),
               ),
           ),
       );

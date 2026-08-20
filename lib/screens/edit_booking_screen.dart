@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_theme.dart';
 import '../models/shift_model.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../services/booking_service.dart';
 import '../services/shift_service.dart';
 import '../widgets/fx_widgets.dart';
@@ -25,6 +28,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   Map<String, dynamic>? _booking;
   List<Shift> _shifts = [];
   int? _selectedShiftId;
+  String _shiftType = 'in';
   String? _error;
 
   @override
@@ -72,6 +76,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
         };
         _shifts = selectable;
         _selectedShiftId = bookingObj.shiftId;
+        final logType = (bookingObj.logType ?? '').toString().toLowerCase();
+        _shiftType = logType == 'out' ? 'out' : 'in';
         _isLoading = false;
       });
     } else {
@@ -252,7 +258,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             children: [
                               const Icon(Icons.calendar_month_outlined, size: 16, color: FxColors.onSurfaceVariant),
                               const SizedBox(width: 6),
-                              Text(formattedDate, style: FxText.title()),
+                              Text(formattedDate, style: FxText.bodyLg()),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -260,7 +266,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             children: [
                               const Icon(Icons.schedule_rounded, size: 16, color: FxColors.onSurfaceVariant),
                               const SizedBox(width: 6),
-                              Text(_formatTime(currentShift.shiftTime), style: FxText.title()),
+                              Text(_formatTime(currentShift.shiftTime), style: FxText.bodyLg()),
                               const SizedBox(width: 16),
                               Icon(
                                 currentShift.logType == 'IN' ? Icons.login_rounded : Icons.logout_rounded,
@@ -270,7 +276,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                               const SizedBox(width: 6),
                               Text(
                                 currentShift.logType == 'IN' ? 'Login' : 'Logout',
-                                style: FxText.title(color: FxColors.onSurfaceVariant),
+                                style: FxText.bodyLg(color: FxColors.onSurfaceVariant),
                               ),
                             ],
                           ),
@@ -302,7 +308,32 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                             style: FxText.headlineSm(),
                           ),
                           const SizedBox(height: 12),
-                          ..._shifts.map((s) => _shiftRow(s)),
+                          _buildShiftTabs(),
+                          const SizedBox(height: 14),
+                          if (_filteredShifts.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text(
+                                  'No ${_shiftType == 'in' ? 'login' : 'logout'} shifts available',
+                                  style: FxText.body(color: FxColors.onSurfaceVariant),
+                                ),
+                              ),
+                            )
+                          else
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(0, 0, 0, 15),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                mainAxisExtent: 40,
+                              ),
+                              itemCount: _filteredShifts.length,
+                              itemBuilder: (context, index) => _shiftCard(_filteredShifts[index]),
+                            ),
                         ],
                       ),
                     ),
@@ -347,96 +378,122 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
 
   String _formatTime(String? time) {
     if (time == null || time.isEmpty) return '-';
-    final parts = time.split(':');
-    if (parts.length >= 2) {
-      return '${parts[0]}:${parts[1]}';
-    }
-    return time;
+    return formatTimeOfDay(time, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
 
-  Widget _shiftRow(Shift s) {
-    final isSelected = _selectedShiftId == s.shiftId;
-    final isCurrent = s.shiftId == _booking!['shift_id'];
-    return GestureDetector(
-      onTap: () => setState(() => _selectedShiftId = s.shiftId),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? FxColors.primary.withOpacity(0.08)
-              : FxColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? FxColors.primary : Colors.transparent,
-            width: isSelected ? 2 : 0,
+  List<Shift> get _filteredShifts =>
+      _shifts.where((s) => _shiftType == 'in' ? s.logType == 'IN' : s.logType == 'OUT').toList();
+
+  Widget _buildShiftTabs() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: FxColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          _buildShiftTabItem('Login (Go to Work)', 'in', Icons.login_rounded),
+          _buildShiftTabItem('Logout (Return to Home)', 'out', Icons.logout_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShiftTabItem(String label, String type, IconData icon) {
+    final selected = _shiftType == type;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _shiftType = type;
+            if (_filteredShifts.isNotEmpty && !_filteredShifts.any((s) => s.shiftId == _selectedShiftId)) {
+              _selectedShiftId = null;
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? FxColors.primary : FxColors.outline,
-                  width: 2,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: selected ? FxColors.primary : FxColors.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? FxColors.primary : FxColors.onSurfaceVariant,
+                  ),
                 ),
               ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: FxColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        s.logType == 'IN' ? Icons.login_rounded : Icons.logout_rounded,
-                        size: 16,
-                        color: isSelected ? FxColors.primary : FxColors.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        s.logType == 'IN' ? 'Login' : 'Logout',
-                        style: FxText.bodySm(
-                          color: isSelected ? FxColors.primary : FxColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _formatTime(s.shiftTime),
-                    style: FxText.title(
-                      color: isSelected ? FxColors.primary : FxColors.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isCurrent)
-              FxPill(
-                text: 'CURRENT',
-                color: FxColors.onPrimary,
-                background: const Color(0xFF00B894),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _shiftCard(Shift s) {
+    final isSelected = _selectedShiftId == s.shiftId;
+    final isCurrent = s.shiftId == _booking!['shift_id'];
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _selectedShiftId = s.shiftId),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? FxColors.primaryContainer.withValues(alpha: 0.25) : Colors.white,
+              borderRadius: BorderRadius.circular(5),
+              border: Border.all(
+                color: isSelected ? FxColors.primary : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _formatTime(s.shiftTime),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: isSelected ? FxColors.primary : Colors.black87,
+              ),
+            ),
+          ),
+        ),
+        if (isCurrent)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: const BoxDecoration(
+                color: Color(0xFF00B894),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

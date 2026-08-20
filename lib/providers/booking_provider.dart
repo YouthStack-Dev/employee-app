@@ -22,12 +22,12 @@ class BookingProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<Map<String, dynamic>> cancelBooking(int bookingId) async {
+  Future<Map<String, dynamic>> cancelBooking(int bookingId, {String? reason}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final result = await _bookingService.cancelBooking(bookingId);
+      final result = await _bookingService.cancelBooking(bookingId, reason: reason);
 
       if (result['success']) {
         // Update status locally instead of removing, as per user request

@@ -1,7 +1,7 @@
 /// Models for the Employee Nodal (QR onboarding) feature.
 /// Backed by:
-///   GET  /api/v1/employee/nodal/assignment  -> NodalPoint (with is_overridden)
-///   POST /api/v1/employee/nodal/scan         -> NodalScanResult (embeds NodalPoint)
+///   GET  /api/v1/app/employee/nodal/assignment  -> NodalPoint (with is_overridden)
+///   POST /api/v1/app/employee/nodal/scan         -> NodalScanResult (embeds NodalPoint)
 
 class NodalPoint {
   final int? nodalPointId;

@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../constants/app_colors.dart';
+import '../constants/app_theme.dart';
 
 class CalendarWidget extends StatefulWidget {
   final String selectionMode; // 'single' or 'range'
   final List<String> weekoffDays;
   final Function(List<DateTime> singleDates, DateTime? start, DateTime? end) onSelectionChanged;
+  final List<DateTime> initialSingleDates;
+  final DateTime? initialStart;
+  final DateTime? initialEnd;
 
   const CalendarWidget({
     super.key,
     required this.selectionMode,
     required this.weekoffDays,
     required this.onSelectionChanged,
+    this.initialSingleDates = const [],
+    this.initialStart,
+    this.initialEnd,
   });
 
   @override
@@ -23,6 +29,22 @@ class _CalendarWidgetState extends State<CalendarWidget> {
   List<DateTime> _selectedDates = [];
   DateTime? _startDate;
   DateTime? _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDates = List<DateTime>.of(widget.initialSingleDates);
+    _startDate = widget.initialStart;
+    _endDate = widget.initialEnd;
+    if (widget.initialSingleDates.isNotEmpty) {
+      final first = widget.initialSingleDates.reduce(
+        (a, b) => a.isAfter(b) ? b : a,
+      );
+      _currentDate = DateTime(first.year, first.month, 1);
+    } else if (widget.initialStart != null) {
+      _currentDate = DateTime(widget.initialStart!.year, widget.initialStart!.month, 1);
+    }
+  }
 
   @override
   void didUpdateWidget(CalendarWidget oldWidget) {
@@ -114,7 +136,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
       children: [
         IconButton(
           onPressed: () => _changeMonth(-1),
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primary),
+          icon: const Icon(Icons.arrow_back_ios, color: FxColors.primary),
         ),
         Text(
           DateFormat('MMMM yyyy').format(_currentDate),
@@ -122,7 +144,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
         ),
         IconButton(
           onPressed: () => _changeMonth(1),
-          icon: const Icon(Icons.arrow_forward_ios, color: AppColors.primary),
+          icon: const Icon(Icons.arrow_forward_ios, color: FxColors.primary),
         ),
       ],
     );
@@ -191,9 +213,9 @@ class _CalendarWidgetState extends State<CalendarWidget> {
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: isSelected || isStart || isEnd 
-                  ? AppColors.primary 
+                  ? FxColors.primary 
                   : isInRange && !isWeekoff
-                      ? AppColors.primary.withOpacity(0.2)
+                      ? FxColors.primary.withValues(alpha: 0.2)
                       : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
@@ -204,7 +226,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
                   '$i',
                   style: TextStyle(
                     color: isDisabled 
-                        ? Colors.grey.withOpacity(0.5) 
+                        ? Colors.grey.withValues(alpha: 0.5) 
                         : (isSelected || isStart || isEnd ? Colors.white : Colors.black),
                     decoration: isDisabled ? TextDecoration.lineThrough : null,
                   ),
@@ -239,9 +261,9 @@ class _CalendarWidgetState extends State<CalendarWidget> {
       spacing: 15,
       children: [
         _buildLegendItem('Weekoff', Colors.white, borderColor: Colors.red),
-        _buildLegendItem('Selected', AppColors.primary),
+        _buildLegendItem('Selected', FxColors.primary),
         if (widget.selectionMode == 'range')
-           _buildLegendItem('In Range', AppColors.primary.withOpacity(0.2)),
+           _buildLegendItem('In Range', FxColors.primary.withValues(alpha: 0.2)),
       ],
     );
   }

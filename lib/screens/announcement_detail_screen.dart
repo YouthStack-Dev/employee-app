@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:intl/intl.dart';
 import '../models/announcement_model.dart';
 import '../providers/announcement_provider.dart';
+import '../providers/time_format_provider.dart';
+import '../utils/time_format.dart';
 import '../constants/app_colors.dart';
 
 class AnnouncementDetailScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _AnnouncementDetailScreenState extends State<AnnouncementDetailScreen> {
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
-    return DateFormat('EEEE, MMMM d, y, h:mm a').format(date);
+    return formatDateWithClock(date, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
   }
 
   Future<void> _launchUrl(String url) async {
