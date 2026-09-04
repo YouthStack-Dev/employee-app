@@ -37,7 +37,7 @@ class LocationForegroundService : Service() {
         const val KEY_DRIVER_ID = "flutter.driver_id"
         const val KEY_TENANT_ID = "flutter.tenant_id"
         const val KEY_VENDOR_ID = "flutter.vendor_id"
-        const val PING_INTERVAL_MS = 60_000L   // 1 minute (60 seconds) during active trip
+        const val PING_INTERVAL_MS = 7_000L   // 7 seconds — matches spec (5–10 s)
         const val BASE_URL = "https://api.mltcorporate.com"
         const val ACTION_START = "com.mlt.etsdriver.START_TRACKING"
         const val ACTION_STOP = "com.mlt.etsdriver.STOP_TRACKING"
@@ -398,9 +398,9 @@ class LocationForegroundService : Service() {
 
     private fun getPingIntervalMs(): Long {
         val intervalSec = try {
-            prefs.getLong("flutter.upload_interval_seconds", 60L)
+            prefs.getLong("flutter.upload_interval_seconds", 7L)
         } catch (e: ClassCastException) {
-            prefs.getInt("flutter.upload_interval_seconds", 60).toLong()
+            prefs.getInt("flutter.upload_interval_seconds", 7).toLong()
         }
         return intervalSec * 1000L
     }

@@ -27,7 +27,7 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTrips({String status = 'upcoming', bool showLoading = true}) async {
+  Future<void> fetchTrips({String status = 'upcoming', bool showLoading = true, bool skipSafetyCatch = false}) async {
     if (showLoading) {
       _isLoading = true;
       _error = null;
@@ -49,7 +49,10 @@ class BookingProvider extends ChangeNotifier {
         
         // Safety catch: If backend says there are no ongoing trips, 
         // ensure background tracking and overlays are stopped to prevent ghost notifications.
-        if (status == 'ongoing' && _routes.isEmpty) {
+        // Skip this when called immediately after duty start (skipSafetyCatch=true)
+        // because the backend may not have committed the new route yet (read-after-write lag),
+        // and clearing the route would orphan the Kotlin uploader with the previous route ID.
+        if (status == 'ongoing' && _routes.isEmpty && !skipSafetyCatch) {
           await SessionService().clearActiveRoute();
           await SessionService().setTrackingEnabled(false);
           await BackgroundTrackingService().stopBackgroundTracking();
@@ -137,17 +140,15 @@ class BookingProvider extends ChangeNotifier {
     try {
       final result = await _routeService.startDuty(routeId);
       if (result['success'] == true) {
-        // Refresh routes
-        await fetchTrips(status: 'ongoing');
-        
-        // Show overlay when duty starts
-        await OverlayService().showOverlay();
-
-        // Update the active route in SessionService when duty starts
+        // ── CRITICAL: Persist route ID and start Kotlin tracking FIRST ──
+        // This must happen before fetchTrips() because fetchTrips contains a
+        // safety catch that clears active_route_id when the backend returns
+        // no ongoing trips (e.g., read-after-write lag). If we clear the route
+        // after just writing it, the Kotlin uploader falls back to the previous
+        // route ID that was already queued in SQLite.
         await SessionService().saveActiveRoute(routeId);
         await SessionService().setTrackingEnabled(true);
 
-        // Start Kotlin background foreground service for persistent GPS tracking
         final token = await SessionService().getAccessToken() ?? '';
         
         final userData = await SessionService().getUserData();
@@ -162,6 +163,13 @@ class BookingProvider extends ChangeNotifier {
           tenantId: tenantId?.toString(),
           vendorId: vendorId?.toString(),
         );
+
+        // Now refresh routes — skip safety catch because route is already
+        // persisted and Kotlin is already tracking it.
+        await fetchTrips(status: 'ongoing', skipSafetyCatch: true);
+        
+        // Show overlay when duty starts
+        await OverlayService().showOverlay();
 
         return true;
       } else {
