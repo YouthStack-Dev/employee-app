@@ -1,13 +1,17 @@
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 import '../constants/api_constants.dart';
+import '../constants/error_messages.dart';
 import '../models/booking_model.dart';
 import '../models/shift_model.dart';
 import 'api_service.dart';
 import 'shift_service.dart';
 
 class BookingService {
-  final ApiService _apiService = ApiService();
+  BookingService({ApiService? apiService})
+      : _apiService = apiService ?? ApiService();
+
+  final ApiService _apiService;
 
   Future<Map<String, dynamic>> fetchBookings({
     required int employeeId,
@@ -124,14 +128,21 @@ class BookingService {
           'message': response.data['message'] ?? 'Booking updated successfully',
         };
       }
-      return {'success': false, 'error': 'Failed to update booking'};
+      return {
+        'success': false,
+        'error': AppErrorMessages.bookingUpdateFailed,
+      };
     } on DioException catch (e) {
       return {
         'success': false,
-        'error': _parseError(e, fallback: 'Failed to update booking'),
+        'error': _parseError(
+          e,
+          feature: 'bookingUpdate',
+          fallback: AppErrorMessages.bookingUpdateFailed,
+        ),
       };
     } catch (e) {
-      return {'success': false, 'error': 'Something went wrong. Please try again.'};
+      return {'success': false, 'error': AppErrorMessages.bookingUpdateFailed};
     }
   }
 
@@ -226,8 +237,8 @@ class BookingService {
   }
 
   /// Books login + logout legs in a single atomic call (round-trip style).
-  /// Only enabled legs are sent; logout dates are derived server-side and
-  /// shifted by +1 day when [logoutNextDay] is true.
+  /// Both leg objects are always present. A disabled leg reuses the enabled
+  /// leg's real shift_id because the backend schema requires an int for both.
   Future<Map<String, dynamic>> createRoundTripBooking({
     required String tenantId,
     required int employeeId,
@@ -240,32 +251,40 @@ class BookingService {
     String? logoutPickup,
     String? logoutDropoff,
   }) async {
+    final loginShiftId = loginShift?.shiftId;
+    final logoutShiftId = logoutShift?.shiftId;
+    final hasLogin = loginShiftId != null;
+    final hasLogout = logoutShiftId != null;
+
+    if (!hasLogin && !hasLogout) {
+      return {
+        'success': false,
+        'error': 'Please select at least one journey (Login or Logout).',
+      };
+    }
+
     try {
       final body = <String, dynamic>{
         'tenant_id': tenantId,
         'employee_id': employeeId,
         'booking_dates': bookingDates,
         'booking_type': 'regular',
+        'login': {
+          'enabled': hasLogin,
+          'shift_id': loginShiftId ?? logoutShiftId,
+          if (hasLogin && loginPickup != null) 'pickup': loginPickup,
+          if (hasLogin && loginDropoff != null) 'dropoff': loginDropoff,
+          if (hasLogin) 'pickup_type': 'regular',
+        },
+        'logout': {
+          'enabled': hasLogout,
+          'shift_id': logoutShiftId ?? loginShiftId,
+          if (hasLogout && logoutPickup != null) 'pickup': logoutPickup,
+          if (hasLogout && logoutDropoff != null) 'dropoff': logoutDropoff,
+          if (hasLogout) 'pickup_type': 'regular',
+          if (hasLogout) 'next_day': logoutNextDay,
+        },
       };
-      if (loginShift?.shiftId != null) {
-        body['login'] = {
-          'enabled': true,
-          'shift_id': loginShift!.shiftId!,
-          if (loginPickup != null) 'pickup': loginPickup,
-          if (loginDropoff != null) 'dropoff': loginDropoff,
-          'pickup_type': 'regular',
-        };
-      }
-      if (logoutShift?.shiftId != null) {
-        body['logout'] = {
-          'enabled': true,
-          'shift_id': logoutShift!.shiftId!,
-          if (logoutPickup != null) 'pickup': logoutPickup,
-          if (logoutDropoff != null) 'dropoff': logoutDropoff,
-          'pickup_type': 'regular',
-          'next_day': logoutNextDay,
-        };
-      }
 
       final response = await _apiService.dio.post(
         ApiConstants.createRoundTripBooking,
@@ -276,41 +295,67 @@ class BookingService {
         print('ROUND-TRIP BOOKING RESPONSE RAW: ${response.data}'); // DEBUG LOG
 
         final bookingData = response.data;
-        dynamic innerData = bookingData is Map ? bookingData['data'] : null;
+        final innerData = bookingData is Map ? bookingData['data'] : null;
 
-        final List created = (innerData is Map && innerData['created'] is List)
-            ? innerData['created']
-            : [];
-        final List skipped = (innerData is Map && innerData['skipped'] is List)
-            ? innerData['skipped']
-            : [];
-
-        dynamic pairId;
-        if (innerData is Map) {
-          pairId = innerData['booking_id'];
-        }
-        if (pairId == null && created.isNotEmpty && created.first is Map) {
-          pairId = created.first['booking_id'];
+        final createdRows = <Map<String, dynamic>>[];
+        if (innerData is Map && innerData['created'] is List) {
+          for (final item in (innerData['created'] as List)) {
+            if (item is Map) {
+              createdRows.add({
+                'bookingId': item['booking_id'],
+                'date': item['date']?.toString(),
+                'type': item['type']?.toString(),
+              });
+            }
+          }
         }
 
+        final skippedRows = <Map<String, dynamic>>[];
+        if (innerData is Map && innerData['skipped'] is List) {
+          for (final item in (innerData['skipped'] as List)) {
+            if (item is Map) skippedRows.add(Map<String, dynamic>.from(item));
+          }
+        }
+
+        final pairId = (innerData is Map ? innerData['booking_id'] : null) ??
+            (createdRows.isNotEmpty ? createdRows.first['bookingId'] : null);
         final dynamic loginBookingId =
             innerData is Map ? innerData['login_booking_id'] : null;
         final dynamic logoutBookingId =
             innerData is Map ? innerData['logout_booking_id'] : null;
 
-        final expectedLegs =
-            (loginShift?.shiftId != null ? 1 : 0) + (logoutShift?.shiftId != null ? 1 : 0);
-        final createdCount = created.isNotEmpty ? created.length : expectedLegs;
+        final actualCount = createdRows.length;
+        final enabledLegs = (hasLogin ? 1 : 0) + (hasLogout ? 1 : 0);
+        final requestedRows = enabledLegs * bookingDates.length;
+        final responseDates = createdRows
+            .map((row) => row['date'] as String?)
+            .whereType<String>()
+            .toSet()
+            .toList();
 
         String message;
-        if (bookingData is Map && bookingData['message'] != null) {
-          message = bookingData['message'].toString();
-        } else if (createdCount >= expectedLegs) {
-          message = bookingDates.length == 1
-              ? 'Schedule created successfully'
-              : '${bookingDates.length} date(s) created successfully';
+        if (actualCount == 0) {
+          message = bookingData is Map && bookingData['message'] != null
+              ? bookingData['message'].toString()
+              : 'No bookings were created.';
+        } else if (actualCount == 1) {
+          final row = createdRows.first;
+          final typeLabel = row['type'] == 'login'
+              ? 'Login'
+              : row['type'] == 'logout'
+                  ? 'Logout'
+                  : 'Booking';
+          final date = row['date'];
+          message = date != null
+              ? '$typeLabel booking created successfully for $date.'
+              : '$typeLabel booking created successfully.';
         } else {
-          message = '$createdCount of $expectedLegs leg(s) booked.';
+          message = responseDates.isEmpty
+              ? '$actualCount bookings created successfully.'
+              : '$actualCount bookings created successfully for ${responseDates.join(', ')}.';
+        }
+        if (skippedRows.isNotEmpty) {
+          message += ' ${skippedRows.length} booking(s) were skipped.';
         }
 
         return {
@@ -319,9 +364,10 @@ class BookingService {
           'loginBookingId': loginBookingId,
           'logoutBookingId': logoutBookingId,
           'message': message,
-          'createdCount': createdCount,
-          'requestedCount': expectedLegs,
-          'skipped': skipped,
+          'createdCount': actualCount,
+          'requestedCount': requestedRows,
+          'created': createdRows,
+          'skipped': skippedRows,
         };
       }
       return {'success': false, 'error': 'Failed to create schedule'};
@@ -414,8 +460,13 @@ class BookingService {
 
   String _parseError(
     DioException e, {
+    String feature = 'booking',
     String fallback = 'Something went wrong. Please try again.',
   }) {
-    return ApiError.resolve(e, feature: 'booking', fallback: fallback);
+    return ApiError.resolve(
+      e,
+      feature: feature,
+      fallback: fallback,
+    );
   }
 }

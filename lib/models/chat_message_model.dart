@@ -2,6 +2,22 @@
 /// `CHAT_MAX_MESSAGE_LENGTH` (app/config.py) — keep these in sync.
 const int kChatMaxMessageLength = 500;
 
+DateTime? _parseUtcDateTime(Object? raw) {
+  if (raw is DateTime) return raw.toUtc();
+  if (raw is! String || raw.trim().isEmpty) return null;
+  var value = raw.trim();
+  if (!value.endsWith('Z') && !RegExp(r'[+-]\d{2}:\d{2}$').hasMatch(value)) {
+    value = '${value}Z';
+  }
+  return DateTime.tryParse(value)?.toUtc();
+}
+
+int? _parseTimestamp(Object? raw) {
+  if (raw is int) return raw;
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '');
+}
+
 class ChatMessage {
   final int? id;
   final int? bookingId;
@@ -38,11 +54,11 @@ class ChatMessage {
       translated = raw.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
     }
 
-    DateTime? created;
-    final createdRaw = json['created_at'];
-    if (createdRaw is String && createdRaw.isNotEmpty) {
-      created = DateTime.tryParse(createdRaw);
-    }
+    DateTime? created = _parseUtcDateTime(json['created_at']);
+    final timestamp = _parseTimestamp(json['timestamp']);
+    created ??= timestamp == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true);
 
     return ChatMessage(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? ''),
@@ -56,7 +72,7 @@ class ChatMessage {
       firebaseMessageId: json['firebase_message_id']?.toString(),
       isSystemMessage: json['is_system_message'] == true || json['is_system'] == true,
       createdAt: created,
-      timestamp: json['timestamp'] is int ? json['timestamp'] : int.tryParse(json['timestamp']?.toString() ?? ''),
+      timestamp: timestamp,
     );
   }
 
@@ -67,6 +83,7 @@ class ChatMessage {
       translated = raw.map((k, v) => MapEntry(k.toString(), v?.toString() ?? ''));
     }
 
+    final timestamp = _parseTimestamp(data['timestamp']);
     return ChatMessage(
       firebaseMessageId: key,
       senderType: (data['sender_type'] ?? 'system').toString(),
@@ -76,7 +93,10 @@ class ChatMessage {
       translatedText: data['translated_text']?.toString(),
       translatedTexts: translated,
       isSystemMessage: data['is_system'] == true || data['is_system_message'] == true,
-      timestamp: data['timestamp'] is int ? data['timestamp'] : int.tryParse(data['timestamp']?.toString() ?? ''),
+      createdAt: timestamp == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(timestamp, isUtc: true),
+      timestamp: timestamp,
     );
   }
 
@@ -93,14 +113,17 @@ class ChatMessage {
     return originalText;
   }
 
-  // Stable fallback (epoch 0) — sorting must be deterministic across re-sorts.
   static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(0);
 
-  DateTime get sortTime {
-    if (createdAt != null) return createdAt!;
-    if (timestamp != null) return DateTime.fromMillisecondsSinceEpoch(timestamp!);
-    return _epoch;
+  DateTime? get displayTime {
+    if (createdAt != null) return createdAt!.toUtc();
+    if (timestamp != null) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp!, isUtc: true);
+    }
+    return null;
   }
+
+  DateTime get sortTime => displayTime ?? _epoch;
 
   ChatMessage copyWith({
     int? id,

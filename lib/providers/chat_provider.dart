@@ -5,6 +5,8 @@ import '../models/chat_message_model.dart';
 import '../models/chat_session_model.dart';
 import '../services/chat_service.dart';
 
+enum ChatRealtimeStatus { connecting, live, unavailable }
+
 class ChatProvider with ChangeNotifier {
   final ChatService _chatService = ChatService();
 
@@ -19,9 +21,12 @@ class ChatProvider with ChangeNotifier {
   int? _activeBookingId;
   int _openGeneration = 0;
   bool _isDisposed = false;
+  ChatRealtimeStatus _realtimeStatus = ChatRealtimeStatus.connecting;
+  bool _realtimeListenerHadError = false;
 
   StreamSubscription<DatabaseEvent>? _addedSub;
   StreamSubscription<DatabaseEvent>? _changedSub;
+  StreamSubscription<DatabaseEvent>? _connectionSub;
 
   ChatSession? get session => _session;
   List<ChatMessage> get messages => List.unmodifiable(_messages);
@@ -29,16 +34,20 @@ class ChatProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSending => _isSending;
   String? get error => _error;
+  ChatRealtimeStatus get realtimeStatus => _realtimeStatus;
   String get viewerLanguage => _session?.employeeLanguage ?? 'en';
 
-  Future<bool> openChat(int bookingId) async {
-    if (_activeBookingId == bookingId && _session != null) {
+  Future<bool> openChat(int bookingId, {bool force = false}) async {
+    if (!force && _activeBookingId == bookingId && _session != null) {
       return true;
     }
     final myGen = ++_openGeneration;
+    _cancelRealtimeSubscriptions();
     _activeBookingId = bookingId;
     _isLoading = true;
     _error = null;
+    _realtimeStatus = ChatRealtimeStatus.connecting;
+    _realtimeListenerHadError = false;
     _messages.clear();
     _seenFirebaseKeys.clear();
     _seenMessageIds.clear();
@@ -52,7 +61,8 @@ class ChatProvider with ChangeNotifier {
       _safeNotify();
       return false;
     }
-    _session = sessionResult['data'] as ChatSession;
+    final openedSession = sessionResult['data'] as ChatSession;
+    _session = openedSession;
 
     final history = await _chatService.fetchMessages(bookingId, skip: 0, limit: 100);
     if (myGen != _openGeneration || _isDisposed) return false;
@@ -61,11 +71,12 @@ class ChatProvider with ChangeNotifier {
       _messages.clear();
       for (final m in list) {
         _addToSeen(m);
+        if (_shouldSkipSafetyWarning(m)) continue;
         _messages.add(m);
       }
       _messages.sort((a, b) => a.sortTime.compareTo(b.sortTime));
       if (history['session'] is ChatSession) {
-        _session = history['session'] as ChatSession;
+        _session = _mergeSessions(openedSession, history['session'] as ChatSession);
       }
     } else {
       _error = history['error']?.toString() ?? 'Could not load chat history';
@@ -73,13 +84,13 @@ class ChatProvider with ChangeNotifier {
 
     final path = _session?.firebasePath;
     if (path == null || path.isEmpty) {
-      _error = _error ?? 'Chat is not available right now (no realtime path).';
+      _realtimeStatus = ChatRealtimeStatus.unavailable;
       _isLoading = false;
       _safeNotify();
-      return false;
+      return _session != null;
     }
 
-    _attachFirebaseListeners(path);
+    _attachFirebaseListeners(path, myGen);
 
     if (_supportedLanguages.isEmpty) {
       unawaited(_loadLanguages());
@@ -90,6 +101,26 @@ class ChatProvider with ChangeNotifier {
     return true;
   }
 
+  ChatSession _mergeSessions(ChatSession opened, ChatSession history) {
+    String pickText(String? value, String fallback) =>
+        value != null && value.isNotEmpty ? value : fallback;
+    final historyPath = history.firebasePath;
+    return ChatSession(
+      id: history.id ?? opened.id,
+      bookingId: history.bookingId ?? opened.bookingId,
+      employeeId: history.employeeId ?? opened.employeeId,
+      driverId: history.driverId ?? opened.driverId,
+      employeeLanguage: pickText(history.employeeLanguage, opened.employeeLanguage),
+      driverLanguage: pickText(history.driverLanguage, opened.driverLanguage),
+      isActive: history.isActive,
+      activatedAt: history.activatedAt ?? opened.activatedAt,
+      createdAt: history.createdAt ?? opened.createdAt,
+      warningMessage: pickText(history.warningMessage, opened.warningMessage ?? ''),
+      firebasePath: pickText(historyPath, opened.firebasePath ?? ''),
+      created: history.created || opened.created,
+    );
+  }
+
   void _addToSeen(ChatMessage m) {
     if (m.firebaseMessageId != null && m.firebaseMessageId!.isNotEmpty) {
       _seenFirebaseKeys.add(m.firebaseMessageId!);
@@ -97,6 +128,17 @@ class ChatProvider with ChangeNotifier {
     if (m.id != null) {
       _seenMessageIds.add(m.id!);
     }
+  }
+
+  bool _isSafetyWarning(ChatMessage m) {
+    if (!m.isSystemMessage && m.senderType != 'system') return false;
+    final warning = _session?.warningMessage?.trim();
+    if (warning == null || warning.isEmpty) return false;
+    return m.originalText.trim() == warning;
+  }
+
+  bool _shouldSkipSafetyWarning(ChatMessage m) {
+    return _isSafetyWarning(m) && _messages.any(_isSafetyWarning);
   }
 
   Future<void> _loadLanguages() async {
@@ -113,32 +155,51 @@ class ChatProvider with ChangeNotifier {
     }
   }
 
-  void _attachFirebaseListeners(String path) {
-    _addedSub?.cancel();
-    _changedSub?.cancel();
+  void _attachFirebaseListeners(String path, int generation) {
+    _cancelRealtimeSubscriptions();
+    _realtimeStatus = ChatRealtimeStatus.connecting;
+    _realtimeListenerHadError = false;
+    _safeNotify();
+
+    _connectionSub = _chatService.onRealtimeConnectionChanged().listen((event) {
+      if (_isDisposed || generation != _openGeneration) return;
+      if (_realtimeListenerHadError) {
+        _setRealtimeUnavailable();
+        return;
+      }
+      final connected = event.snapshot.value == true;
+      final next = connected ? ChatRealtimeStatus.live : ChatRealtimeStatus.connecting;
+      if (_realtimeStatus != next) {
+        _realtimeStatus = next;
+        _safeNotify();
+      }
+    }, onError: (Object e) {
+      if (_isDisposed || generation != _openGeneration) return;
+      debugPrint('ChatProvider connection listener error: $e');
+      _setRealtimeUnavailable();
+    });
 
     _addedSub = _chatService.onMessageAdded(path).listen((event) {
-      if (_isDisposed) return;
+      if (_isDisposed || generation != _openGeneration) return;
       final snap = event.snapshot;
       if (snap.key == null || snap.value == null) return;
       if (snap.value is! Map) return;
       final key = snap.key!;
       if (_seenFirebaseKeys.contains(key)) return;
       final msg = ChatMessage.fromFirebase(key, snap.value as Map);
-      _seenFirebaseKeys.add(key);
-      if (msg.id != null) _seenMessageIds.add(msg.id!);
+      _addToSeen(msg);
+      if (_shouldSkipSafetyWarning(msg)) return;
       _messages.add(msg);
       _messages.sort((a, b) => a.sortTime.compareTo(b.sortTime));
       _safeNotify();
     }, onError: (Object e) {
-      if (_isDisposed) return;
-      _error = 'Realtime connection error: $e';
+      if (_isDisposed || generation != _openGeneration) return;
       debugPrint('ChatProvider onChildAdded error: $e');
-      _safeNotify();
+      _setRealtimeUnavailable();
     });
 
     _changedSub = _chatService.onMessageChanged(path).listen((event) {
-      if (_isDisposed) return;
+      if (_isDisposed || generation != _openGeneration) return;
       final snap = event.snapshot;
       if (snap.key == null || snap.value == null) return;
       if (snap.value is! Map) return;
@@ -152,9 +213,27 @@ class ChatProvider with ChangeNotifier {
         _safeNotify();
       }
     }, onError: (Object e) {
-      if (_isDisposed) return;
+      if (_isDisposed || generation != _openGeneration) return;
       debugPrint('ChatProvider onChildChanged error: $e');
+      _setRealtimeUnavailable();
     });
+  }
+
+  void _setRealtimeUnavailable() {
+    if (_isDisposed) return;
+    _realtimeListenerHadError = true;
+    if (_realtimeStatus == ChatRealtimeStatus.unavailable) return;
+    _realtimeStatus = ChatRealtimeStatus.unavailable;
+    _safeNotify();
+  }
+
+  void _cancelRealtimeSubscriptions() {
+    _connectionSub?.cancel();
+    _addedSub?.cancel();
+    _changedSub?.cancel();
+    _connectionSub = null;
+    _addedSub = null;
+    _changedSub = null;
   }
 
   Future<bool> sendMessage(String text) async {
@@ -205,7 +284,7 @@ class ChatProvider with ChangeNotifier {
     if (result['success'] == true) {
       final updated = result['data'];
       if (updated is ChatSession) {
-        _session = updated;
+        _session = _session == null ? updated : _mergeSessions(_session!, updated);
       } else if (_session != null) {
         _session = _session!.copyWith(employeeLanguage: code);
       }
@@ -225,10 +304,9 @@ class ChatProvider with ChangeNotifier {
 
   void closeChat({bool notify = true}) {
     _openGeneration++;
-    _addedSub?.cancel();
-    _changedSub?.cancel();
-    _addedSub = null;
-    _changedSub = null;
+    _cancelRealtimeSubscriptions();
+    _realtimeStatus = ChatRealtimeStatus.connecting;
+    _realtimeListenerHadError = false;
     _session = null;
     _messages.clear();
     _seenFirebaseKeys.clear();
@@ -252,8 +330,7 @@ class ChatProvider with ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
-    _addedSub?.cancel();
-    _changedSub?.cancel();
+    _cancelRealtimeSubscriptions();
     super.dispose();
   }
 }

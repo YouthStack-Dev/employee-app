@@ -12,7 +12,9 @@ String _authError(DioException e, String fallback) {
 }
 
 class AuthService {
-  final ApiService _apiService = ApiService();
+  final ApiService _apiService;
+
+  AuthService({ApiService? apiService}) : _apiService = apiService ?? ApiService();
 
   /// Persists tenant/app configuration returned inside `user` by the login,
   /// select-tenant, switch-tenant and forgot-password-verify responses
@@ -108,7 +110,7 @@ class AuthService {
     } on DioException catch (e) {
       return {'success': false, 'error': _authError(e, AppErrorMessages.loginFailed)};
     } catch (e) {
-      return {'success': false, 'error': 'Something went wrong. Please try again.'};
+      return {'success': false, 'error': AppErrorMessages.loginFailed};
     }
   }
 

@@ -61,6 +61,7 @@ class ApiError {
     String? errorCode;
     String? serverMessage;
     int? remainingAttempts;
+    String? statusDetail;
 
     if (data is Map) {
       final detail = data['detail'];
@@ -68,12 +69,14 @@ class ApiError {
         errorCode = detail['error_code']?.toString() ?? detail['code']?.toString();
         serverMessage = detail['message']?.toString();
         remainingAttempts = _extractRemainingAttempts(detail['details'] ?? detail);
+        statusDetail = _extractStatusDetail(detail['details'] ?? detail);
       } else if (detail is String) {
         serverMessage = detail;
       }
       errorCode ??= data['error_code']?.toString() ?? data['code']?.toString();
       serverMessage ??= data['message']?.toString();
       remainingAttempts ??= _extractRemainingAttempts(data['details']);
+      statusDetail ??= _extractStatusDetail(data['details']);
     }
 
     return AppErrorMessages.resolve(
@@ -82,8 +85,15 @@ class ApiError {
       errorCode: errorCode,
       serverMessage: serverMessage,
       remainingAttempts: remainingAttempts,
+      statusDetail: statusDetail,
       fallback: fallback,
     );
+  }
+
+  static String? _extractStatusDetail(dynamic details) {
+    if (details is! Map) return null;
+    return details['current_status']?.toString() ??
+        details['booking_status']?.toString();
   }
 
   /// Pulls `remaining_attempts` out of an error `details` payload

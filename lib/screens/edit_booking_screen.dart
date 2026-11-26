@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_theme.dart';
+import '../constants/error_messages.dart';
 import '../models/shift_model.dart';
 import '../providers/time_format_provider.dart';
 import '../utils/time_format.dart';
@@ -13,15 +14,22 @@ import '../widgets/skeletons.dart';
 
 class EditBookingScreen extends StatefulWidget {
   final int bookingId;
-  const EditBookingScreen({super.key, required this.bookingId});
+  final BookingService? bookingService;
+  final ShiftService? shiftService;
+  const EditBookingScreen({
+    super.key,
+    required this.bookingId,
+    this.bookingService,
+    this.shiftService,
+  });
 
   @override
   State<EditBookingScreen> createState() => _EditBookingScreenState();
 }
 
 class _EditBookingScreenState extends State<EditBookingScreen> {
-  final BookingService _bookingService = BookingService();
-  final ShiftService _shiftService = ShiftService();
+  late final BookingService _bookingService;
+  late final ShiftService _shiftService;
 
   bool _isLoading = true;
   bool _isUpdating = false;
@@ -34,6 +42,8 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   @override
   void initState() {
     super.initState();
+    _bookingService = widget.bookingService ?? BookingService();
+    _shiftService = widget.shiftService ?? ShiftService();
     _loadData();
   }
 
@@ -148,7 +158,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['error'] ?? 'Update failed'),
+          content: Text(result['error'] ?? AppErrorMessages.bookingUpdateFailed),
           backgroundColor: FxColors.error,
         ),
       );

@@ -148,6 +148,10 @@ class ChatService {
     return FirebaseDatabase.instance.ref(firebasePath);
   }
 
+  Stream<DatabaseEvent> onRealtimeConnectionChanged() {
+    return FirebaseDatabase.instance.ref('.info/connected').onValue;
+  }
+
   Stream<DatabaseEvent> onMessageAdded(String firebasePath) {
     return messagesRef(firebasePath).onChildAdded;
   }

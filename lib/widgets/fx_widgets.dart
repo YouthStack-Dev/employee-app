@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/app_theme.dart';
@@ -85,6 +86,92 @@ class FxTonalCard extends StatelessWidget {
       showShadow: false,
       onTap: onTap,
       child: child,
+    );
+  }
+}
+
+class FxSuccessBanner extends StatefulWidget {
+  const FxSuccessBanner({
+    super.key,
+    required this.message,
+    this.duration = const Duration(seconds: 4),
+    this.onDismissed,
+  });
+
+  final String message;
+  final Duration duration;
+  final VoidCallback? onDismissed;
+
+  @override
+  State<FxSuccessBanner> createState() => _FxSuccessBannerState();
+}
+
+class _FxSuccessBannerState extends State<FxSuccessBanner> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant FxSuccessBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message != widget.message ||
+        oldWidget.duration != widget.duration) {
+      _startTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer(widget.duration, () {
+      if (mounted) widget.onDismissed?.call();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: widget.message,
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: FxColors.primary,
+          borderRadius: FxRadii.card,
+          boxShadow: FxShadows.soft,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: FxColors.onPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.message,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: FxText.body(color: FxColors.onPrimary).copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

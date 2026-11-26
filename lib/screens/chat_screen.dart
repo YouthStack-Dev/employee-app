@@ -4,7 +4,6 @@ import '../constants/app_theme.dart';
 import '../models/chat_message_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
-import '../providers/time_format_provider.dart';
 import '../utils/time_format.dart';
 import '../widgets/fx_widgets.dart';
 import '../widgets/skeletons.dart';
@@ -51,10 +50,10 @@ class _ChatScreenState extends State<ChatScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _initChat() async {
+  Future<void> _initChat({bool force = false}) async {
     final chat = _chatRef;
     if (chat == null) return;
-    final ok = await chat.openChat(widget.bookingId);
+    final ok = await chat.openChat(widget.bookingId, force: force);
     if (!mounted) return;
     if (!ok) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -254,13 +253,36 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: FxText.title(), maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(
-                  chat.session == null ? 'Connecting…' : 'Language: ${chat.viewerLanguage.toUpperCase()}',
-                  style: FxText.bodySm(),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: _statusColor(chat.realtimeStatus),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '${_statusLabel(chat.realtimeStatus)} · Language: ${chat.viewerLanguage.toUpperCase()}',
+                        style: FxText.bodySm(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          if (chat.realtimeStatus == ChatRealtimeStatus.unavailable)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: FxColors.primary, size: 20),
+              tooltip: 'Retry live updates',
+              onPressed: () => _initChat(force: true),
+            ),
           Material(
             color: FxColors.surfaceContainerLow,
             shape: const CircleBorder(),
@@ -276,6 +298,28 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  String _statusLabel(ChatRealtimeStatus status) {
+    switch (status) {
+      case ChatRealtimeStatus.live:
+        return 'Live';
+      case ChatRealtimeStatus.connecting:
+        return 'Connecting…';
+      case ChatRealtimeStatus.unavailable:
+        return 'Live updates unavailable';
+    }
+  }
+
+  Color _statusColor(ChatRealtimeStatus status) {
+    switch (status) {
+      case ChatRealtimeStatus.live:
+        return FxColors.success;
+      case ChatRealtimeStatus.connecting:
+        return FxColors.amber;
+      case ChatRealtimeStatus.unavailable:
+        return FxColors.error;
+    }
   }
 
   Widget _buildMessageList(ChatProvider chat) {
@@ -310,7 +354,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: FxPrimaryButton(
                   label: 'Retry',
                   leadingIcon: Icons.refresh_rounded,
-                  onPressed: _initChat,
+                  onPressed: () => _initChat(force: true),
                 ),
               ),
             ],
@@ -392,7 +436,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _messageBubble(ChatMessage msg, bool isMine, String viewerLang) {
     final textColor = isMine ? FxColors.onPrimary : FxColors.onSurface;
-    final timeStr = formatClock(msg.sortTime, is24Hour: context.watch<TimeFormatProvider>().is24Hour);
+    final displayTime = msg.displayTime;
+    final timeStr = displayTime == null ? '' : formatClock(displayTime, is24Hour: false);
     final showOriginal = msg.originalLanguage != null &&
         msg.originalLanguage!.isNotEmpty &&
         msg.originalLanguage != viewerLang &&

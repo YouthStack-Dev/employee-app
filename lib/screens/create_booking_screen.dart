@@ -10,6 +10,12 @@ import '../constants/app_theme.dart';
 import 'date_picker_screen.dart';
 import 'select_shift_screen.dart';
 
+bool hasEnabledJourney({
+  required bool loginEnabled,
+  required bool logoutEnabled,
+}) =>
+    loginEnabled || logoutEnabled;
+
 class CreateBookingScreen extends StatefulWidget {
   const CreateBookingScreen({super.key});
 
@@ -88,6 +94,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
 
   bool get _isValid {
     if (_travelDates.isEmpty) return false;
+    if (!hasEnabledJourney(
+      loginEnabled: _loginEnabled,
+      logoutEnabled: _logoutEnabled,
+    )) {
+      return false;
+    }
     if (_loginEnabled) {
       if (_loginPickup == null || _loginDropoff == null) return false;
       if (_loginShift == null) return false;
@@ -260,6 +272,18 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   }
 
   Future<void> _handleCreate() async {
+    if (!hasEnabledJourney(
+      loginEnabled: _loginEnabled,
+      logoutEnabled: _logoutEnabled,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one journey (Login or Logout).'),
+          backgroundColor: FxColors.error,
+        ),
+      );
+      return;
+    }
     if (!_isValid) return;
     if (_tenantId == null || _employeeId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -314,15 +338,15 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     setState(() => _isCreating = false);
 
     if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Schedule created successfully'),
-          backgroundColor: _royalBlue,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        ),
+      final message = result['message']?.toString().trim();
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/schedules',
+        (route) => false,
+        arguments: (message == null || message.isEmpty)
+            ? 'Schedule created successfully'
+            : message,
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/schedules', (route) => false);
     } else {
       setState(() => _error = result['error']);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -403,7 +427,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                     _sectionCheckbox(
                       label: 'Login (Go to work)',
                       enabled: _loginEnabled,
-                      onChanged: (v) => setState(() => _loginEnabled = v),
+                      onChanged: (v) => setState(() {
+                        _loginEnabled = v;
+                        if (!v) _loginShift = null;
+                      }),
                     ),
                     if (_loginEnabled) ...[
                       const SizedBox(height: 14),
@@ -432,7 +459,13 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                     _sectionCheckbox(
                       label: 'Logout (Return home)',
                       enabled: _logoutEnabled,
-                      onChanged: (v) => setState(() => _logoutEnabled = v),
+                      onChanged: (v) => setState(() {
+                        _logoutEnabled = v;
+                        if (!v) {
+                          _logoutShift = null;
+                          _logoutNextDay = false;
+                        }
+                      }),
                     ),
                     if (_logoutEnabled) ...[
                       const SizedBox(height: 14),
@@ -509,6 +542,10 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   }
 
   Widget _bottomBar() {
+    final journeysDisabled = !hasEnabledJourney(
+      loginEnabled: _loginEnabled,
+      logoutEnabled: _logoutEnabled,
+    );
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -527,7 +564,9 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
         child: SizedBox(
           height: 72,
           child: ElevatedButton(
-            onPressed: _isValid && !_isCreating ? _handleCreate : null,
+            onPressed: _isCreating
+                ? null
+                : ((journeysDisabled || _isValid) ? _handleCreate : null),
             style: ElevatedButton.styleFrom(
               backgroundColor: _royalBlue,
               disabledBackgroundColor: FxColors.surfaceContainerHigh,

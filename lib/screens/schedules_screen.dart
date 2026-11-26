@@ -41,6 +41,8 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   bool _isActiveCardExpanded = true;
   DateTime _selectedHistoryDate = DateTime.now();
   List<Map<String, dynamic>> _switchableTenants = [];
+  String? _bookingSuccessMessage;
+  bool _bookingSuccessMessageInitialized = false;
 
   @override
   void initState() {
@@ -49,6 +51,31 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       _refreshBookings();
       _loadSwitchableTenants();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_bookingSuccessMessageInitialized) return;
+    _bookingSuccessMessageInitialized = true;
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is String && arguments.trim().isNotEmpty) {
+      _bookingSuccessMessage = arguments.trim();
+    }
+  }
+
+  Widget? _bookingSuccessBanner() {
+    final message = _bookingSuccessMessage;
+    if (message == null || message.isEmpty) return null;
+    return FxSuccessBanner(
+      message: message,
+      onDismissed: _clearBookingSuccessMessage,
+    );
+  }
+
+  void _clearBookingSuccessMessage() {
+    if (!mounted) return;
+    setState(() => _bookingSuccessMessage = null);
   }
 
   Future<void> _loadSwitchableTenants() async {
@@ -112,14 +139,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
       backgroundColor: FxColors.background,
       extendBody: true,
       body: SafeArea(bottom: false, child: _bottomIndex == 1 ? _buildProfilePage() : (_segmentIndex == 0 ? _buildUpcoming() : _buildPast())),
-      bottomNavigationBar: FxBottomNav(
-        currentIndex: _bottomIndex,
-        onTap: _onBottomNavTap,
-        items: const [
-          FxBottomNavItem(Icons.calendar_month_rounded, 'Bookings'),
-          FxBottomNavItem(Icons.person_rounded, 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: _appBottomNav(),
       floatingActionButton: _bottomIndex == 1 ? null : Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -230,6 +250,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         final todayActiveCount = activeList.where((b) => b.date == todayStr).length;
         final int todayCount = today.length + todayActiveCount;
         final laterCount = scheduled.length - today.length;
+        final successBanner = _bookingSuccessBanner();
 
         return RefreshIndicator(
           color: FxColors.primary,
@@ -249,7 +270,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                         if (i == 1) _fetchHistoryBookings(_selectedHistoryDate);
                       }),
                     ),
-                    const SizedBox(height: 28),
+                    if (successBanner != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: successBanner,
+                      )
+                    else
+                      const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -463,13 +491,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
   Widget _buildProfilePage() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
-    final name = user?.name ?? 'Employee';
+    final name = (user?.name ?? '').trim();
+    final displayName = name.isEmpty ? 'Employee' : name;
     final rawData = user?.rawEmployeeData ?? const <String, dynamic>{};
     final empCode = rawData['employee_code']?.toString() ?? user?.employeeId?.toString() ?? '';
 
-    const divider = FxColors.surfaceContainerHigh;
+    const divider = FxColors.surfaceContainer;
 
-    final initials = (name.trim().isEmpty ? 'E' : name.trim())
+    final initials = displayName
         .split(' ')
         .where((s) => s.isNotEmpty)
         .take(2)
@@ -490,22 +519,26 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     return Container(
       color: FxColors.background,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 100),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 112),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _profileSummaryCard(
               initials: initials,
-              name: name,
+              name: displayName,
               empCode: empCode,
             ),
-            const SizedBox(height: 19),
-            _menuTile(
-              icon: Icons.help_outline_rounded,
-              label: 'Help',
-              onTap: () => showNote('Help is coming soon.'),
+            const SizedBox(height: 16),
+            FxCard(
+              padding: EdgeInsets.zero,
+              borderRadius: BorderRadius.circular(20),
+              child: _menuTile(
+                icon: Icons.help_outline_rounded,
+                label: 'Help',
+                onTap: () => showNote('Help is coming soon.'),
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             _sectionCard(
               title: 'Preferences',
               children: [
@@ -519,7 +552,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 19),
+            const SizedBox(height: 16),
             _sectionCard(
               title: 'More',
               children: [
@@ -585,31 +618,30 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         ),
         child: Ink(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                FxColors.primary.withValues(alpha: 0.07),
-                FxColors.primaryContainer.withValues(alpha: 0.25),
-              ],
-            ),
+            color: FxColors.primaryContainer.withValues(alpha: 0.22),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: FxColors.surfaceContainerHigh),
+            border: Border.all(color: FxColors.primaryContainer.withValues(alpha: 0.35)),
+            boxShadow: FxShadows.soft,
           ),
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: 58,
+                height: 58,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: FxColors.surfaceContainerLow,
+                decoration: BoxDecoration(
+                  color: FxColors.surfaceContainerLowest,
                   shape: BoxShape.circle,
+                  border: Border.all(color: FxColors.primaryContainer.withValues(alpha: 0.50)),
                 ),
                 child: Text(
                   initials.isEmpty ? 'E' : initials,
-                  style: FxText.headlineMd().copyWith(fontSize: 20, color: FxColors.primary),
+                  style: FxText.headlineMd().copyWith(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    color: FxColors.primary,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -618,22 +650,24 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name.toUpperCase(),
-                      style: FxText.headlineMd(),
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: FxText.headlineLg().copyWith(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Emp ID ',
-                            style: FxText.body(color: FxColors.onSurfaceVariant).copyWith(fontSize: 14),
-                          ),
-                          TextSpan(
-                            text: empCode.isEmpty ? '—' : empCode,
-                            style: FxText.headlineMd(),
-                          ),
-                        ],
+                    const SizedBox(height: 5),
+                    Text(
+                      'Employee ID  ${empCode.isEmpty ? '—' : empCode}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: FxText.bodyLg().copyWith(
+                        fontSize: 15,
+                        color: FxColors.onSurfaceVariant,
+                        height: 1.3,
                       ),
                     ),
                   ],
@@ -644,12 +678,12 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: FxColors.primaryContainer.withValues(alpha: 0.25),
+                  color: FxColors.primary.withValues(alpha: 0.10),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.chevron_right_rounded,
-                  size: 22,
+                  size: 20,
                   color: FxColors.primary,
                 ),
               ),
@@ -664,19 +698,19 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
     required String title,
     required List<Widget> children,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: FxColors.surfaceContainerHigh),
-      ),
+    return FxCard(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      borderRadius: BorderRadius.circular(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: FxText.headlineMd(),
+            style: FxText.headlineMd().copyWith(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
           ),
           const SizedBox(height: 8),
           ...children,
@@ -692,30 +726,108 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: FxColors.surfaceContainerLow,
+              decoration: BoxDecoration(
+                color: FxColors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 20, color: FxColors.primary),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
-                style: FxText.bodyLg(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: FxText.bodyLg().copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, size: 22, color: FxColors.onSurfaceVariant),
+            const Icon(Icons.chevron_right_rounded, size: 20, color: FxColors.primary),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _appBottomNav() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 10 + MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: FxColors.surfaceContainerLowest,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: FxShadows.bottomNav,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _bottomNavItem(
+              index: 0,
+              icon: Icons.calendar_month_rounded,
+              label: 'Bookings',
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _bottomNavItem(
+              index: 1,
+              icon: Icons.person_rounded,
+              label: 'Profile',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomNavItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = index == _bottomIndex;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: () => _onBottomNavTap(index),
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? FxColors.primary.withValues(alpha: 0.10) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: selected ? FxColors.primary : FxColors.outline,
+                size: 21,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: FxText.body(color: selected ? FxColors.primary : FxColors.outline).copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1060,6 +1172,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
         }).toList()
           ..sort((a, b) => (b.shiftTime ?? b.pickupTime ?? '')
               .compareTo(a.shiftTime ?? a.pickupTime ?? ''));
+        final successBanner = _bookingSuccessBanner();
 
         return CustomScrollView(
           slivers: [
@@ -1073,7 +1186,14 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                     selectedIndex: _segmentIndex,
                     onChanged: (i) => setState(() => _segmentIndex = i),
                   ),
-                  const SizedBox(height: 24),
+                  if (successBanner != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: successBanner,
+                    )
+                  else
+                    const SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _historyDateBar(),
                   const SizedBox(height: 20),
                   Row(
@@ -1379,7 +1499,7 @@ class _RowDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      margin: const EdgeInsets.only(left: 70, right: 16),
+      margin: const EdgeInsets.only(left: 58, right: 8),
       color: color,
     );
   }

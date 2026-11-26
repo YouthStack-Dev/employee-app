@@ -41,6 +41,26 @@ void main() {
       expect(msg, AppErrorMessages.loginFailed);
     });
 
+    test('backend numeric error_code 401 maps to login-failure fallback', () {
+      final e = _serverError(401, {
+        'detail': {
+          'success': false,
+          'message': 'Incorrect tenant, email, or password',
+          'error_code': 401,
+          'details': null,
+        }
+      });
+      final msg = ApiError.resolve(e, feature: 'auth', fallback: AppErrorMessages.loginFailed);
+      expect(msg, AppErrorMessages.loginFailed);
+    });
+
+    test('nginx 405 maps to a friendly service-unavailable message', () {
+      final e = _serverError(405, '<html>405 Not Allowed</html>');
+      final msg = ApiError.resolve(e, feature: 'auth', fallback: AppErrorMessages.loginFailed);
+      expect(msg, contains('temporarily unavailable'));
+      expect(msg, isNot(contains('<html>')));
+    });
+
     test('auth 401 must NOT say "session expired" (that copy is for authed calls)', () {
       final e = _serverError(401, {'detail': 'Invalid credentials'});
       final msg = ApiError.resolve(e, feature: 'auth', fallback: AppErrorMessages.loginFailed);

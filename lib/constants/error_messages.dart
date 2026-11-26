@@ -55,6 +55,8 @@ class AppErrorMessages {
   static const Map<String, String> booking = {
     'TENANT_ID_REQUIRED':
         'Something went wrong with your session. Please log out and log in again.',
+    'TENANT_FORBIDDEN':
+        'You don\'t have access to book for this organization.',
     'EMPLOYEE_NOT_FOUND':
         'Your employee profile could not be found. Please contact your admin.',
     'BOOKING_OWNERSHIP_FORBIDDEN':
@@ -67,16 +69,32 @@ class AppErrorMessages {
         'This shift has been deactivated. Please choose another shift.',
     'SHIFT_GENDER_MISMATCH':
         'This shift is not available for your profile. Please select another shift.',
+    'WRONG_SHIFT_LOG_TYPE':
+        'Please select a valid shift for your journey.',
     'WEEKOFF_DAY':
         'You can\'t book on your designated day off. Please select a working day.',
     'ADHOC_BOOKING_DISABLED':
         'Ad-hoc bookings are not enabled for your team. Please contact your admin if you need a one-time ride.',
     'BOOKING_CUTOFF':
-        'The booking deadline for this shift has passed. Please book for the next available day.',
+        'Your selected shift is outside the permitted booking time.',
     'PAST_SHIFT_TIME':
         'This shift has already started today. Please book for tomorrow or a future date.',
+    'INVALID_DATE':
+        'Please select a valid future travel date.',
+    'BOOKING_FROZEN':
+        'Bookings are currently unavailable for the selected date.',
+    'BOOKING_TOO_FAR_AHEAD':
+        'The selected date is outside the allowed advance-booking period.',
+    'MAX_ACTIVE_BOOKINGS_REACHED':
+        'You have reached the maximum number of active bookings.',
     'ALREADY_BOOKED':
-        'You already have a booking for this date and shift.',
+        'You have already booked this shift for the selected date.',
+    'NEXT_DAY_WEEKOFF':
+        'Your next-day Logout date falls on a weekly off.',
+    'HOLIDAY_BLOCKED':
+        'Booking is unavailable because the selected date is a holiday.',
+    'NOTHING_TO_BOOK':
+        'Please select at least one journey (Login or Logout).',
     'NO_NODAL_ASSIGNMENT':
         'You don\'t have a pickup hub assigned yet. Please contact your transport coordinator.',
     'NODAL_POINT_INACTIVE':
@@ -100,7 +118,92 @@ class AppErrorMessages {
     'BOOKING_NOT_CANCELLABLE':
         'This booking cannot be cancelled in its current status. It may already be in progress.',
     'CANCEL_CUTOFF':
-        'The cancellation window for this booking has closed. Please contact your transport team if needed.',
+        'Booking cancellation time has expired. Please contact your administrator.',
+  };
+
+  static const Map<String, String> bookingUpdate = {
+    'INSUFFICIENT_PERMISSIONS':
+        'You don\'t have permission to modify this booking. Please contact your transport administrator.',
+    'BOOKING_NOT_FOUND':
+        'This booking is no longer available. Refresh your bookings and try again.',
+    'HOLIDAY_OVERRIDE_MOBILE_FORBIDDEN':
+        'Holiday booking overrides aren\'t available in the app. Please contact your transport administrator.',
+    'HOLIDAY_OVERRIDE_FORBIDDEN':
+        'You don\'t have permission to make a holiday booking change.',
+    'HOLIDAY_OVERRIDE_REASON_REQUIRED':
+        'Please provide a reason for the holiday booking change.',
+    'INVALID_BOOKING_STATUS':
+        'This booking can no longer be modified because it has already been processed.',
+    'INVALID_REBOOK_STATUS':
+        'This booking can no longer be rebooked because it is no longer cancelled. Refresh the details to see its current status.',
+    'SHIFT_NOT_FOUND':
+        'The selected shift is no longer available. Please choose another shift.',
+    'SHIFT_INACTIVE':
+        'The selected shift has been deactivated. Please choose another shift.',
+    'EMPLOYEE_NOT_FOUND':
+        'Your employee profile could not be found. Please contact your transport administrator.',
+    'EMPLOYEE_APP_INACTIVE':
+        'Your app access has been disabled. Please contact your transport administrator.',
+    'SHIFT_GENDER_MISMATCH':
+        'This shift is not available for your profile. Please choose another shift.',
+    'INVALID_DATE':
+        'Please select a valid future travel date.',
+    'HOLIDAY_BLOCKED':
+        'The selected date is a holiday and cannot be used for this booking change.',
+    'WEEKOFF_DAY':
+        'The selected date is your weekly off. Please choose a working day.',
+    'ADHOC_BOOKING_DISABLED':
+        'Ad-hoc booking changes are not enabled for your organization.',
+    'MEDICAL_EMERGENCY_BOOKING_DISABLED':
+        'Medical emergency booking changes are not enabled for your organization.',
+    'SHIFT_TIME_MISSING':
+        'The selected shift has no configured time. Please choose another shift.',
+    'BOOKING_CUTOFF':
+        'Booking modification time has expired. Please contact your administrator.',
+    'PAST_SHIFT_TIME':
+        'This shift has already started. The booking can no longer be modified. Please choose a future shift.',
+    'DUPLICATE_BOOKING':
+        'You already have an active booking for this shift and date. Please choose a different shift or date.',
+    'NO_NODAL_ASSIGNMENT':
+        'You don\'t have a pickup hub assigned yet. Please contact your transport coordinator.',
+    'INVALID_BOOKING_STATUS_TRANSITION':
+        'This booking cannot move to the requested status. Please refresh and try again.',
+    'TRANSITION_SOURCE_NOT_ALLOWED':
+        'This booking change is not allowed from the app. Please contact your transport administrator.',
+    'INTERNAL_SERVER_ERROR':
+        'Something went wrong on our end. Please try again in a moment.',
+  };
+
+  static const Map<String, String> bookingUpdateDefensive = {
+    'LOCATION_EDIT_DISABLED':
+        'Location changes are disabled by your transport administrator.',
+    'BOOKING_FROZEN':
+        'Booking modifications are temporarily disabled by your transport administrator.',
+    'BOOKING_ALREADY_ASSIGNED':
+        'Trip already generated. Please contact administrator to modify this booking.',
+    'BOOKING_ALREADY_ACTIVE':
+        'Your journey is already active. This booking can no longer be modified.',
+    'BOOKING_TOO_FAR_AHEAD':
+        'The selected date is outside the allowed booking period.',
+    'MAX_ACTIVE_BOOKINGS_REACHED':
+        'You already have the maximum number of active bookings.',
+  };
+
+  static const Map<String, String> bookingUpdateStatus = {
+    'SCHEDULED':
+        'Trip already generated. Please contact administrator to modify this booking.',
+    'ONGOING':
+        'Your journey has already started. This booking can no longer be modified.',
+    'COMPLETED':
+        'This journey has already been completed. The booking cannot be modified.',
+    'NO_SHOW':
+        'This booking was marked as a no-show and can no longer be modified.',
+    'EXPIRED':
+        'This booking has expired and can no longer be modified.',
+    'CANCELLED':
+        'This booking is cancelled. Please use rebook instead of update.',
+    'REQUEST':
+        'This booking is still being processed. Please refresh and try again.',
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -198,8 +301,10 @@ class AppErrorMessages {
         return 'You\'re making too many requests. Please wait a moment and try again.';
       case 500:
         return 'Something went wrong on our end. Please try again in a moment.';
+      case 405:
       case 502:
       case 503:
+      case 504:
         return 'Our service is temporarily unavailable. Please try again in a few minutes.';
       default:
         return 'Something went wrong. Please try again.';
@@ -231,6 +336,8 @@ class AppErrorMessages {
       'Unable to create booking. Please try again.';
   static const String bookingCancelFailed =
       'Unable to cancel booking. Please try again.';
+  static const String bookingUpdateFailed =
+      'Unable to update or rebook this booking. Please try again.';
   static const String shiftLoadFailed =
       'Unable to load available shifts. Pull down to refresh.';
   static const String reviewFailed =
@@ -260,10 +367,15 @@ class AppErrorMessages {
     String? errorCode,
     String? serverMessage,
     int? remainingAttempts,
+    String? statusDetail,
     String? fallback,
   }) {
     // 1. Try mapping by error_code
     if (errorCode != null && errorCode.isNotEmpty) {
+      if (feature == 'bookingUpdate' && errorCode == 'INVALID_BOOKING_STATUS') {
+        final statusMessage = _bookingUpdateStatusMessage(statusDetail);
+        if (statusMessage != null) return statusMessage;
+      }
       final mapped = _lookupCode(feature, errorCode);
       if (mapped != null) {
         // INVALID_OTP responses carry `details.remaining_attempts` — surface it.
@@ -289,12 +401,24 @@ class AppErrorMessages {
     return fallback ?? 'Something went wrong. Please try again.';
   }
 
+  static String? _bookingUpdateStatusMessage(String? statusDetail) {
+    if (statusDetail == null || statusDetail.trim().isEmpty) return null;
+    final normalized = statusDetail
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'[\s_-]+'), '_');
+    final key = normalized == 'NOSHOW' ? 'NO_SHOW' : normalized;
+    return bookingUpdateStatus[key];
+  }
+
   static String? _lookupCode(String feature, String code) {
     switch (feature) {
       case 'auth':
         return auth[code];
       case 'booking':
         return booking[code];
+      case 'bookingUpdate':
+        return bookingUpdate[code] ?? bookingUpdateDefensive[code];
       case 'shift':
         return shift[code];
       case 'weekoff':

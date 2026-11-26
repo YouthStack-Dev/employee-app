@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import '../constants/api_constants.dart';
+
 /// Singleton service that monitors real internet connectivity.
 /// Differentiates between "WiFi connected but no internet" and truly online.
 class ConnectivityService extends ChangeNotifier {
@@ -76,7 +78,8 @@ class ConnectivityService extends ChangeNotifier {
       _connectionType = _hasWifi ? 'wifi' : (_hasMobile ? 'mobile' : 'other');
 
       // Real internet check — DNS lookup is fast and reliable
-      final result = await InternetAddress.lookup('api.mltcorporate.com')
+      final apiHost = Uri.parse(ApiConstants.baseUrl).host;
+      final result = await InternetAddress.lookup(apiHost)
           .timeout(const Duration(seconds: 5));
       final hasInternet = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       _updateOnlineStatus(hasInternet);
